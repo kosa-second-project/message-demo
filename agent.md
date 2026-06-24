@@ -470,3 +470,57 @@ AI 검사 요구사항:
 - 4개 통계 화면
 
 실제 구현 시 이 데모를 그대로 복제하기보다, 핵심 플로우와 정보 구조를 Spring Boot/Thymeleaf 화면으로 옮기는 것을 목표로 합니다.
+
+## 현재 데모 구현 참고
+
+현재 저장소는 React/Vite 기반 프론트 데모입니다. 백엔드 구현 전 화면 흐름과 기능 범위를 확인하기 위한 용도입니다.
+
+주요 파일:
+
+- `src/app/App.tsx`: 전체 화면, mock 데이터, 주요 페이지 컴포넌트 포함
+- `src/main.tsx`: 앱 진입점
+- `src/styles/theme.css`: 디자인 토큰
+- `src/styles/index.css`: 스타일 엔트리
+
+현재 라우팅 구조:
+
+- `dashboard` -> `DashboardPage`
+- `send` -> `SendMessagePageWizard`
+- `templates` -> `TemplatesPage`
+- `history` -> `HistoryPage`
+- `members` -> `MembersPage`
+- `stats-overview` -> `StatsOverview`
+- `stats-channel` -> `StatsChannel`
+- `stats-member` -> `StatsMember`
+- `stats-performance` -> `StatsPerformance`
+
+주의:
+
+- 메시지 발송 화면의 활성 컴포넌트는 `SendMessagePageWizard`입니다.
+- 이전 실험용 발송 컴포넌트가 파일 안에 남아 있을 수 있으나 현재 메뉴에서는 사용하지 않습니다.
+- `modern-design-source/`는 사용자가 보낸 디자인 참고 파일을 풀어둔 로컬 백업이며 실행에는 필요하지 않습니다.
+
+## 다음 작업 제안
+
+- `src/app/App.tsx`를 페이지/컴포넌트 단위로 분리
+- 사용하지 않는 이전 발송 컴포넌트 정리
+- Spring Boot 전환 시 화면별 Thymeleaf 템플릿 구조 설계
+- Oracle 기준 테이블 설계
+- API 또는 Controller URL 설계
+- 회원/태그/템플릿 대량 데이터 페이징 설계
+- 파일 업로드 검증 로직 설계
+- 발송 전 최종 확인 모달 강화
+- AI 추천/검사 mock 서비스 분리
+- 접근성, 키보드 이동, 폼 검증 보완
+
+## 향후 작업 시 주의사항
+
+- 장식적인 랜딩 페이지 스타일로 바꾸지 않습니다.
+- 메시지 발송은 단계형 플로우를 유지합니다.
+- AI 자동 추천 기능을 제거하지 않습니다.
+- 회원 개별 포함/제외 기능을 제거하지 않습니다.
+- 템플릿 선택을 단순 드롭다운으로 축소하지 않습니다.
+- 태그를 전체 나열식 칩 목록으로만 처리하지 않습니다.
+- 표 행 hover 색상 변경과 pointer cursor를 유지합니다.
+- 대량 회원, 대량 태그, 대량 템플릿을 항상 고려합니다.
+- 색상과 디자인은 현재 데모 톤을 기준으로 유지합니다.
