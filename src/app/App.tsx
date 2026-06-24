@@ -17,26 +17,28 @@ import {
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Page =
   | "dashboard" | "send" | "templates" | "history" | "members"
-  | "stats-overview" | "stats-channel" | "stats-member" | "stats-performance";
+  | "stats-overview" | "stats-channel" | "stats-routing" | "stats-member" | "stats-performance";
 
 interface Template {
   id: number; name: string; channel: string; content: string; category: string; usageCount: number; updatedAt: string; tags?: string[];
+  scope?: string; approvalStatus?: string; rejectReason?: string; openRate?: number; clickRate?: number; optOutRate?: number;
 }
 interface Member {
   id: number; name: string; phone: string; type: string; smsConsent: boolean; kakaoConsent: boolean; rcsConsent: boolean; joinedAt: string; lastSend: string; tags?: string[];
 }
 interface SendRecord {
   id: number; template: string; channel: string; targetType: string; count: number; success: number; fail: number; sentAt: string; status: string;
+  cost: number; savedCost: number; affiliate: string; failoverSteps: { label: string; requested: number; success: number; fail: number }[];
 }
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 const TEMPLATES: Template[] = [
-  { id: 1, name: "6월 여름 할인 이벤트", channel: "카카오 친구톡", content: "[현대퓨처넷] 안녕하세요 #{이름}님! 6월 특별 여름 세일이 시작되었습니다.\n최대 30% 할인 혜택을 지금 바로 만나보세요.", category: "이벤트", usageCount: 128, updatedAt: "2026-06-20" },
-  { id: 2, name: "생일 축하 메시지", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 생일을 진심으로 축하드립니다! 특별한 생일 쿠폰을 확인해보세요.", category: "혜택", usageCount: 2341, updatedAt: "2026-06-18" },
-  { id: 3, name: "신규 가입 환영", channel: "카카오 알림톡", content: "[현대퓨처넷] #{이름}님, 가입을 환영합니다! 신규 가입 혜택 5,000P가 적립되었습니다.", category: "안내", usageCount: 891, updatedAt: "2026-06-15" },
-  { id: 4, name: "포인트 소멸 안내", channel: "LMS", content: "[현대퓨처넷] 안내 드립니다. #{이름}님의 포인트 #{포인트}P가 2026년 6월 30일 소멸 예정입니다. 지금 바로 사용하세요!", category: "안내", usageCount: 445, updatedAt: "2026-06-10" },
-  { id: 5, name: "VIP 멤버십 전용 혜택", channel: "카카오 친구톡", content: "[현대퓨처넷] #{이름}님께만 드리는 VIP 전용 특가 상품을 안내해드립니다. 특별한 혜택을 놓치지 마세요!", category: "VIP", usageCount: 312, updatedAt: "2026-06-08" },
-  { id: 6, name: "배송 완료 안내", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 주문하신 상품이 배송 완료되었습니다. 주문번호: #{주문번호}", category: "안내", usageCount: 5821, updatedAt: "2026-06-01" },
+  { id: 1, name: "6월 여름 할인 이벤트", channel: "카카오 친구톡", content: "[현대퓨처넷] 안녕하세요 #{이름}님! 6월 특별 여름 세일이 시작되었습니다.\n최대 30% 할인 혜택을 지금 바로 만나보세요.", category: "이벤트", usageCount: 128, updatedAt: "2026-06-20", scope: "현대백화점 전용", approvalStatus: "승인 완료", openRate: 54.3, clickRate: 21.8, optOutRate: 0.18 },
+  { id: 2, name: "생일 축하 메시지", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 생일을 진심으로 축하드립니다! 특별한 생일 쿠폰을 확인해보세요.", category: "혜택", usageCount: 2341, updatedAt: "2026-06-18", scope: "전사 공통", approvalStatus: "불필요", openRate: 78.4, clickRate: 34.2, optOutRate: 0.05 },
+  { id: 3, name: "신규 가입 환영", channel: "카카오 알림톡", content: "[현대퓨처넷] #{이름}님, 가입을 환영합니다! 신규 가입 혜택 5,000P가 적립되었습니다.", category: "안내", usageCount: 891, updatedAt: "2026-06-15", scope: "전사 공통", approvalStatus: "승인 완료", openRate: 68.1, clickRate: 25.4, optOutRate: 0.08 },
+  { id: 4, name: "포인트 소멸 안내", channel: "LMS", content: "[현대퓨처넷] 안내 드립니다. #{이름}님의 포인트 #{포인트}P가 2026년 6월 30일 소멸 예정입니다. 지금 바로 사용하세요!", category: "안내", usageCount: 445, updatedAt: "2026-06-10", scope: "현대홈쇼핑 전용", approvalStatus: "불필요", openRate: 62.8, clickRate: 18.1, optOutRate: 0.11 },
+  { id: 5, name: "VIP 멤버십 전용 혜택", channel: "카카오 친구톡", content: "[현대퓨처넷] #{이름}님께만 드리는 VIP 전용 특가 상품을 안내해드립니다. 특별한 혜택을 놓치지 마세요!", category: "VIP", usageCount: 312, updatedAt: "2026-06-08", scope: "한섬 전용", approvalStatus: "반려", rejectReason: "혜택 문구가 과장 표현으로 분류됨", openRate: 71.2, clickRate: 28.9, optOutRate: 0.22 },
+  { id: 6, name: "배송 완료 안내", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 주문하신 상품이 배송 완료되었습니다. 주문번호: #{주문번호}", category: "안내", usageCount: 5821, updatedAt: "2026-06-01", scope: "전사 공통", approvalStatus: "불필요", openRate: 66.4, clickRate: 12.6, optOutRate: 0.03 },
 ];
 const TEMPLATE_TAGS = ["VIP", "VVIP", "신규", "휴면", "생일", "포인트", "쿠폰", "최근구매", "장바구니", "앱사용자", "현대백화점", "현대홈쇼핑", "한섬", "리빙", "패션", "오프라인방문"];
 const MEMBER_TAGS = ["전체 회원", "VIP", "VVIP", "일반", "신규", "휴면", "생일 대상자", "포인트 소멸 예정", "최근구매", "장바구니 이탈", "쿠폰 반응", "앱사용자", "카카오 동의", "SMS 동의", "RCS 동의", "LMS 동의", "현대백화점", "현대홈쇼핑", "한섬", "리빙 관심", "패션 관심", "오프라인 방문", "미동의 제외"];
@@ -96,12 +98,47 @@ const createMemberRows = () => Array.from({ length: 96 }, (_, index) => {
   };
 });
 const HISTORY: SendRecord[] = [
-  { id: 1, template: "6월 여름 할인 이벤트", channel: "카카오 친구톡", targetType: "전체 회원", count: 284391, success: 279112, fail: 5279, sentAt: "2026-06-22 14:00", status: "완료" },
-  { id: 2, template: "포인트 소멸 안내", channel: "LMS", targetType: "일반·VIP", count: 92841, success: 91220, fail: 1621, sentAt: "2026-06-21 09:30", status: "완료" },
-  { id: 3, template: "생일 축하 메시지", channel: "SMS", targetType: "생일 대상자", count: 1284, success: 1270, fail: 14, sentAt: "2026-06-20 08:00", status: "완료" },
-  { id: 4, template: "VIP 멤버십 전용 혜택", channel: "카카오 친구톡", targetType: "VIP", count: 18420, success: 18198, fail: 222, sentAt: "2026-06-19 11:00", status: "완료" },
-  { id: 5, template: "신규 가입 환영", channel: "카카오 알림톡", targetType: "신규 가입자", count: 341, success: 338, fail: 3, sentAt: "2026-06-19 실시간", status: "진행중" },
-  { id: 6, template: "배송 완료 안내", channel: "SMS", targetType: "배송 완료자", count: 2841, success: 2830, fail: 11, sentAt: "2026-06-18 16:00", status: "완료" },
+  { id: 1, template: "6월 여름 할인 이벤트", channel: "스마트 라우팅", targetType: "전체 회원", count: 284391, success: 279112, fail: 5279, sentAt: "2026-06-22 14:00", status: "완료", cost: 3128400, savedCost: 1245600, affiliate: "현대백화점", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 284391, success: 279112, fail: 5279 }, { label: "2차 SMS 대체", requested: 5279, success: 5144, fail: 135 }] },
+  { id: 2, template: "포인트 소멸 안내", channel: "LMS", targetType: "일반·VIP", count: 92841, success: 91220, fail: 1621, sentAt: "2026-06-21 09:30", status: "완료", cost: 2785230, savedCost: 0, affiliate: "현대홈쇼핑", failoverSteps: [{ label: "1차 LMS", requested: 92841, success: 91220, fail: 1621 }] },
+  { id: 3, template: "생일 축하 메시지", channel: "SMS", targetType: "생일 대상자", count: 1284, success: 1270, fail: 14, sentAt: "2026-06-20 08:00", status: "완료", cost: 12840, savedCost: 0, affiliate: "전사 공통", failoverSteps: [{ label: "1차 SMS", requested: 1284, success: 1270, fail: 14 }] },
+  { id: 4, template: "VIP 멤버십 전용 혜택", channel: "스마트 라우팅", targetType: "VIP", count: 18420, success: 18198, fail: 222, sentAt: "2026-06-19 11:00", status: "완료", cost: 198720, savedCost: 82680, affiliate: "한섬", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 18420, success: 18198, fail: 222 }, { label: "2차 SMS 대체", requested: 222, success: 219, fail: 3 }] },
+  { id: 5, template: "신규 가입 환영", channel: "카카오 알림톡", targetType: "신규 가입자", count: 341, success: 338, fail: 3, sentAt: "2026-06-19 실시간", status: "진행중", cost: 2046, savedCost: 1364, affiliate: "전사 공통", failoverSteps: [{ label: "1차 카카오 알림톡", requested: 341, success: 338, fail: 3 }] },
+  { id: 6, template: "배송 완료 안내", channel: "SMS", targetType: "배송 완료자", count: 2841, success: 2830, fail: 11, sentAt: "2026-06-18 16:00", status: "완료", cost: 28410, savedCost: 0, affiliate: "현대백화점", failoverSteps: [{ label: "1차 SMS", requested: 2841, success: 2830, fail: 11 }] },
+];
+
+const formatWon = (value: number) => `₩${value.toLocaleString()}`;
+const QUEUE_STATUS = [
+  { label: "대기", count: 0, color: "bg-slate-400" },
+  { label: "발송 중", count: 2500, color: "bg-blue-500" },
+  { label: "완료", count: 12847, color: "bg-emerald-500" },
+  { label: "실패", count: 165, color: "bg-red-500" },
+];
+const routingSavingsData = [
+  { month: "1월", actual: 9800000, baseline: 11200000, saved: 1400000 },
+  { month: "2월", actual: 10600000, baseline: 12450000, saved: 1850000 },
+  { month: "3월", actual: 12100000, baseline: 14900000, saved: 2800000 },
+  { month: "4월", actual: 13800000, baseline: 16950000, saved: 3150000 },
+  { month: "5월", actual: 16200000, baseline: 20700000, saved: 4500000 },
+  { month: "6월", actual: 18700000, baseline: 24200000, saved: 5500000 },
+];
+const channelCostData = [
+  { channel: "카카오 알림톡", sends: 160450, successRate: 99.4, failRate: 0.6, cost: 962700, unit: 6 },
+  { channel: "카카오 친구톡", sends: 374829, successRate: 98.9, failRate: 1.1, cost: 2623803, unit: 7 },
+  { channel: "SMS", sends: 249886, successRate: 99.1, failRate: 0.9, cost: 2498860, unit: 10 },
+  { channel: "LMS", sends: 80241, successRate: 98.2, failRate: 1.8, cost: 2407230, unit: 30 },
+  { channel: "RCS", sends: 26739, successRate: 97.8, failRate: 2.2, cost: 374346, unit: 14 },
+];
+const affiliateStats = [
+  { name: "현대백화점", sends: 384210, cost: 7200000, rate: 98.9 },
+  { name: "현대홈쇼핑", sends: 248300, cost: 5600000, rate: 98.1 },
+  { name: "한섬", sends: 168410, cost: 3900000, rate: 97.8 },
+  { name: "리빙", sends: 91420, cost: 2000000, rate: 98.4 },
+];
+const fallbackStats = [
+  { label: "Push 실패 후 알림톡 전환", count: 320 },
+  { label: "알림톡 실패 후 SMS 전환", count: 85 },
+  { label: "친구톡 실패 후 SMS 전환", count: 5144 },
+  { label: "최종 실패", count: 24 },
 ];
 
 const monthlyData = [
@@ -336,6 +373,7 @@ const NAV_ITEMS = [
 const STAT_ITEMS = [
   { page: "stats-overview" as Page, label: "발송 현황" },
   { page: "stats-channel" as Page, label: "채널 분석" },
+  { page: "stats-routing" as Page, label: "비용/라우팅 분석" },
   { page: "stats-member" as Page, label: "회원 분석" },
   { page: "stats-performance" as Page, label: "성과 분석" },
 ];
@@ -408,7 +446,7 @@ function Sidebar({ current, setCurrent, onLogout }: { current: Page; setCurrent:
 const PAGE_TITLES: Record<Page, string> = {
   dashboard: "대시보드", send: "메시지 발송", templates: "템플릿 관리", history: "전송 기록",
   members: "회원 관리", "stats-overview": "통계 · 발송 현황", "stats-channel": "통계 · 채널 분석",
-  "stats-member": "통계 · 회원 분석", "stats-performance": "통계 · 성과 분석",
+  "stats-routing": "통계 · 비용/라우팅 분석", "stats-member": "통계 · 회원 분석", "stats-performance": "통계 · 성과 분석",
 };
 function Header({ page }: { page: Page }) {
   return (
@@ -432,11 +470,36 @@ function Header({ page }: { page: Page }) {
 function DashboardPage({ setPage }: { setPage: (p: Page) => void }) {
   return (
     <div className="p-6 space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
         <StatCard label="오늘 발송 건수" value="12,847" sub="06월 23일 기준" trend={{ val: "+8.2%", up: true }} icon={<Send className="w-4 h-4" />} color="blue" />
         <StatCard label="발송 성공률" value="98.7%" sub="실패 165건" trend={{ val: "+0.3%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
         <StatCard label="활성 회원 수" value="284,391" sub="전체 307,811명" trend={{ val: "+1,284명", up: true }} icon={<Users className="w-4 h-4" />} color="violet" />
         <StatCard label="이번달 누적 발송" value="892,451" sub="목표 1,000,000건" trend={{ val: "+12.4%", up: true }} icon={<BarChart3 className="w-4 h-4" />} color="amber" />
+        <StatCard label="스마트 라우팅 절감" value="₩5.5M" sub="SMS/LMS 대비 누적" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
+      </div>
+
+      <div className="bg-card rounded-xl border border-border p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-bold text-foreground">실시간 발송 큐 상태</h3>
+            <p className="text-xs text-muted-foreground mt-1">대량 발송 엔진의 현재 처리 흐름입니다.</p>
+          </div>
+          <button onClick={() => setPage("stats-routing")} className="text-xs text-primary font-semibold hover:underline flex items-center gap-0.5">상세 분석 <ChevronRight className="w-3 h-3" /></button>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          {QUEUE_STATUS.map(item => (
+            <div key={item.label} className="rounded-lg bg-muted p-3">
+              <div className="text-xs text-muted-foreground mb-1">{item.label}</div>
+              <div className="text-lg font-bold">{item.count.toLocaleString()}건</div>
+            </div>
+          ))}
+        </div>
+        <div className="h-2 rounded-full bg-muted overflow-hidden flex">
+          {QUEUE_STATUS.map(item => {
+            const total = QUEUE_STATUS.reduce((sum, current) => sum + current.count, 0);
+            return <div key={item.label} className={`${item.color} h-full`} style={{ width: `${Math.max(2, (item.count / total) * 100)}%` }} />;
+          })}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -545,6 +608,7 @@ function DashboardPage({ setPage }: { setPage: (p: Page) => void }) {
 
 // ─── Send Message Page ────────────────────────────────────────────────────────
 const CHANNELS = [
+  { id: "smart-routing", label: "스마트 라우팅", sub: "최저가 조합 자동 선택", icon: Zap },
   { id: "sms", label: "SMS", sub: "90자 이내 단문", icon: Phone },
   { id: "lms", label: "LMS", sub: "2,000자 이내 장문", icon: Mail },
   { id: "kakao-noti", label: "카카오 알림톡", sub: "거래/안내 메시지", icon: MessageSquare },
@@ -834,6 +898,9 @@ function SendMessagePageV2() {
   const [messageDraft, setMessageDraft] = useState(templates[0]?.content ?? "");
   const [selectedChannel, setSelectedChannel] = useState("kakao-friend");
   const [sendType, setSendType] = useState<"now" | "later">("now");
+  const [smartRouting, setSmartRouting] = useState(true);
+  const [failoverEnabled, setFailoverEnabled] = useState(true);
+  const [fallbacks, setFallbacks] = useState({ name: "고객님", point: "0", order: "주문번호 없음" });
   const [aiLoading, setAiLoading] = useState(false);
   const [aiPlan, setAiPlan] = useState<null | { title: string; reason: string; audience: string; template: string; channel: string; message: string }>(null);
   const [aiResult, setAiResult] = useState(false);
@@ -1130,6 +1197,9 @@ function SendMessagePageWizard() {
   const [messageDraft, setMessageDraft] = useState(templates[0]?.content ?? "");
   const [selectedChannel, setSelectedChannel] = useState("kakao-friend");
   const [sendType, setSendType] = useState<"now" | "later">("now");
+  const [smartRouting, setSmartRouting] = useState(true);
+  const [failoverEnabled, setFailoverEnabled] = useState(true);
+  const [fallbacks, setFallbacks] = useState({ name: "고객님", point: "0", order: "주문번호 없음" });
   const [aiLoading, setAiLoading] = useState(false);
   const [aiPlan, setAiPlan] = useState<null | { title: string; reason: string; audience: string; template: string; channel: string; message: string }>(null);
   const [aiResult, setAiResult] = useState(false);
@@ -1160,6 +1230,12 @@ function SendMessagePageWizard() {
   });
   const visibleTemplates = filteredTemplates.slice(0, 10);
   const estimatedTarget = selectedTags.includes("전체 회원") ? 284391 : Math.max(4200, candidateMembers.length * 1370 + includedMembers.length - excludedMembers.length);
+  const messageMode = messageDraft.length > 45 ? "LMS" : "SMS";
+  const selectedChannelMeta = CHANNELS.find(channel => channel.id === selectedChannel);
+  const unitCost = selectedChannel === "smart-routing" || smartRouting ? 7 : selectedChannel === "sms" ? 10 : selectedChannel === "lms" ? 30 : selectedChannel === "kakao-noti" ? 6 : selectedChannel === "rcs" ? 14 : 8;
+  const estimatedCost = estimatedTarget * unitCost;
+  const baselineCost = estimatedTarget * (messageMode === "LMS" ? 30 : 10);
+  const estimatedSaving = Math.max(0, baselineCost - estimatedCost);
   const aiComplete = aiJobs.every(job => job.status === "완료") && aiResult;
   const canSend = selectedTags.length > 0 && messageDraft.trim().length > 0 && !!selectedChannel && aiComplete;
   const stepMeta = ["수신자 선택", "메시지 작성", "채널 선택", "검토 및 발송"];
@@ -1171,6 +1247,8 @@ function SendMessagePageWizard() {
   ];
 
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag]);
+  const selectAllMembers = () => setSelectedTags(["전체 회원"]);
+  const insertVariable = (value: string) => setMessageDraft(prev => `${prev}${prev.endsWith(" ") || prev.length === 0 ? "" : " "}${value}`);
   const toggleMemberCheck = (id: number) => setCheckedMembers(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
   const mergeMembers = (base: Member[], add: Member[]) => [...base, ...add.filter(member => !base.some(item => item.id === member.id))];
   const addChecked = () => {
@@ -1265,7 +1343,10 @@ function SendMessagePageWizard() {
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-bold">태그 기반 수신자</h3>
-          <span className="text-xs font-semibold text-primary">예상 {estimatedTarget.toLocaleString()}명</span>
+          <div className="flex items-center gap-2">
+            <button onClick={selectAllMembers} className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-primary hover:bg-accent">전체 회원 선택</button>
+            <span className="text-xs font-semibold text-primary">예상 {estimatedTarget.toLocaleString()}명</span>
+          </div>
         </div>
         <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -1337,18 +1418,21 @@ function SendMessagePageWizard() {
           </div>
         </div>
         <div className="max-h-[560px] overflow-auto">
-          {visibleTemplates.map(template => (
-            <button key={template.id} onClick={() => pickTemplate(template)} className={`block w-full text-left px-4 py-3 border-b border-border last:border-0 transition-colors cursor-pointer ${selectedTemplateId === template.id ? "bg-accent" : "hover:bg-blue-50/60"}`}>
+          {visibleTemplates.map(template => {
+            const locked = (template.channel.includes("알림톡") || template.channel === "RCS") && template.approvalStatus !== "승인 완료";
+            return (
+            <button key={template.id} disabled={locked} onClick={() => !locked && pickTemplate(template)} className={`block w-full text-left px-4 py-3 border-b border-border last:border-0 transition-colors ${locked ? "cursor-not-allowed opacity-55 bg-muted/40" : selectedTemplateId === template.id ? "bg-accent cursor-pointer" : "hover:bg-blue-50/60 cursor-pointer"}`}>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-bold truncate">{template.name}</span>
                 <Badge text={template.channel} variant="blue" />
+                {template.approvalStatus && <Badge text={locked ? template.approvalStatus : template.approvalStatus} variant={locked ? "red" : template.approvalStatus === "승인 완료" ? "green" : "default"} />}
               </div>
               <p className="text-xs text-muted-foreground truncate">{template.content.replace(/\n/g, " ")}</p>
               <div className="flex flex-wrap gap-1 mt-2">
                 {getTemplateTags(template).slice(0, 4).map(tag => <span key={tag} className="px-1.5 py-0.5 rounded bg-muted text-[10px] text-muted-foreground">{tag}</span>)}
               </div>
             </button>
-          ))}
+          )})}
         </div>
         <div className="px-4 py-3 border-t border-border bg-muted text-xs text-muted-foreground">
           {filteredTemplates.length.toLocaleString()}건 검색됨 · 상위 10건 표시
@@ -1358,20 +1442,60 @@ function SendMessagePageWizard() {
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center justify-between gap-3 mb-3">
             <div>
-              <h3 className="text-sm font-bold">메시지 미리보기</h3>
+              <h3 className="text-sm font-bold">스마트폰 미리보기</h3>
               <p className="text-xs text-muted-foreground mt-1">{selectedTemplate ? selectedTemplate.name : "직접 작성"}</p>
             </div>
-            <span className="text-xs text-muted-foreground">{messageDraft.length}자</span>
+            <Badge text={`${messageMode} · ${unitCost}원/건`} variant={messageMode === "LMS" ? "amber" : "blue"} />
           </div>
           <div className="mb-3 flex flex-wrap gap-1.5">
             {selectedTemplate && <Badge text={selectedTemplate.channel} variant="blue" />}
             {selectedTemplate && getTemplateTags(selectedTemplate).map(tag => <span key={tag} className="px-2 py-0.5 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">{tag}</span>)}
           </div>
-          <pre className="min-h-44 whitespace-pre-wrap rounded-lg border border-border bg-muted p-4 text-sm leading-relaxed">{messageDraft.replaceAll("#{이름}", "김민준").replaceAll("#{포인트}", "12,400").replaceAll("#{주문번호}", "H20260624001")}</pre>
+          <div className="mx-auto max-w-[300px] rounded-[2rem] border-8 border-slate-900 bg-slate-900 p-2 shadow-xl">
+            <div className="rounded-[1.35rem] bg-white overflow-hidden">
+              <div className="flex items-center justify-between bg-slate-50 px-4 py-2 text-[11px] font-bold">
+                <span>9:41</span><span>{selectedChannelMeta?.label ?? "채널 선택"}</span>
+              </div>
+              <div className="bg-[#f2f4f7] p-4 min-h-[280px]">
+                <div className="mb-2 text-[11px] text-muted-foreground">현대퓨처넷</div>
+                <div className="max-w-[220px] rounded-2xl rounded-tl-sm bg-white p-3 text-sm leading-relaxed shadow-sm whitespace-pre-wrap">
+                  {messageDraft.replaceAll("#{이름}", fallbacks.name).replaceAll("#{포인트}", fallbacks.point).replaceAll("#{주문번호}", fallbacks.order)}
+                </div>
+                {(selectedChannel === "kakao-friend" || selectedChannel === "rcs") && (
+                  <div className="mt-2 grid grid-cols-2 gap-1.5 max-w-[220px]">
+                    <button className="rounded-lg bg-primary px-2 py-2 text-[11px] font-bold text-white">쿠폰 확인</button>
+                    <button className="rounded-lg bg-white px-2 py-2 text-[11px] font-bold text-primary border border-border">상세 보기</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          {messageDraft.length > 45 && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-700">
+              <AlertTriangle className="w-3.5 h-3.5" /> SMS 길이를 초과해 LMS 기준 비용으로 계산될 수 있습니다.
+            </div>
+          )}
         </div>
         <div className="rounded-xl border border-border bg-card p-5">
           <h3 className="text-sm font-bold mb-3">메시지 작성</h3>
+          <div className="mb-3 flex flex-wrap gap-2">
+            {[["이름", "#{이름}"], ["포인트", "#{포인트}"], ["주문번호", "#{주문번호}"]].map(([label, value]) => (
+              <button key={value} onClick={() => insertVariable(value)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted-foreground hover:bg-accent hover:text-foreground">{label} 삽입</button>
+            ))}
+          </div>
           <textarea value={messageDraft} onChange={event => { setMessageDraft(event.target.value); setSelectedTemplateId(0); }} rows={9} className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-input-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {[
+              ["이름 기본값", "name"],
+              ["포인트 기본값", "point"],
+              ["주문번호 기본값", "order"],
+            ].map(([label, key]) => (
+              <label key={key} className="text-xs font-semibold text-muted-foreground">
+                {label}
+                <input value={fallbacks[key as keyof typeof fallbacks]} onChange={event => setFallbacks(prev => ({ ...prev, [key]: event.target.value }))} className="mt-1 w-full rounded-lg border border-border bg-input-background px-2 py-1.5 text-xs text-foreground" />
+              </label>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -1383,7 +1507,7 @@ function SendMessagePageWizard() {
         <h3 className="text-sm font-bold mb-4">채널 선택</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {CHANNELS.map(channel => (
-            <button key={channel.id} onClick={() => setSelectedChannel(channel.id)} className={`flex items-center gap-3 p-4 rounded-xl border transition-all cursor-pointer ${selectedChannel === channel.id ? "border-primary bg-accent" : "border-border hover:bg-blue-50/60"}`}>
+            <button key={channel.id} onClick={() => { setSelectedChannel(channel.id); if (channel.id === "smart-routing") setSmartRouting(true); }} className={`flex items-center gap-3 p-4 rounded-xl border transition-all cursor-pointer ${selectedChannel === channel.id ? "border-primary bg-accent" : "border-border hover:bg-blue-50/60"}`}>
               <channel.icon className="w-4 h-4 text-primary" />
               <div className="text-left flex-1">
                 <div className="text-sm font-bold">{channel.label}</div>
@@ -1393,6 +1517,16 @@ function SendMessagePageWizard() {
             </button>
           ))}
         </div>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <label className="flex items-center gap-3 rounded-lg border border-border bg-muted p-3 text-xs font-bold">
+            <input type="checkbox" checked={smartRouting} onChange={event => setSmartRouting(event.target.checked)} />
+            스마트 라우팅 최저가 조합 사용
+          </label>
+          <label className="flex items-center gap-3 rounded-lg border border-border bg-muted p-3 text-xs font-bold">
+            <input type="checkbox" checked={failoverEnabled} onChange={event => setFailoverEnabled(event.target.checked)} />
+            대체 발송 활성화
+          </label>
+        </div>
       </div>
       <div className="rounded-xl border border-border bg-card p-5">
         <h3 className="text-sm font-bold mb-3">선택 요약</h3>
@@ -1400,7 +1534,9 @@ function SendMessagePageWizard() {
           <div className="flex justify-between rounded-lg bg-muted p-3"><span className="text-muted-foreground">대상</span><b>{estimatedTarget.toLocaleString()}명</b></div>
           <div className="flex justify-between rounded-lg bg-muted p-3"><span className="text-muted-foreground">부분 선택</span><b>포함 {includedMembers.length} · 제외 {excludedMembers.length}</b></div>
           <div className="flex justify-between rounded-lg bg-muted p-3"><span className="text-muted-foreground">메시지</span><b>{messageDraft.length}자</b></div>
-          <div className="flex justify-between rounded-lg bg-muted p-3"><span className="text-muted-foreground">채널</span><b>{CHANNELS.find(channel => channel.id === selectedChannel)?.label}</b></div>
+          <div className="flex justify-between rounded-lg bg-muted p-3"><span className="text-muted-foreground">채널</span><b>{selectedChannelMeta?.label}</b></div>
+          <div className="flex justify-between rounded-lg bg-muted p-3"><span className="text-muted-foreground">예상 비용</span><b>{formatWon(estimatedCost)}</b></div>
+          <div className="flex justify-between rounded-lg bg-emerald-50 p-3 text-emerald-700"><span>예상 절감액</span><b>{formatWon(estimatedSaving)}</b></div>
         </div>
       </div>
     </div>
@@ -1435,9 +1571,15 @@ function SendMessagePageWizard() {
         <h3 className="text-sm font-bold">발송 요청</h3>
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="p-3 bg-muted rounded-lg"><span className="block text-muted-foreground mb-1">대상</span><b>{estimatedTarget.toLocaleString()}명</b></div>
-          <div className="p-3 bg-muted rounded-lg"><span className="block text-muted-foreground mb-1">채널</span><b>{CHANNELS.find(channel => channel.id === selectedChannel)?.label}</b></div>
+          <div className="p-3 bg-muted rounded-lg"><span className="block text-muted-foreground mb-1">채널</span><b>{selectedChannelMeta?.label}</b></div>
           <div className="p-3 bg-muted rounded-lg"><span className="block text-muted-foreground mb-1">포함/제외</span><b>{includedMembers.length}/{excludedMembers.length}</b></div>
           <div className="p-3 bg-muted rounded-lg"><span className="block text-muted-foreground mb-1">AI 검사</span><b>{aiComplete ? "완료" : "필요"}</b></div>
+          <div className="p-3 bg-muted rounded-lg"><span className="block text-muted-foreground mb-1">예상 비용</span><b>{formatWon(estimatedCost)}</b></div>
+          <div className="p-3 bg-emerald-50 rounded-lg text-emerald-700"><span className="block mb-1">예상 절감액</span><b>{formatWon(estimatedSaving)}</b></div>
+        </div>
+        <div className="rounded-lg border border-border bg-muted p-3 text-xs">
+          <div className="flex justify-between"><span className="text-muted-foreground">문자 판별</span><b>{messageMode}</b></div>
+          <div className="flex justify-between mt-1"><span className="text-muted-foreground">대체 발송</span><b>{failoverEnabled ? "활성" : "비활성"}</b></div>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setSendType("now")} className={`flex-1 py-2.5 rounded-lg border text-xs font-semibold cursor-pointer ${sendType === "now" ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:bg-accent"}`}>즉시 발송</button>
@@ -1537,7 +1679,7 @@ function TemplatesPage() {
   const [aiModal, setAiModal] = useState(false);
   const [aiChecking, setAiChecking] = useState(false);
   const [aiResult, setAiResult] = useState<string[]>([]);
-  const [form, setForm] = useState({ name: "", channel: "SMS", content: "", category: "이벤트" });
+  const [form, setForm] = useState({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통", approvalStatus: "불필요" });
 
   const filtered = useMemo(() => templates.filter(t => {
     const tags = getTemplateTags(t);
@@ -1556,10 +1698,10 @@ function TemplatesPage() {
     } else {
       setTemplates(prev => [...prev, { id: Date.now(), ...form, usageCount: 0, updatedAt: new Date().toISOString().slice(0, 10) }]);
     }
-    setEditModal(null); setAddModal(false); setForm({ name: "", channel: "SMS", content: "", category: "이벤트" });
+    setEditModal(null); setAddModal(false); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통", approvalStatus: "불필요" });
   };
 
-  const openEdit = (t: Template) => { setEditModal(t); setForm({ name: t.name, channel: t.channel, content: t.content, category: t.category }); };
+  const openEdit = (t: Template) => { setEditModal(t); setForm({ name: t.name, channel: t.channel, content: t.content, category: t.category, scope: t.scope ?? "전사 공통", approvalStatus: t.approvalStatus ?? "불필요" }); };
 
   const runAiCheck = () => {
     setAiChecking(true);
@@ -1584,6 +1726,18 @@ function TemplatesPage() {
           </select>
         </div>
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><label className="text-xs font-semibold text-muted-foreground block mb-1">공개 범위</label>
+          <select value={form.scope} onChange={e => setForm(f => ({ ...f, scope: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none">
+            {["전사 공통", "현대백화점 전용", "현대홈쇼핑 전용", "한섬 전용"].map(c => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+        <div><label className="text-xs font-semibold text-muted-foreground block mb-1">승인 상태</label>
+          <select value={form.approvalStatus} onChange={e => setForm(f => ({ ...f, approvalStatus: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none">
+            {["불필요", "미등록", "심사 대기", "승인 완료", "반려"].map(c => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+      </div>
       <div><label className="text-xs font-semibold text-muted-foreground block mb-1">메시지 내용</label>
         <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={4} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" />
         <div className="flex items-center justify-between mt-1.5">
@@ -1605,19 +1759,21 @@ function TemplatesPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="템플릿명, 내용, 태그 검색..." className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-72 focus:outline-none focus:ring-2 focus:ring-primary/30" />
         </div>
-        <Btn onClick={() => { setAddModal(true); setForm({ name: "", channel: "SMS", content: "", category: "이벤트" }); }}><Plus className="w-3.5 h-3.5" /> 템플릿 추가</Btn>
+        <Btn onClick={() => { setAddModal(true); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통", approvalStatus: "불필요" }); }}><Plus className="w-3.5 h-3.5" /> 템플릿 추가</Btn>
       </div>
       <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
         {tagOptions.map(tag => (
           <button key={tag} onClick={() => { setTagFilter(tag); setPage(1); }} className={`px-3 py-1.5 rounded-full text-xs font-semibold border whitespace-nowrap transition-all ${tagFilter === tag ? "bg-primary text-white border-primary" : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}>{tag}</button>
         ))}
       </div>
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="bg-card rounded-xl border border-border overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="bg-muted border-b border-border">
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">템플릿명</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">채널</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">카테고리</th>
+            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">공개 범위</th>
+            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">승인</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">태그</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">사용 횟수</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">수정일</th>
@@ -1631,6 +1787,8 @@ function TemplatesPage() {
               </td>
               <td className="px-4 py-3.5"><Badge text={t.channel} variant="blue" /></td>
               <td className="px-4 py-3.5 hidden lg:table-cell"><Badge text={t.category} variant="default" /></td>
+              <td className="px-4 py-3.5 hidden xl:table-cell"><span className="text-xs font-semibold text-muted-foreground">{t.scope ?? "전사 공통"}</span></td>
+              <td className="px-4 py-3.5"><Badge text={t.approvalStatus ?? "불필요"} variant={t.approvalStatus === "승인 완료" ? "green" : t.approvalStatus === "반려" ? "red" : t.approvalStatus === "심사 대기" ? "amber" : "default"} /></td>
               <td className="px-4 py-3.5 hidden xl:table-cell">
                 <div className="flex flex-wrap gap-1 max-w-56">
                   {getTemplateTags(t).slice(0, 3).map(tag => <span key={tag} className="px-2 py-0.5 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">{tag}</span>)}
@@ -1675,6 +1833,16 @@ function TemplatesPage() {
               <div className="text-xs font-bold text-muted-foreground mb-2">메시지 내용</div>
               <pre className="whitespace-pre-wrap rounded-xl border border-border bg-input-background p-4 text-sm leading-relaxed">{detailModal.content}</pre>
             </div>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                ["평균 오픈율", `${detailModal.openRate ?? 0}%`],
+                ["클릭률", `${detailModal.clickRate ?? 0}%`],
+                ["수신거부율", `${detailModal.optOutRate ?? 0}%`],
+              ].map(([label, value]) => <div key={label} className="p-3 bg-muted rounded-lg"><div className="text-xs text-muted-foreground mb-1">{label}</div><div className="text-sm font-bold">{value}</div></div>)}
+            </div>
+            {detailModal.approvalStatus === "반려" && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">반려 사유: {detailModal.rejectReason ?? "심사 기준 미충족"}</div>
+            )}
             <div>
               <div className="text-xs font-bold text-muted-foreground mb-2">AI 검사 요약</div>
               <AiReportDetail />
@@ -1714,12 +1882,22 @@ function TemplatesPage() {
 function HistoryPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("전체");
+  const [periodFilter, setPeriodFilter] = useState("30일");
+  const [channelFilter, setChannelFilter] = useState("전체 채널");
+  const [affiliateFilter, setAffiliateFilter] = useState("전체 계열사");
   const [selectedRecord, setSelectedRecord] = useState<SendRecord | null>(null);
-  const filtered = HISTORY.filter(r => (filter === "전체" || r.status === filter) && (r.template.includes(search) || r.channel.includes(search)));
+  const filtered = HISTORY.filter(r =>
+    (filter === "전체" || r.status === filter) &&
+    (channelFilter === "전체 채널" || r.channel === channelFilter) &&
+    (affiliateFilter === "전체 계열사" || r.affiliate === affiliateFilter) &&
+    (r.template.includes(search) || r.channel.includes(search) || r.affiliate.includes(search))
+  );
+  const channelOptions = ["전체 채널", ...Array.from(new Set(HISTORY.map(r => r.channel)))];
+  const affiliateOptions = ["전체 계열사", ...Array.from(new Set(HISTORY.map(r => r.affiliate)))];
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="템플릿 또는 채널 검색" className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-52 focus:outline-none" />
@@ -1727,13 +1905,22 @@ function HistoryPage() {
           {["전체", "완료", "진행중", "실패"].map(f => (
             <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${filter === f ? "bg-primary text-white" : "bg-card border border-border text-muted-foreground hover:text-foreground"}`}>{f}</button>
           ))}
+          <select value={periodFilter} onChange={e => setPeriodFilter(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+            {["오늘", "7일", "30일", "직접 지정"].map(option => <option key={option}>{option}</option>)}
+          </select>
+          <select value={channelFilter} onChange={e => setChannelFilter(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+            {channelOptions.map(option => <option key={option}>{option}</option>)}
+          </select>
+          <select value={affiliateFilter} onChange={e => setAffiliateFilter(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+            {affiliateOptions.map(option => <option key={option}>{option}</option>)}
+          </select>
         </div>
         <Btn variant="outline" size="sm"><Download className="w-3.5 h-3.5" /> 내보내기</Btn>
       </div>
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         <table className="w-full text-sm">
           <thead><tr className="bg-muted border-b border-border">
-            {["발송일시", "템플릿", "채널", "대상", "발송", "성공", "실패", "성공률", "상태"].map(h => (
+            {["발송일시", "계열사", "템플릿", "채널", "대상", "발송", "성공", "실패", "비용", "절감", "성공률", "상태"].map(h => (
               <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
             ))}
           </tr></thead>
@@ -1742,12 +1929,15 @@ function HistoryPage() {
             return (
               <tr key={r.id} onClick={() => setSelectedRecord(r)} className={`border-b border-border transition-colors cursor-pointer ${selectedRecord?.id === r.id ? "bg-accent" : "hover:bg-blue-50/70"}`}>
                 <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">{r.sentAt}</td>
+                <td className="px-4 py-3.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">{r.affiliate}</td>
                 <td className="px-4 py-3.5 text-xs font-semibold text-foreground">{r.template}</td>
                 <td className="px-4 py-3.5"><Badge text={r.channel} variant="blue" /></td>
                 <td className="px-4 py-3.5 text-xs text-muted-foreground">{r.targetType}</td>
                 <td className="px-4 py-3.5 text-xs font-bold">{r.count.toLocaleString()}</td>
                 <td className="px-4 py-3.5 text-xs font-bold text-emerald-600">{r.success.toLocaleString()}</td>
                 <td className="px-4 py-3.5 text-xs font-bold text-red-500">{r.fail.toLocaleString()}</td>
+                <td className="px-4 py-3.5 text-xs font-bold whitespace-nowrap">{formatWon(r.cost)}</td>
+                <td className="px-4 py-3.5 text-xs font-bold text-emerald-600 whitespace-nowrap">{formatWon(r.savedCost)}</td>
                 <td className="px-4 py-3.5">
                   <div className="flex items-center gap-2">
                     <div className="flex-1 bg-muted rounded-full h-1.5 w-16"><div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${rate}%` }} /></div>
@@ -1776,7 +1966,30 @@ function HistoryPage() {
                 ["총 발송", `${selectedRecord.count.toLocaleString()}건`],
                 ["성공", `${selectedRecord.success.toLocaleString()}건`],
                 ["실패", `${selectedRecord.fail.toLocaleString()}건`],
+                ["총 소요 비용", formatWon(selectedRecord.cost)],
+                ["절감액", formatWon(selectedRecord.savedCost)],
+                ["계열사", selectedRecord.affiliate],
+                ["최종 도달률", `${(((selectedRecord.success + selectedRecord.failoverSteps.slice(1).reduce((sum, step) => sum + step.success, 0)) / selectedRecord.count) * 100).toFixed(1)}%`],
               ].map(([label, value]) => <div key={label} className="p-3 bg-muted rounded-lg"><div className="text-xs text-muted-foreground mb-1">{label}</div><div className="text-sm font-bold">{value}</div></div>)}
+            </div>
+            {selectedRecord.fail > 0 && (
+              <div className="flex justify-end">
+                <Btn size="sm" variant="outline"><RefreshCw className="w-3.5 h-3.5" /> 실패 대상자에게 재발송</Btn>
+              </div>
+            )}
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="text-xs font-bold text-muted-foreground mb-3">대체 발송 흐름</div>
+              <div className="space-y-3">
+                {selectedRecord.failoverSteps.map((step, index) => (
+                  <div key={step.label} className="flex items-center gap-3">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">{index + 1}</div>
+                    <div className="flex-1 rounded-lg bg-muted p-3">
+                      <div className="text-xs font-bold mb-1">{step.label}</div>
+                      <div className="text-xs text-muted-foreground">요청 {step.requested.toLocaleString()}건 · 성공 {step.success.toLocaleString()}건 · 실패 {step.fail.toLocaleString()}건</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="bg-card rounded-xl border border-border overflow-hidden">
               <table className="w-full text-sm">
@@ -1807,12 +2020,15 @@ function HistoryPage() {
 function MembersPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("전체");
+  const [memberTab, setMemberTab] = useState<"members" | "blocked">("members");
   const [detailMember, setDetailMember] = useState<Member | null>(null);
   const [uploadModal, setUploadModal] = useState(false);
   const [page, setPage] = useState(1);
   const [members, setMembers] = useState<Member[]>(() => createMemberRows());
+  const blockedMembers = members.filter(member => !member.smsConsent || !member.kakaoConsent).slice(0, 18);
 
   const filtered = members.filter(m =>
+    memberTab === "members" &&
     (typeFilter === "전체" || m.type === typeFilter) &&
     (m.name.includes(search) || m.phone.includes(search))
   );
@@ -1839,11 +2055,15 @@ function MembersPage() {
       </div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-lg border border-border bg-card p-1">
+            <button onClick={() => setMemberTab("members")} className={`px-3 py-1.5 rounded-md text-xs font-bold ${memberTab === "members" ? "bg-primary text-white" : "text-muted-foreground"}`}>회원 목록</button>
+            <button onClick={() => setMemberTab("blocked")} className={`px-3 py-1.5 rounded-md text-xs font-bold ${memberTab === "blocked" ? "bg-primary text-white" : "text-muted-foreground"}`}>수신거부자 목록</button>
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="이름 또는 전화번호 검색" className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-56 focus:outline-none" />
           </div>
-          {["전체", "VIP", "일반", "신규", "휴면"].map(f => (
+          {memberTab === "members" && ["전체", "VIP", "일반", "신규", "휴면"].map(f => (
             <button key={f} onClick={() => { setTypeFilter(f); setPage(1); }} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${typeFilter === f ? "bg-primary text-white" : "bg-card border border-border text-muted-foreground"}`}>{f}</button>
           ))}
         </div>
@@ -1852,10 +2072,11 @@ function MembersPage() {
           <Btn variant="outline" size="sm"><Download className="w-3.5 h-3.5" /> 내보내기</Btn>
         </div>
       </div>
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
+      {memberTab === "members" ? (
+      <div className="bg-card rounded-xl border border-border overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="bg-muted border-b border-border">
-            {["이름", "전화번호", "유형", "태그", "SMS 동의", "카카오 동의", "RCS 동의", "가입일", "마지막 발송", ""].map(h => (
+            {["이름", "전화번호", "유형", "태그", "SMS 동의", "카카오 동의", "RCS 동의", "가입일"].map(h => (
               <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
             ))}
           </tr></thead>
@@ -1873,13 +2094,32 @@ function MembersPage() {
               <td className="px-4 py-3.5">{m.kakaoConsent ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-400" />}</td>
               <td className="px-4 py-3.5">{m.rcsConsent ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-400" />}</td>
               <td className="px-4 py-3.5 text-xs text-muted-foreground">{m.joinedAt}</td>
-              <td className="px-4 py-3.5 text-xs text-muted-foreground">{m.lastSend}</td>
-              <td className="px-4 py-3.5"><Eye className="w-3.5 h-3.5 text-muted-foreground" /></td>
             </tr>
           ))}</tbody>
         </table>
         <Pagination page={currentPage} total={filtered.length} pageSize={memberPageSize} onPage={setPage} />
       </div>
+      ) : (
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="px-5 py-3 border-b border-border bg-muted">
+          <h3 className="text-sm font-bold">080 ARS 및 수동 수신거부 동기화 목록</h3>
+        </div>
+        <table className="w-full text-sm">
+          <thead><tr className="bg-muted border-b border-border">
+            {["회원명", "전화번호", "거부 채널", "등록 사유", "동기화 상태"].map(h => <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">{h}</th>)}
+          </tr></thead>
+          <tbody>{blockedMembers.map(member => (
+            <tr key={member.id} className="border-b border-border hover:bg-blue-50/70">
+              <td className="px-4 py-3 text-xs font-bold">{member.name}</td>
+              <td className="px-4 py-3 text-xs font-mono text-muted-foreground">{member.phone}</td>
+              <td className="px-4 py-3"><Badge text={!member.smsConsent ? "SMS" : "카카오"} variant="red" /></td>
+              <td className="px-4 py-3 text-xs text-muted-foreground">080 수신거부 접수</td>
+              <td className="px-4 py-3"><Badge text="회원 동의 N 반영" variant="green" /></td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+      )}
 
       <Modal open={uploadModal} onClose={() => setUploadModal(false)} title="회원 파일 업로드" wide>
         <div className="space-y-4">
@@ -1895,9 +2135,19 @@ function MembersPage() {
           <div className="grid grid-cols-3 gap-3">
             {[
               ["검증 항목", "전화번호, 중복 회원, 동의 값"],
-              ["변경 방식", "전체 변경 또는 부분 변경"],
+              ["번호 보정", "01012345678 → 010-1234-5678"],
               ["예상 처리", "8,420건 / 오류 12건"],
             ].map(([label, value]) => <div key={label} className="p-3 bg-muted rounded-lg"><div className="text-xs text-muted-foreground mb-1">{label}</div><div className="text-sm font-bold">{value}</div></div>)}
+          </div>
+          <div className="rounded-xl border border-border bg-muted p-4">
+            <div className="text-xs font-bold text-muted-foreground mb-3">데이터 충돌 해결 규칙</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              {["기존 회원 덮어쓰기", "신규 회원으로 등록", "오류 행으로 제외"].map((label, index) => (
+                <label key={label} className="flex items-center gap-2 rounded-lg bg-card border border-border p-3 text-xs font-semibold">
+                  <input type="radio" name="conflict-rule" defaultChecked={index === 0} /> {label}
+                </label>
+              ))}
+            </div>
           </div>
           <div className="bg-card rounded-xl border border-border overflow-hidden">
             <table className="w-full text-sm">
@@ -1974,14 +2224,42 @@ function MembersPage() {
 }
 
 // ─── Statistics Pages ─────────────────────────────────────────────────────────
+function StatsReportActions() {
+  return (
+    <div className="flex justify-end gap-2">
+      <Btn variant="outline" size="sm"><Download className="w-3.5 h-3.5" /> PDF 다운로드</Btn>
+      <Btn variant="outline" size="sm"><Download className="w-3.5 h-3.5" /> Excel 다운로드</Btn>
+    </div>
+  );
+}
+
 function StatsOverview() {
   return (
     <div className="p-6 space-y-5">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <StatsReportActions />
+      <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
         <StatCard label="이번달 총 발송" value="892,451" sub="전월 대비 +12.4%" trend={{ val: "+12.4%", up: true }} icon={<Send className="w-4 h-4" />} color="blue" />
         <StatCard label="평균 성공률" value="98.4%" sub="실패 14,232건" trend={{ val: "+0.2%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
         <StatCard label="일평균 발송" value="29,748" sub="최고 284,391건" icon={<Activity className="w-4 h-4" />} color="violet" />
         <StatCard label="발송 비용(추정)" value="₩18.7M" sub="전월 대비 +8.1%" trend={{ val: "+8.1%", up: false }} icon={<Target className="w-4 h-4" />} color="amber" />
+        <StatCard label="스마트 라우팅 절감" value="₩5.5M" sub="가상 SMS/LMS 대비" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
+      </div>
+      <div className="bg-card rounded-xl border border-border p-5">
+        <h3 className="text-sm font-bold mb-4">실시간 발송 큐 상태</h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          {QUEUE_STATUS.map(item => (
+            <div key={item.label} className="rounded-lg bg-muted p-3">
+              <div className="text-xs text-muted-foreground mb-1">{item.label}</div>
+              <div className="text-lg font-bold">{item.count.toLocaleString()}건</div>
+            </div>
+          ))}
+        </div>
+        <div className="h-2 rounded-full bg-muted overflow-hidden flex">
+          {QUEUE_STATUS.map(item => {
+            const total = QUEUE_STATUS.reduce((sum, current) => sum + current.count, 0);
+            return <div key={item.label} className={`${item.color} h-full`} style={{ width: `${Math.max(2, (item.count / total) * 100)}%` }} />;
+          })}
+        </div>
       </div>
       <div className="bg-card rounded-xl border border-border p-5">
         <h3 className="text-sm font-bold mb-4">월별 채널별 발송 현황</h3>
@@ -2040,6 +2318,7 @@ function StatsOverview() {
 function StatsChannel() {
   return (
     <div className="p-6 space-y-5">
+      <StatsReportActions />
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {channelPie.map((c, i) => (
           <div key={i} className="bg-card rounded-xl border border-border p-4 text-center">
@@ -2051,17 +2330,14 @@ function StatsChannel() {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">채널별 성공률 비교</h3>
+          <h3 className="text-sm font-bold mb-4">채널별 성공률/실패율 비교</h3>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={[
-              { channel: "카카오 친구톡", rate: 98.9 }, { channel: "SMS", rate: 99.1 }, { channel: "카카오 알림톡", rate: 99.4 },
-              { channel: "LMS", rate: 98.2 }, { channel: "RCS", rate: 97.8 },
-            ]} layout="vertical" barSize={16}>
+            <BarChart data={channelCostData} layout="vertical" barSize={16}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" horizontal={false} />
               <XAxis type="number" domain={[96, 100]} tick={{ fontSize: 10 }} tickFormatter={v => `${v}%`} />
               <YAxis type="category" dataKey="channel" tick={{ fontSize: 10 }} width={90} />
               <Tooltip formatter={(v: number) => [`${v}%`]} />
-              <Bar dataKey="rate" name="성공률" fill="#1843FA" radius={[0, 3, 3, 0]} />
+              <Bar dataKey="successRate" name="성공률" fill="#1843FA" radius={[0, 3, 3, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -2098,6 +2374,97 @@ function StatsChannel() {
           </LineChart>
         </ResponsiveContainer>
       </div>
+      <div className="bg-card rounded-xl border border-border overflow-x-auto">
+        <div className="px-5 py-3 border-b border-border"><h3 className="text-sm font-bold">채널별 비용 및 평균 단가</h3></div>
+        <table className="w-full text-sm">
+          <thead><tr className="bg-muted border-b border-border">
+            {["채널", "발송량", "성공률", "실패율", "총 비용", "평균 단가"].map(h => <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>)}
+          </tr></thead>
+          <tbody>{channelCostData.map(row => (
+            <tr key={row.channel} className="border-b border-border hover:bg-muted/30">
+              <td className="px-4 py-3 text-xs font-bold">{row.channel}</td>
+              <td className="px-4 py-3 text-xs">{row.sends.toLocaleString()}건</td>
+              <td className="px-4 py-3 text-xs text-emerald-600 font-bold">{row.successRate}%</td>
+              <td className="px-4 py-3 text-xs text-red-500 font-bold">{row.failRate}%</td>
+              <td className="px-4 py-3 text-xs font-bold">{formatWon(row.cost)}</td>
+              <td className="px-4 py-3 text-xs">{row.unit}원</td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function StatsRouting() {
+  return (
+    <div className="p-6 space-y-5">
+      <StatsReportActions />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="실제 청구 비용" value="₩18.7M" sub="6월 누적" icon={<Target className="w-4 h-4" />} color="amber" />
+        <StatCard label="SMS/LMS 가상 비용" value="₩24.2M" sub="동일 물량 기준" icon={<TrendingUp className="w-4 h-4" />} color="violet" />
+        <StatCard label="누적 절감액" value="₩5.5M" sub="절감률 22.7%" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
+        <StatCard label="대체 발송 전환" value="5,549" sub="최종 실패 24건" icon={<RefreshCw className="w-4 h-4" />} color="blue" />
+      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_0.7fr] gap-4">
+        <div className="bg-card rounded-xl border border-border p-5">
+          <h3 className="text-sm font-bold mb-4">실제 비용 vs SMS/LMS 가상 비용</h3>
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={routingSavingsData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
+              <Tooltip formatter={(v: number) => [formatWon(v)]} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Line type="monotone" dataKey="actual" name="실제 청구 비용" stroke="#1843FA" strokeWidth={2.5} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="baseline" name="SMS/LMS 가상 비용" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 3 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="bg-card rounded-xl border border-border p-5">
+          <h3 className="text-sm font-bold mb-4">누적 절감액 추이</h3>
+          <ResponsiveContainer width="100%" height={280}>
+            <AreaChart data={routingSavingsData}>
+              <defs>
+                <linearGradient id="savingGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10B981" stopOpacity={0.25} /><stop offset="95%" stopColor="#10B981" stopOpacity={0} /></linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
+              <Tooltip formatter={(v: number) => [formatWon(v)]} />
+              <Area type="monotone" dataKey="saved" name="절감액" stroke="#10B981" fill="url(#savingGrad)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-card rounded-xl border border-border p-5">
+          <h3 className="text-sm font-bold mb-4">Failover 전환 건수</h3>
+          <div className="space-y-3">
+            {fallbackStats.map(item => (
+              <div key={item.label}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-semibold">{item.label}</span>
+                  <span className="text-xs font-bold">{item.count.toLocaleString()}건</span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, item.count / 55)}%` }} /></div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="bg-card rounded-xl border border-border p-5">
+          <h3 className="text-sm font-bold mb-4">계열사별 비용 점유</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={affiliateStats} barSize={22}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
+              <Tooltip formatter={(v: number) => [typeof v === "number" ? formatWon(v) : v]} />
+              <Bar dataKey="cost" name="비용" fill="#1843FA" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2105,6 +2472,7 @@ function StatsChannel() {
 function StatsMember() {
   return (
     <div className="p-6 space-y-5">
+      <StatsReportActions />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="VIP 회원" value="28,420" sub="오픈율 68.4%" icon={<Tag className="w-4 h-4" />} color="amber" />
         <StatCard label="일반 회원" value="198,341" sub="오픈율 41.2%" icon={<Users className="w-4 h-4" />} color="blue" />
@@ -2173,6 +2541,7 @@ function StatsMember() {
 function StatsPerformance() {
   return (
     <div className="p-6 space-y-5">
+      <StatsReportActions />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="평균 오픈율" value="49.4%" sub="전월 대비 +1.5%p" trend={{ val: "+1.5%p", up: true }} icon={<Eye className="w-4 h-4" />} color="blue" />
         <StatCard label="평균 클릭률" value="19.1%" sub="업계 평균 8.2%" trend={{ val: "+0.8%p", up: true }} icon={<Target className="w-4 h-4" />} color="green" />
@@ -2250,6 +2619,7 @@ function MainLayout({ currentPage, setCurrentPage, onLogout }: {
       case "members": return <MembersPage />;
       case "stats-overview": return <StatsOverview />;
       case "stats-channel": return <StatsChannel />;
+      case "stats-routing": return <StatsRouting />;
       case "stats-member": return <StatsMember />;
       case "stats-performance": return <StatsPerformance />;
     }
