@@ -42,6 +42,17 @@ const TEMPLATES: Template[] = [
 ];
 const TEMPLATE_TAGS = ["VIP", "VVIP", "신규", "휴면", "생일", "포인트", "쿠폰", "최근구매", "장바구니", "앱사용자", "현대백화점", "현대홈쇼핑", "한섬", "리빙", "패션", "오프라인방문"];
 const MEMBER_TAGS = ["전체 회원", "VIP", "VVIP", "일반", "신규", "휴면", "생일 대상자", "포인트 소멸 예정", "최근구매", "장바구니 이탈", "쿠폰 반응", "앱사용자", "카카오 동의", "SMS 동의", "RCS 동의", "LMS 동의", "현대백화점", "현대홈쇼핑", "한섬", "리빙 관심", "패션 관심", "오프라인 방문", "미동의 제외"];
+const TAG_GROUPS = [
+  { id: "전체", label: "전체 태그", tags: [] },
+  { id: "대상", label: "대상", tags: ["VIP", "VVIP", "일반", "신규", "휴면", "생일 대상자", "앱사용자"] },
+  { id: "행동", label: "행동/관심", tags: ["최근구매", "장바구니", "장바구니 이탈", "쿠폰 반응", "리빙 관심", "패션 관심", "오프라인 방문", "오프라인방문"] },
+  { id: "목적", label: "목적", tags: ["이벤트", "쿠폰", "혜택", "안내", "포인트", "생일", "재구매", "포인트 소멸 예정"] },
+  { id: "계열사", label: "계열사", tags: ["현대백화점", "현대홈쇼핑", "한섬", "리빙", "패션"] },
+  { id: "동의", label: "수신 동의", tags: ["카카오 동의", "SMS 동의", "RCS 동의", "LMS 동의", "미동의 제외"] },
+];
+const uniqueTags = (tags: string[]) => Array.from(new Set(tags.filter(Boolean))).sort((a, b) => a.localeCompare(b, "ko"));
+const tagGroupOf = (tag: string) => TAG_GROUPS.find(group => group.id !== "전체" && group.tags.includes(tag))?.id ?? "사용자";
+const tagGroupLabel = (tag: string) => TAG_GROUPS.find(group => group.id === tagGroupOf(tag))?.label ?? "사용자";
 const AI_REPORT_SECTIONS = [
   { title: "맞춤법·오타", status: "통과", score: 96, detail: "띄어쓰기와 오탈자 위험이 낮습니다.", action: "수정 불필요" },
   { title: "광고 표기", status: "주의", score: 82, detail: "마케팅성 문구에는 수신거부 문구와 발신자 표기가 필요합니다.", action: "080 수신거부 문구 유지" },
@@ -2020,23 +2031,58 @@ function HistoryPage() {
 function MembersPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("전체");
+  const [memberTagSearch, setMemberTagSearch] = useState("");
+  const [memberTagGroupFilter, setMemberTagGroupFilter] = useState("전체");
+  const [memberTagFilter, setMemberTagFilter] = useState("전체");
+  const [newMemberTag, setNewMemberTag] = useState("");
+  const [detailTagInput, setDetailTagInput] = useState("");
+  const [customMemberTags, setCustomMemberTags] = useState<string[]>([]);
   const [memberTab, setMemberTab] = useState<"members" | "blocked">("members");
   const [detailMember, setDetailMember] = useState<Member | null>(null);
   const [uploadModal, setUploadModal] = useState(false);
   const [page, setPage] = useState(1);
   const [members, setMembers] = useState<Member[]>(() => createMemberRows());
   const blockedMembers = members.filter(member => !member.smsConsent || !member.kakaoConsent).slice(0, 18);
+  const allMemberTags = useMemo(() => uniqueTags([...MEMBER_TAGS, ...members.flatMap(member => member.tags ?? []), ...customMemberTags]), [members, customMemberTags]);
+  const visibleMemberTags = allMemberTags.filter(tag =>
+    (memberTagGroupFilter === "전체" || tagGroupOf(tag) === memberTagGroupFilter) &&
+    (!memberTagSearch || tag.includes(memberTagSearch))
+  );
 
   const filtered = members.filter(m =>
     memberTab === "members" &&
     (typeFilter === "전체" || m.type === typeFilter) &&
-    (m.name.includes(search) || m.phone.includes(search))
+    (memberTagFilter === "전체" || (m.tags ?? []).includes(memberTagFilter) || m.type === memberTagFilter) &&
+    (m.name.includes(search) || m.phone.includes(search) || (m.tags ?? []).some(tag => tag.includes(search)))
   );
   const memberPageSize = 8;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / memberPageSize)));
   const pagedMembers = filtered.slice((currentPage - 1) * memberPageSize, currentPage * memberPageSize);
 
   const typeMap: Record<string, string> = { VIP: "vip", 일반: "blue", 신규: "green", 휴면: "default" };
+  const addTagToPool = () => {
+    const tag = newMemberTag.trim();
+    if (!tag) return;
+    setCustomMemberTags(prev => prev.includes(tag) ? prev : [...prev, tag]);
+    setNewMemberTag("");
+  };
+  const updateMemberTags = (memberId: number, tags: string[]) => {
+    const nextTags = uniqueTags(tags);
+    setMembers(prev => prev.map(member => member.id === memberId ? { ...member, tags: nextTags } : member));
+    setDetailMember(prev => prev && prev.id === memberId ? { ...prev, tags: nextTags } : prev);
+  };
+  const addTagToDetailMember = (tagValue = detailTagInput) => {
+    if (!detailMember) return;
+    const tag = tagValue.trim();
+    if (!tag) return;
+    updateMemberTags(detailMember.id, [...(detailMember.tags ?? []), tag]);
+    setCustomMemberTags(prev => prev.includes(tag) ? prev : [...prev, tag]);
+    setDetailTagInput("");
+  };
+  const removeTagFromDetailMember = (tag: string) => {
+    if (!detailMember) return;
+    updateMemberTags(detailMember.id, (detailMember.tags ?? []).filter(item => item !== tag));
+  };
 
   return (
     <div className="p-6">
@@ -2054,7 +2100,7 @@ function MembersPage() {
         ))}
       </div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="inline-flex rounded-lg border border-border bg-card p-1">
             <button onClick={() => setMemberTab("members")} className={`px-3 py-1.5 rounded-md text-xs font-bold ${memberTab === "members" ? "bg-primary text-white" : "text-muted-foreground"}`}>회원 목록</button>
             <button onClick={() => setMemberTab("blocked")} className={`px-3 py-1.5 rounded-md text-xs font-bold ${memberTab === "blocked" ? "bg-primary text-white" : "text-muted-foreground"}`}>수신거부자 목록</button>
@@ -2073,6 +2119,43 @@ function MembersPage() {
         </div>
       </div>
       {memberTab === "members" ? (
+      <>
+      <div className="mb-4 rounded-xl border border-border bg-card p-4">
+        <div className="mb-3 flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <h3 className="text-sm font-bold">회원 태그 관리</h3>
+            <p className="mt-1 text-xs text-muted-foreground">회원이 보유한 모든 태그를 검색, 그룹 필터, 회원 목록 필터, 신규 추가에 사용할 수 있습니다.</p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <input value={memberTagSearch} onChange={e => setMemberTagSearch(e.target.value)} placeholder="회원 태그 검색" className="w-full sm:w-56 pl-8 pr-4 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none" />
+            </div>
+            <select value={memberTagGroupFilter} onChange={e => setMemberTagGroupFilter(e.target.value)} className="rounded-lg border border-border bg-input-background px-3 py-2 text-sm text-muted-foreground">
+              {[...TAG_GROUPS, { id: "사용자", label: "사용자 태그", tags: [] }].map(group => <option key={group.id} value={group.id}>{group.label}</option>)}
+            </select>
+            <div className="flex gap-2">
+              <input value={newMemberTag} onChange={e => setNewMemberTag(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addTagToPool(); }} placeholder="새 태그 추가" className="min-w-0 flex-1 rounded-lg border border-border bg-input-background px-3 py-2 text-sm" />
+              <button onClick={addTagToPool} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white">추가</button>
+            </div>
+          </div>
+        </div>
+        <div className="max-h-32 overflow-y-auto rounded-lg bg-muted p-3">
+          <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+            <span>태그 {visibleMemberTags.length.toLocaleString()}개</span>
+            <button onClick={() => { setMemberTagFilter("전체"); setPage(1); }} className="font-bold text-primary">필터 초기화</button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => { setMemberTagFilter("전체"); setPage(1); }} className={`px-3 py-1.5 rounded-full border text-xs font-semibold ${memberTagFilter === "전체" ? "bg-primary text-white border-primary" : "bg-card border-border text-muted-foreground"}`}>전체</button>
+            {visibleMemberTags.map(tag => (
+              <button key={tag} onClick={() => { setMemberTagFilter(tag); setPage(1); }} className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${memberTagFilter === tag ? "bg-primary text-white border-primary" : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}>
+                <span className="mr-1 text-[10px] opacity-70">{tagGroupLabel(tag)}</span>{tag}
+              </button>
+            ))}
+            {visibleMemberTags.length === 0 && <div className="py-3 text-xs text-muted-foreground">검색 조건에 맞는 회원 태그가 없습니다.</div>}
+          </div>
+        </div>
+      </div>
       <div className="bg-card rounded-xl border border-border overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="bg-muted border-b border-border">
@@ -2099,6 +2182,7 @@ function MembersPage() {
         </table>
         <Pagination page={currentPage} total={filtered.length} pageSize={memberPageSize} onPage={setPage} />
       </div>
+      </>
       ) : (
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         <div className="px-5 py-3 border-b border-border bg-muted">
@@ -2192,7 +2276,27 @@ function MembersPage() {
             <div>
               <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">보유 태그</h4>
               <div className="flex flex-wrap gap-2">
-                {(detailMember.tags ?? []).map(tag => <span key={tag} className="px-2.5 py-1 rounded-full bg-muted text-xs font-semibold text-muted-foreground">{tag}</span>)}
+                {(detailMember.tags ?? []).map(tag => (
+                  <button key={tag} onClick={() => removeTagFromDetailMember(tag)} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-semibold text-muted-foreground hover:bg-red-50 hover:text-red-600">
+                    {tag}<X className="w-3 h-3" />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-xl border border-border bg-muted p-3">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">태그 추가</h4>
+              <div className="flex gap-2 mb-3">
+                <input value={detailTagInput} onChange={e => setDetailTagInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addTagToDetailMember(); }} placeholder="회원에게 추가할 태그" className="min-w-0 flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm" />
+                <button onClick={() => addTagToDetailMember()} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white">추가</button>
+              </div>
+              <div className="max-h-24 overflow-y-auto">
+                <div className="flex flex-wrap gap-1.5">
+                  {allMemberTags.filter(tag => !(detailMember.tags ?? []).includes(tag)).slice(0, 24).map(tag => (
+                    <button key={tag} onClick={() => addTagToDetailMember(tag)} className="rounded-full border border-border bg-card px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:border-primary/50 hover:text-foreground">
+                      <span className="mr-1 opacity-70">{tagGroupLabel(tag)}</span>{tag}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="space-y-2">
