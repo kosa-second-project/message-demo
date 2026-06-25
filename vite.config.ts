@@ -16,7 +16,11 @@ function figmaAssetResolver() {
   }
 }
 
+const repoName = process.env.GITHUB_REPOSITORY?.split('/')[1] ?? 'message-demo'
+const isGitHubPages = process.env.GITHUB_PAGES === 'true'
+
 export default defineConfig({
+  base: isGitHubPages ? `/${repoName}/` : '/',
   plugins: [
     figmaAssetResolver(),
     // The React and Tailwind plugins are both required for Make, even if
