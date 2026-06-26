@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import {
   LayoutDashboard, Send, FileText, History, Users, BarChart3,
   Bell, Settings, LogOut, Plus, Search, Filter, CheckCircle2,
@@ -21,10 +21,10 @@ type Page =
 
 interface Template {
   id: number; name: string; channel: string; content: string; category: string; usageCount: number; updatedAt: string; tags?: string[];
-  scope?: string; approvalStatus?: string; rejectReason?: string; openRate?: number; clickRate?: number; optOutRate?: number;
+  scope?: string; affiliate?: string; approvalStatus?: string; rejectReason?: string; openRate?: number; clickRate?: number; optOutRate?: number;
 }
 interface Member {
-  id: number; name: string; phone: string; type: string; smsConsent: boolean; kakaoConsent: boolean; rcsConsent: boolean; joinedAt: string; lastSend: string; tags?: string[];
+  id: number; name: string; phone: string; type: string; affiliate?: string; smsConsent: boolean; kakaoConsent: boolean; rcsConsent: boolean; joinedAt: string; lastSend: string; tags?: string[];
 }
 interface SendRecord {
   id: number; template: string; channel: string; targetType: string; count: number; success: number; fail: number; sentAt: string; status: string;
@@ -37,14 +37,16 @@ const TEMPLATES: Template[] = [
   { id: 2, name: "생일 축하 메시지", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 생일을 진심으로 축하드립니다! 특별한 생일 쿠폰을 확인해보세요.", category: "혜택", usageCount: 2341, updatedAt: "2026-06-18", scope: "전사 공통", approvalStatus: "불필요", openRate: 78.4, clickRate: 34.2, optOutRate: 0.05 },
   { id: 3, name: "신규 가입 환영", channel: "카카오 알림톡", content: "[현대퓨처넷] #{이름}님, 가입을 환영합니다! 신규 가입 혜택 5,000P가 적립되었습니다.", category: "안내", usageCount: 891, updatedAt: "2026-06-15", scope: "전사 공통", approvalStatus: "승인 완료", openRate: 68.1, clickRate: 25.4, optOutRate: 0.08 },
   { id: 4, name: "포인트 소멸 안내", channel: "LMS", content: "[현대퓨처넷] 안내 드립니다. #{이름}님의 포인트 #{포인트}P가 2026년 6월 30일 소멸 예정입니다. 지금 바로 사용하세요!", category: "안내", usageCount: 445, updatedAt: "2026-06-10", scope: "현대홈쇼핑 전용", approvalStatus: "불필요", openRate: 62.8, clickRate: 18.1, optOutRate: 0.11 },
-  { id: 5, name: "VIP 멤버십 전용 혜택", channel: "카카오 친구톡", content: "[현대퓨처넷] #{이름}님께만 드리는 VIP 전용 특가 상품을 안내해드립니다. 특별한 혜택을 놓치지 마세요!", category: "VIP", usageCount: 312, updatedAt: "2026-06-08", scope: "한섬 전용", approvalStatus: "반려", rejectReason: "혜택 문구가 과장 표현으로 분류됨", openRate: 71.2, clickRate: 28.9, optOutRate: 0.22 },
+  { id: 5, name: "우수 고객 혜택 안내", channel: "카카오 친구톡", content: "[현대퓨처넷] #{이름}님께 드리는 우수 고객 전용 특가 상품을 안내해드립니다. 특별한 혜택을 놓치지 마세요!", category: "마케팅", usageCount: 312, updatedAt: "2026-06-08", scope: "한섬 전용", approvalStatus: "반려", rejectReason: "혜택 문구가 과장 표현으로 분류됨", openRate: 71.2, clickRate: 28.9, optOutRate: 0.22 },
   { id: 6, name: "배송 완료 안내", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 주문하신 상품이 배송 완료되었습니다. 주문번호: #{주문번호}", category: "안내", usageCount: 5821, updatedAt: "2026-06-01", scope: "전사 공통", approvalStatus: "불필요", openRate: 66.4, clickRate: 12.6, optOutRate: 0.03 },
 ];
-const TEMPLATE_TAGS = ["VIP", "VVIP", "신규", "휴면", "생일", "포인트", "쿠폰", "최근구매", "장바구니", "앱사용자", "현대백화점", "현대홈쇼핑", "한섬", "리빙", "패션", "오프라인방문"];
-const MEMBER_TAGS = ["전체 회원", "VIP", "VVIP", "일반", "신규", "휴면", "생일 대상자", "포인트 소멸 예정", "최근구매", "장바구니 이탈", "쿠폰 반응", "앱사용자", "카카오 동의", "SMS 동의", "RCS 동의", "LMS 동의", "현대백화점", "현대홈쇼핑", "한섬", "리빙 관심", "패션 관심", "오프라인 방문", "미동의 제외"];
+const TEMPLATE_TAGS = ["일반", "신규", "휴면", "생일", "포인트", "쿠폰", "최근구매", "장바구니", "앱사용자", "현대백화점", "현대홈쇼핑", "한섬", "리빙", "패션", "오프라인방문"];
+const MEMBER_TAGS = ["전체 회원", "일반", "신규", "휴면", "생일 대상자", "포인트 소멸 예정", "최근구매", "장바구니 이탈", "쿠폰 반응", "앱사용자", "카카오 동의", "SMS 동의", "RCS 동의", "LMS 동의", "현대백화점", "현대홈쇼핑", "한섬", "리빙 관심", "패션 관심", "오프라인 방문", "미동의 제외"];
+const AFFILIATES = ["전사 공통", "현대백화점", "현대홈쇼핑", "한섬", "리빙"] as const;
+type AffiliateScope = typeof AFFILIATES[number];
 const TAG_GROUPS = [
-  { id: "전체", label: "전체 태그", tags: [] },
-  { id: "대상", label: "대상", tags: ["VIP", "VVIP", "일반", "신규", "휴면", "생일 대상자", "앱사용자"] },
+  { id: "전체", label: "전체 타겟", tags: [] },
+  { id: "대상", label: "타겟 유형", tags: ["일반", "신규", "휴면", "생일 대상자", "앱사용자"] },
   { id: "행동", label: "행동/관심", tags: ["최근구매", "장바구니", "장바구니 이탈", "쿠폰 반응", "리빙 관심", "패션 관심", "오프라인 방문", "오프라인방문"] },
   { id: "목적", label: "목적", tags: ["이벤트", "쿠폰", "혜택", "안내", "포인트", "생일", "재구매", "포인트 소멸 예정"] },
   { id: "계열사", label: "계열사", tags: ["현대백화점", "현대홈쇼핑", "한섬", "리빙", "패션"] },
@@ -53,6 +55,14 @@ const TAG_GROUPS = [
 const uniqueTags = (tags: string[]) => Array.from(new Set(tags.filter(Boolean))).sort((a, b) => a.localeCompare(b, "ko"));
 const tagGroupOf = (tag: string) => TAG_GROUPS.find(group => group.id !== "전체" && group.tags.includes(tag))?.id ?? "사용자";
 const tagGroupLabel = (tag: string) => TAG_GROUPS.find(group => group.id === tagGroupOf(tag))?.label ?? "사용자";
+const scopeLabel = (scope: AffiliateScope) => scope === "전사 공통" ? "전사 관리자" : `${scope} 관리자`;
+const affiliateFromScope = (scope?: string) => AFFILIATES.find(affiliate => affiliate !== "전사 공통" && scope?.includes(affiliate)) ?? "전사 공통";
+const canSeeAffiliate = (selected: AffiliateScope, affiliate?: string) => selected === "전사 공통" || affiliate === selected || affiliate === "전사 공통";
+const isTemplateVisibleForScope = (template: Template, selected: AffiliateScope) => canSeeAffiliate(selected, template.affiliate ?? affiliateFromScope(template.scope));
+const getScopedMembers = (members: Member[], selected: AffiliateScope) => members.filter(member => selected === "전사 공통" || member.affiliate === selected);
+const getScopedHistory = (records: SendRecord[], selected: AffiliateScope) => records.filter(record => canSeeAffiliate(selected, record.affiliate));
+const scopeRatio = (selected: AffiliateScope) => ({ "전사 공통": 1, 현대백화점: 0.42, 현대홈쇼핑: 0.31, 한섬: 0.18, 리빙: 0.09 }[selected]);
+const scaleCount = (value: number, selected: AffiliateScope) => Math.max(1, Math.round(value * scopeRatio(selected)));
 const AI_REPORT_SECTIONS = [
   { title: "맞춤법·오타", status: "통과", score: 96, detail: "띄어쓰기와 오탈자 위험이 낮습니다.", action: "수정 불필요" },
   { title: "광고 표기", status: "주의", score: 82, detail: "마케팅성 문구에는 수신거부 문구와 발신자 표기가 필요합니다.", action: "080 수신거부 문구 유지" },
@@ -72,32 +82,36 @@ const getTemplateTags = (template: Template) => template.tags ?? [
 const createTemplateRows = () => Array.from({ length: 72 }, (_, index) => {
   const base = TEMPLATES[index % TEMPLATES.length];
   const group = Math.floor(index / TEMPLATES.length) + 1;
+  const affiliate = affiliateFromScope(base.scope);
   return {
     ...base,
     id: index + 1,
     name: group === 1 ? base.name : `${base.name} ${group}`,
+    affiliate,
     usageCount: base.usageCount + index * 17,
     updatedAt: `2026-06-${String(23 - (index % 18)).padStart(2, "0")}`,
-    tags: [base.category, TEMPLATE_TAGS[index % TEMPLATE_TAGS.length], TEMPLATE_TAGS[(index + 4) % TEMPLATE_TAGS.length]],
+    tags: uniqueTags([base.category, affiliate, TEMPLATE_TAGS[index % TEMPLATE_TAGS.length], TEMPLATE_TAGS[(index + 4) % TEMPLATE_TAGS.length]]),
   };
 });
 const MEMBERS: Member[] = [
-  { id: 1, name: "김민준", phone: "010-****-3841", type: "VIP", smsConsent: true, kakaoConsent: true, rcsConsent: false, joinedAt: "2023-03-12", lastSend: "2026-06-22" },
+  { id: 1, name: "김민준", phone: "010-****-3841", type: "일반", smsConsent: true, kakaoConsent: true, rcsConsent: false, joinedAt: "2023-03-12", lastSend: "2026-06-22" },
   { id: 2, name: "이서연", phone: "010-****-7291", type: "일반", smsConsent: true, kakaoConsent: false, rcsConsent: false, joinedAt: "2024-01-08", lastSend: "2026-06-21" },
   { id: 3, name: "박지호", phone: "010-****-5502", type: "신규", smsConsent: true, kakaoConsent: true, rcsConsent: true, joinedAt: "2026-05-30", lastSend: "2026-06-20" },
-  { id: 4, name: "최수아", phone: "010-****-1183", type: "VIP", smsConsent: false, kakaoConsent: true, rcsConsent: false, joinedAt: "2022-11-20", lastSend: "2026-06-19" },
+  { id: 4, name: "최수아", phone: "010-****-1183", type: "일반", smsConsent: false, kakaoConsent: true, rcsConsent: false, joinedAt: "2022-11-20", lastSend: "2026-06-19" },
   { id: 5, name: "정도윤", phone: "010-****-9947", type: "휴면", smsConsent: true, kakaoConsent: false, rcsConsent: false, joinedAt: "2021-07-04", lastSend: "2025-12-01" },
   { id: 6, name: "윤지아", phone: "010-****-6620", type: "일반", smsConsent: true, kakaoConsent: true, rcsConsent: false, joinedAt: "2024-08-15", lastSend: "2026-06-18" },
   { id: 7, name: "한예준", phone: "010-****-3309", type: "일반", smsConsent: false, kakaoConsent: true, rcsConsent: false, joinedAt: "2025-02-28", lastSend: "2026-06-17" },
-  { id: 8, name: "오서윤", phone: "010-****-8814", type: "VIP", smsConsent: true, kakaoConsent: true, rcsConsent: true, joinedAt: "2023-09-01", lastSend: "2026-06-22" },
+  { id: 8, name: "오서윤", phone: "010-****-8814", type: "일반", smsConsent: true, kakaoConsent: true, rcsConsent: true, joinedAt: "2023-09-01", lastSend: "2026-06-22" },
 ];
 const createMemberRows = () => Array.from({ length: 96 }, (_, index) => {
   const base = MEMBERS[index % MEMBERS.length];
   const month = String((index % 12) + 1).padStart(2, "0");
   const day = String((index % 27) + 1).padStart(2, "0");
+  const affiliate = AFFILIATES[(index % (AFFILIATES.length - 1)) + 1];
   return {
     ...base,
     id: index + 1,
+    affiliate,
     name: index < MEMBERS.length ? base.name : `${base.name}${Math.floor(index / MEMBERS.length) + 1}`,
     phone: `010-****-${String(1000 + index * 37).slice(-4)}`,
     joinedAt: `2024-${month}-${day}`,
@@ -105,14 +119,14 @@ const createMemberRows = () => Array.from({ length: 96 }, (_, index) => {
     smsConsent: index % 5 !== 0,
     kakaoConsent: index % 4 !== 0,
     rcsConsent: index % 3 === 0,
-    tags: [base.type, MEMBER_TAGS[(index + 3) % MEMBER_TAGS.length], MEMBER_TAGS[(index + 9) % MEMBER_TAGS.length], index % 2 === 0 ? "최근구매" : "장바구니 이탈"],
+    tags: uniqueTags([base.type, affiliate, MEMBER_TAGS[(index + 3) % MEMBER_TAGS.length], MEMBER_TAGS[(index + 9) % MEMBER_TAGS.length], index % 2 === 0 ? "최근구매" : "장바구니 이탈"]),
   };
 });
 const HISTORY: SendRecord[] = [
   { id: 1, template: "6월 여름 할인 이벤트", channel: "스마트 라우팅", targetType: "전체 회원", count: 284391, success: 279112, fail: 5279, sentAt: "2026-06-22 14:00", status: "완료", cost: 3128400, savedCost: 1245600, affiliate: "현대백화점", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 284391, success: 279112, fail: 5279 }, { label: "2차 SMS 대체", requested: 5279, success: 5144, fail: 135 }] },
-  { id: 2, template: "포인트 소멸 안내", channel: "LMS", targetType: "일반·VIP", count: 92841, success: 91220, fail: 1621, sentAt: "2026-06-21 09:30", status: "완료", cost: 2785230, savedCost: 0, affiliate: "현대홈쇼핑", failoverSteps: [{ label: "1차 LMS", requested: 92841, success: 91220, fail: 1621 }] },
+  { id: 2, template: "포인트 소멸 안내", channel: "LMS", targetType: "일반", count: 92841, success: 91220, fail: 1621, sentAt: "2026-06-21 09:30", status: "완료", cost: 2785230, savedCost: 0, affiliate: "현대홈쇼핑", failoverSteps: [{ label: "1차 LMS", requested: 92841, success: 91220, fail: 1621 }] },
   { id: 3, template: "생일 축하 메시지", channel: "SMS", targetType: "생일 대상자", count: 1284, success: 1270, fail: 14, sentAt: "2026-06-20 08:00", status: "완료", cost: 12840, savedCost: 0, affiliate: "전사 공통", failoverSteps: [{ label: "1차 SMS", requested: 1284, success: 1270, fail: 14 }] },
-  { id: 4, template: "VIP 멤버십 전용 혜택", channel: "스마트 라우팅", targetType: "VIP", count: 18420, success: 18198, fail: 222, sentAt: "2026-06-19 11:00", status: "완료", cost: 198720, savedCost: 82680, affiliate: "한섬", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 18420, success: 18198, fail: 222 }, { label: "2차 SMS 대체", requested: 222, success: 219, fail: 3 }] },
+  { id: 4, template: "우수 고객 혜택 안내", channel: "스마트 라우팅", targetType: "일반", count: 18420, success: 18198, fail: 222, sentAt: "2026-06-19 11:00", status: "완료", cost: 198720, savedCost: 82680, affiliate: "한섬", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 18420, success: 18198, fail: 222 }, { label: "2차 SMS 대체", requested: 222, success: 219, fail: 3 }] },
   { id: 5, template: "신규 가입 환영", channel: "카카오 알림톡", targetType: "신규 가입자", count: 341, success: 338, fail: 3, sentAt: "2026-06-19 실시간", status: "진행중", cost: 2046, savedCost: 1364, affiliate: "전사 공통", failoverSteps: [{ label: "1차 카카오 알림톡", requested: 341, success: 338, fail: 3 }] },
   { id: 6, template: "배송 완료 안내", channel: "SMS", targetType: "배송 완료자", count: 2841, success: 2830, fail: 11, sentAt: "2026-06-18 16:00", status: "완료", cost: 28410, savedCost: 0, affiliate: "현대백화점", failoverSteps: [{ label: "1차 SMS", requested: 2841, success: 2830, fail: 11 }] },
 ];
@@ -177,8 +191,7 @@ const channelPie = [
   { name: "RCS", value: 3, color: "#8B5CF6" },
 ];
 const memberTypeData = [
-  { type: "VIP", count: 28420, rate: 99.1, open: 68.4 },
-  { type: "일반", count: 198341, rate: 98.2, open: 41.2 },
+  { type: "일반", count: 226761, rate: 98.2, open: 41.2 },
   { type: "신규", count: 34210, rate: 97.8, open: 52.1 },
   { type: "휴면", count: 23420, rate: 94.2, open: 18.3 },
 ];
@@ -189,6 +202,26 @@ const performanceData = [
   { month: "4월", openRate: 43.2, clickRate: 15.8, conversionRate: 4.1 },
   { month: "5월", openRate: 47.9, clickRate: 18.3, conversionRate: 5.2 },
   { month: "6월", openRate: 49.4, clickRate: 19.1, conversionRate: 5.8 },
+];
+const fallbackStageData = [
+  { stage: "1차", count: 279112, rate: 98.1, kakao: 214000, sms: 38112, lms: 19000, rcs: 8000, color: "#1843FA" },
+  { stage: "2차", count: 5144, rate: 97.4, kakao: 0, sms: 3820, lms: 1120, rcs: 204, color: "#10B981" },
+  { stage: "3차", count: 111, rate: 82.2, kakao: 0, sms: 65, lms: 30, rcs: 16, color: "#F59E0B" },
+];
+const newMemberTrend = [
+  { month: "1월", count: 1840 }, { month: "2월", count: 2210 }, { month: "3월", count: 2640 },
+  { month: "4월", count: 2980 }, { month: "5월", count: 3360 }, { month: "6월", count: 3910 },
+];
+const hourlyClickData = [
+  { hour: "09시", click: 9.4 }, { hour: "11시", click: 14.8 }, { hour: "13시", click: 12.1 },
+  { hour: "15시", click: 18.7 }, { hour: "17시", click: 21.2 }, { hour: "19시", click: 16.5 },
+];
+const templatePerformanceTop = [
+  { name: "생일 축하 메시지", click: 34.2, purchase: null, ai: false },
+  { name: "AI 신규 가입 환영", click: 28.1, purchase: 7.4, ai: true },
+  { name: "6월 여름 할인 이벤트", click: 21.8, purchase: 6.1, ai: false },
+  { name: "포인트 소멸 안내", click: 18.1, purchase: null, ai: false },
+  { name: "AI 장바구니 리마인드", click: 16.7, purchase: 8.2, ai: true },
 ];
 
 // ─── Shared Components ────────────────────────────────────────────────────────
@@ -308,6 +341,23 @@ function AiReportDetail({ compact = false }: { compact?: boolean }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function PinNote({ text }: { text: string }) {
+  return (
+    <span className="group relative inline-flex align-middle">
+      <button
+        type="button"
+        aria-label="기획 메모"
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-amber-600"
+      >
+        <Info className="h-3 w-3" />
+      </button>
+      <span className="pointer-events-none absolute right-0 top-6 z-20 hidden w-64 rounded-lg border border-border bg-card p-3 text-left text-xs font-medium leading-relaxed text-muted-foreground shadow-lg group-hover:block">
+        {text}
+      </span>
+    </span>
   );
 }
 
@@ -459,18 +509,25 @@ const PAGE_TITLES: Record<Page, string> = {
   members: "회원 관리", "stats-overview": "통계 · 발송 현황", "stats-channel": "통계 · 채널 분석",
   "stats-routing": "통계 · 비용/라우팅 분석", "stats-member": "통계 · 회원 분석", "stats-performance": "통계 · 성과 분석",
 };
-function Header({ page }: { page: Page }) {
+function Header({ page, affiliate, setAffiliate }: { page: Page; affiliate: AffiliateScope; setAffiliate: (scope: AffiliateScope) => void }) {
   return (
     <header className="h-14 bg-card border-b border-border flex items-center justify-between px-6 shrink-0">
       <h1 className="text-base font-bold text-foreground">{PAGE_TITLES[page]}</h1>
       <div className="flex items-center gap-3">
+        <select
+          value={affiliate}
+          onChange={event => setAffiliate(event.target.value as AffiliateScope)}
+          className="rounded-lg border border-border bg-muted px-3 py-1.5 text-xs font-bold text-foreground focus:outline-none"
+        >
+          {AFFILIATES.map(option => <option key={option} value={option}>{scopeLabel(option)}</option>)}
+        </select>
         <button className="relative p-2 rounded-lg hover:bg-muted text-muted-foreground">
           <Bell className="w-4 h-4" />
           <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
         </button>
         <div className="flex items-center gap-2 pl-3 border-l border-border">
           <div className="w-7 h-7 bg-primary/10 rounded-full flex items-center justify-center text-xs font-bold text-primary">김</div>
-          <span className="text-xs font-semibold text-foreground">김민준</span>
+          <span className="text-xs font-semibold text-foreground">{affiliate === "전사 공통" ? "김민준" : affiliate}</span>
         </div>
       </div>
     </header>
@@ -478,15 +535,28 @@ function Header({ page }: { page: Page }) {
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
-function DashboardPage({ setPage }: { setPage: (p: Page) => void }) {
+function DashboardPage({ setPage, affiliateScope }: { setPage: (p: Page) => void; affiliateScope: AffiliateScope }) {
+  const scopedHistory = getScopedHistory(HISTORY, affiliateScope);
+  const scopedMembers = getScopedMembers(createMemberRows(), affiliateScope);
+  const totalSends = scopedHistory.reduce((sum, record) => sum + record.count, 0);
+  const totalSuccess = scopedHistory.reduce((sum, record) => sum + record.success, 0);
+  const totalFail = scopedHistory.reduce((sum, record) => sum + record.fail, 0);
+  const totalSaved = scopedHistory.reduce((sum, record) => sum + record.savedCost, 0);
+  const successRate = totalSends > 0 ? ((totalSuccess / totalSends) * 100).toFixed(1) : "0.0";
+  const activeMembers = scopedMembers.filter(member => (member.tags ?? []).includes("휴면") === false).length * 320;
+  const memberTotal = Math.max(activeMembers, scopedMembers.length * 356);
   return (
     <div className="p-6 space-y-6">
+      <div className="rounded-xl border border-border bg-card px-4 py-3">
+        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">현재 데이터 범위 <PinNote text="대시보드는 회의에서 보류로 분류되었습니다. 배포 화면의 첫 화면을 깨지 않도록 현황 요약은 유지하고 보류 상태만 표시했습니다." /></div>
+        <div className="mt-1 text-sm font-bold text-foreground">{scopeLabel(affiliateScope)} · 회원/템플릿/전송 기록/통계가 이 계정 권한으로 표시됩니다.</div>
+      </div>
       <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
-        <StatCard label="오늘 발송 건수" value="12,847" sub="06월 23일 기준" trend={{ val: "+8.2%", up: true }} icon={<Send className="w-4 h-4" />} color="blue" />
-        <StatCard label="발송 성공률" value="98.7%" sub="실패 165건" trend={{ val: "+0.3%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
-        <StatCard label="활성 회원 수" value="284,391" sub="전체 307,811명" trend={{ val: "+1,284명", up: true }} icon={<Users className="w-4 h-4" />} color="violet" />
-        <StatCard label="이번달 누적 발송" value="892,451" sub="목표 1,000,000건" trend={{ val: "+12.4%", up: true }} icon={<BarChart3 className="w-4 h-4" />} color="amber" />
-        <StatCard label="스마트 라우팅 절감" value="₩5.5M" sub="SMS/LMS 대비 누적" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
+        <StatCard label="오늘 발송 건수" value={scaleCount(12847, affiliateScope).toLocaleString()} sub="06월 23일 기준" trend={{ val: "+8.2%", up: true }} icon={<Send className="w-4 h-4" />} color="blue" />
+        <StatCard label="발송 성공률" value={`${successRate}%`} sub={`실패 ${totalFail.toLocaleString()}건`} trend={{ val: "+0.3%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
+        <StatCard label="활성 회원 수" value={activeMembers.toLocaleString()} sub={`전체 ${memberTotal.toLocaleString()}명`} trend={{ val: `+${scaleCount(1284, affiliateScope).toLocaleString()}명`, up: true }} icon={<Users className="w-4 h-4" />} color="violet" />
+        <StatCard label="이번달 누적 발송" value={totalSends.toLocaleString()} sub={`${scopeLabel(affiliateScope)} 기준`} trend={{ val: "+12.4%", up: true }} icon={<BarChart3 className="w-4 h-4" />} color="amber" />
+        <StatCard label="스마트 라우팅 절감" value={formatWon(totalSaved)} sub="SMS/LMS 대비 누적" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
       </div>
 
       <div className="bg-card rounded-xl border border-border p-5">
@@ -564,7 +634,7 @@ function DashboardPage({ setPage }: { setPage: (p: Page) => void }) {
             <button onClick={() => setPage("history")} className="text-xs text-primary font-semibold hover:underline flex items-center gap-0.5">전체보기 <ChevronRight className="w-3 h-3" /></button>
           </div>
           <div className="space-y-3">
-            {HISTORY.slice(0, 4).map(r => (
+            {scopedHistory.slice(0, 4).map(r => (
               <div key={r.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                 <div>
                   <div className="text-xs font-semibold text-foreground">{r.template}</div>
@@ -583,8 +653,8 @@ function DashboardPage({ setPage }: { setPage: (p: Page) => void }) {
           <div className="grid grid-cols-2 gap-3">
             {[
               { icon: Send, label: "메시지 발송", sub: "즉시 발송", page: "send" as Page, color: "bg-primary" },
-              { icon: FileText, label: "템플릿 관리", sub: "6개 활성", page: "templates" as Page, color: "bg-violet-600" },
-              { icon: Users, label: "회원 관리", sub: "284,391명", page: "members" as Page, color: "bg-emerald-600" },
+              { icon: FileText, label: "템플릿 관리", sub: `${createTemplateRows().filter(template => isTemplateVisibleForScope(template, affiliateScope)).length}개 활성`, page: "templates" as Page, color: "bg-violet-600" },
+              { icon: Users, label: "회원 관리", sub: `${memberTotal.toLocaleString()}명`, page: "members" as Page, color: "bg-emerald-600" },
               { icon: BarChart3, label: "통계 확인", sub: "성과 분석", page: "stats-overview" as Page, color: "bg-amber-500" },
             ].map(item => (
               <button
@@ -701,7 +771,7 @@ function SendMessagePage() {
       {step === 1 && (
         <div className="max-w-2xl space-y-4">
           <div className="bg-card rounded-xl border border-border p-5">
-            <h3 className="text-sm font-bold text-foreground mb-3">수신자 유형 선택 <span className="text-red-500">*</span></h3>
+          <h3 className="text-sm font-bold text-foreground mb-3">수신자 태그 선택 <span className="text-red-500">*</span></h3>
             <p className="text-xs text-muted-foreground mb-3">태그 수가 많은 운영 환경을 기준으로 검색 후 선택하세요. 복수 선택 가능합니다.</p>
             <div className="relative mb-3">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -931,7 +1001,7 @@ function SendMessagePageV2() {
     .slice(0, 8);
   const candidateMembers = members.filter(member => {
     const memberTags = member.tags ?? [];
-    const tagMatch = selectedTags.length === 0 || selectedTags.includes("전체 회원") || selectedTags.some(tag => memberTags.includes(tag) || member.type === tag);
+    const tagMatch = selectedTags.length === 0 || selectedTags.includes("전체 회원") || selectedTags.some(tag => memberTags.includes(tag));
     const keyword = !memberSearch || member.name.includes(memberSearch) || member.phone.includes(memberSearch) || memberTags.some(tag => tag.includes(memberSearch));
     return tagMatch && keyword;
   });
@@ -978,7 +1048,7 @@ function SendMessagePageV2() {
       const message = "[현대퓨처넷] #{이름}님, 최근 관심 상품 기준으로 선별한 VIP 혜택이 준비되었습니다. 앱에서 쿠폰과 사용 기간을 확인해 주세요. 수신거부 080-000-0000";
       setAiPlan({
         title: "VIP 최근구매 고객 재구매 캠페인",
-        reason: "최근구매·카카오 동의·VIP 태그 조합의 예상 반응률이 가장 높습니다.",
+        reason: "최근구매·카카오 동의·신규 타겟 조합의 예상 반응률이 가장 높습니다.",
         audience: "VIP, 최근구매, 카카오 동의",
         template: template.name,
         channel: "카카오 친구톡",
@@ -1001,6 +1071,13 @@ function SendMessagePageV2() {
         if (index === aiJobs.length - 1) setAiResult(true);
       }, 500 + index * 280);
     });
+  };
+  const consentCountForChannel = (channelId: string) => {
+    if (channelId === "smart-routing") return candidateMembers.length;
+    if (channelId === "sms" || channelId === "lms") return candidateMembers.filter(member => member.smsConsent).length;
+    if (channelId === "kakao-noti" || channelId === "kakao-friend") return candidateMembers.filter(member => member.kakaoConsent).length;
+    if (channelId === "rcs") return candidateMembers.filter(member => member.rcsConsent).length;
+    return 0;
   };
 
   return (
@@ -1190,12 +1267,13 @@ function SendMessagePageV2() {
   );
 }
 
-function SendMessagePageWizard() {
-  const members = useMemo(() => createMemberRows(), []);
-  const templates = useMemo(() => createTemplateRows(), []);
+function SendMessagePageWizard({ affiliateScope }: { affiliateScope: AffiliateScope }) {
+  const members = useMemo(() => getScopedMembers(createMemberRows(), affiliateScope), [affiliateScope]);
+  const templates = useMemo(() => createTemplateRows().filter(template => isTemplateVisibleForScope(template, affiliateScope)), [affiliateScope]);
   const [step, setStep] = useState(1);
   const [mode, setMode] = useState<"manual" | "ai">("manual");
   const [selectedTags, setSelectedTags] = useState<string[]>(["카카오 동의"]);
+  const [targetMode, setTargetMode] = useState<"OR" | "AND">("OR");
   const [tagSearch, setTagSearch] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
   const [checkedMembers, setCheckedMembers] = useState<number[]>([]);
@@ -1215,22 +1293,24 @@ function SendMessagePageWizard() {
   const [aiPlan, setAiPlan] = useState<null | { title: string; reason: string; audience: string; template: string; channel: string; message: string }>(null);
   const [aiResult, setAiResult] = useState(false);
   const [aiJobs, setAiJobs] = useState([
-    { name: "오타·맞춤법", model: "small-ko-proof", status: "대기", result: "-" },
+    { name: "맞춤법·오타", model: "small-ko-proof", status: "대기", result: "-" },
     { name: "광고 표기", model: "small-policy-ad", status: "대기", result: "-" },
-    { name: "민감 표현", model: "small-risk-ko", status: "대기", result: "-" },
-    { name: "개인정보·마스킹", model: "small-privacy-ko", status: "대기", result: "-" },
-    { name: "채널 길이", model: "small-channel-fit", status: "대기", result: "-" },
-    { name: "발송 피로도", model: "small-frequency", status: "대기", result: "-" },
+    { name: "민감 표현·금칙어", model: "small-risk-ko", status: "대기", result: "-" },
+    { name: "채널 길이 적합성", model: "small-channel-fit", status: "대기", result: "-" },
+    { name: "브랜드 톤앤매너", model: "small-brand-tone", status: "대기", result: "-" },
   ]);
 
   const selectedTemplate = templates.find(template => template.id === selectedTemplateId);
-  const visibleTags = (tagSearch ? MEMBER_TAGS.filter(tag => tag.includes(tagSearch)) : MEMBER_TAGS).slice(0, 12);
-  const relatedTags = MEMBER_TAGS
+  const eligibleMembers = useMemo(() => members.filter(member => member.smsConsent || member.kakaoConsent || member.rcsConsent), [members]);
+  const availableMemberTags = useMemo(() => uniqueTags(["전체 회원", ...eligibleMembers.flatMap(member => member.tags ?? [])]), [eligibleMembers]);
+  const visibleTags = (tagSearch ? availableMemberTags.filter(tag => tag.includes(tagSearch)) : availableMemberTags).slice(0, 12);
+  const relatedTags = availableMemberTags
     .filter(tag => !selectedTags.includes(tag) && (tagSearch ? [...tagSearch].some(ch => tag.includes(ch)) : selectedTags.some(selected => tag.includes(selected) || selected.includes(tag))))
     .slice(0, 8);
-  const candidateMembers = members.filter(member => {
+  const candidateMembers = eligibleMembers.filter(member => {
     const memberTags = member.tags ?? [];
-    const tagMatch = selectedTags.length === 0 || selectedTags.includes("전체 회원") || selectedTags.some(tag => memberTags.includes(tag) || member.type === tag);
+    const effectiveTags = selectedTags.filter(tag => tag !== "전체 회원");
+    const tagMatch = selectedTags.length === 0 || selectedTags.includes("전체 회원") || (targetMode === "AND" ? effectiveTags.every(tag => memberTags.includes(tag)) : effectiveTags.some(tag => memberTags.includes(tag)));
     const keyword = !memberSearch || member.name.includes(memberSearch) || member.phone.includes(memberSearch) || memberTags.some(tag => tag.includes(memberSearch));
     return tagMatch && keyword;
   });
@@ -1240,7 +1320,7 @@ function SendMessagePageWizard() {
     return !templateSearch || template.name.includes(templateSearch) || template.content.includes(templateSearch) || template.channel.includes(templateSearch) || tags.some(tag => tag.includes(templateSearch));
   });
   const visibleTemplates = filteredTemplates.slice(0, 10);
-  const estimatedTarget = selectedTags.includes("전체 회원") ? 284391 : Math.max(4200, candidateMembers.length * 1370 + includedMembers.length - excludedMembers.length);
+  const estimatedTarget = selectedTags.includes("전체 회원") ? scaleCount(284391, affiliateScope) : Math.max(1200, candidateMembers.length * 1370 + includedMembers.length - excludedMembers.length);
   const messageMode = messageDraft.length > 45 ? "LMS" : "SMS";
   const selectedChannelMeta = CHANNELS.find(channel => channel.id === selectedChannel);
   const unitCost = selectedChannel === "smart-routing" || smartRouting ? 7 : selectedChannel === "sms" ? 10 : selectedChannel === "lms" ? 30 : selectedChannel === "kakao-noti" ? 6 : selectedChannel === "rcs" ? 14 : 8;
@@ -1256,6 +1336,15 @@ function SendMessagePageWizard() {
     !!selectedChannel,
     canSend,
   ];
+
+  useEffect(() => {
+    const firstTemplate = templates[0];
+    setSelectedTemplateId(firstTemplate?.id ?? 0);
+    setMessageDraft(firstTemplate?.content ?? "");
+    setCheckedMembers([]);
+    setIncludedMembers([]);
+    setExcludedMembers([]);
+  }, [affiliateScope, templates]);
 
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag]);
   const selectAllMembers = () => setSelectedTags(["전체 회원"]);
@@ -1276,7 +1365,7 @@ function SendMessagePageWizard() {
   };
   const addManualMember = () => {
     if (!manualName.trim() || !manualPhone.trim()) return;
-    const manual: Member = { id: Date.now(), name: manualName, phone: manualPhone, type: "수동", smsConsent: true, kakaoConsent: true, rcsConsent: false, joinedAt: "-", lastSend: "-", tags: ["수동 추가"] };
+    const manual: Member = { id: Date.now(), name: manualName, phone: manualPhone, type: "수동", affiliate: affiliateScope === "전사 공통" ? "현대백화점" : affiliateScope, smsConsent: true, kakaoConsent: true, rcsConsent: false, joinedAt: "-", lastSend: "-", tags: ["수동 추가", affiliateScope] };
     setIncludedMembers(prev => mergeMembers(prev, [manual]));
     setManualName("");
     setManualPhone("");
@@ -1288,21 +1377,21 @@ function SendMessagePageWizard() {
   const runAiPlan = () => {
     setAiLoading(true);
     window.setTimeout(() => {
-      const template = templates.find(item => getTemplateTags(item).includes("VIP")) ?? templates[0];
-      const message = "[현대퓨처넷] #{이름}님, 최근 관심 상품 기준으로 선별한 VIP 혜택이 준비되었습니다. 앱에서 쿠폰과 사용 기간을 확인해 주세요. 수신거부 080-000-0000";
+      const template = templates.find(item => getTemplateTags(item).includes("신규")) ?? templates[0];
+      const message = "[현대퓨처넷] #{이름}님, 최근 관심 상품 기준으로 준비한 신규 회원 혜택이 있습니다. 앱에서 쿠폰과 사용 기간을 확인해 주세요. 수신거부 080-000-0000";
       setAiPlan({
-        title: "VIP 최근구매 고객 재구매 캠페인",
-        reason: "최근구매·카카오 동의·VIP 태그 조합의 예상 반응률이 가장 높습니다.",
-        audience: "VIP, 최근구매, 카카오 동의",
+        title: "신규 최근구매 회원 재구매 캠페인",
+        reason: "신규·최근구매·카카오 동의 타겟 조합의 예상 반응률이 가장 높습니다.",
+        audience: "신규, 최근구매, 카카오 동의",
         template: template.name,
         channel: "카카오 친구톡",
         message,
       });
-      setSelectedTags(["VIP", "최근구매", "카카오 동의"]);
+      setSelectedTags(["신규", "최근구매", "카카오 동의"]);
       setSelectedChannel("kakao-friend");
       setSelectedTemplateId(template.id);
       setMessageDraft(message);
-      setIncludedMembers(members.filter(member => member.tags?.includes("VIP")).slice(0, 3));
+      setIncludedMembers(eligibleMembers.filter(member => member.tags?.includes("신규")).slice(0, 3));
       setStep(2);
       setAiLoading(false);
     }, 1200);
@@ -1312,7 +1401,7 @@ function SendMessagePageWizard() {
     setAiJobs(jobs => jobs.map(job => ({ ...job, status: "실행중", result: "queued" })));
     aiJobs.forEach((job, index) => {
       window.setTimeout(() => {
-        setAiJobs(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, status: "완료", result: ["정상", "주의 1건", "위험 없음", "마스킹 필요 없음", messageDraft.length > 90 ? "LMS/RCS 권장" : "SMS 가능", "빈도 정상"][index] } : item));
+        setAiJobs(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, status: "완료", result: ["정상", "(광고) 표기 확인", "금칙어 위험 없음", messageDraft.length > 90 ? "LMS/RCS 권장" : "SMS 가능", "브랜드 톤 적합"][index] } : item));
         if (index === aiJobs.length - 1) setAiResult(true);
       }, 500 + index * 280);
     });
@@ -1323,7 +1412,7 @@ function SendMessagePageWizard() {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className="text-sm font-bold mb-1">AI 자동 추천</h3>
-          <p className="text-xs text-muted-foreground">수신자, 템플릿, 채널, 문구를 한 번에 추천하고 단계별 화면에 반영합니다.</p>
+          <p className="text-xs text-muted-foreground">타겟, 템플릿, 채널, 문구를 한 번에 추천하고 단계별 화면에 반영합니다.</p>
         </div>
         <Btn onClick={runAiPlan} disabled={aiLoading}>
           <Sparkles className="w-3.5 h-3.5" />{aiLoading ? "추천 중..." : "추천 받기"}
@@ -1339,7 +1428,7 @@ function SendMessagePageWizard() {
           <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
             {[["대상", aiPlan.audience], ["템플릿", aiPlan.template], ["채널", aiPlan.channel], ["예상 대상", `${estimatedTarget.toLocaleString()}명`]].map(([label, value]) => (
               <div key={label} className="rounded-lg border border-border bg-muted px-3 py-2">
-                <div className="text-xs text-muted-foreground mb-1">{label}</div>
+                <div className="text-xs text-muted-foreground mb-1">{label === "대상" ? "타겟" : label}</div>
                 <div className="text-xs font-bold">{value}</div>
               </div>
             ))}
@@ -1353,15 +1442,22 @@ function SendMessagePageWizard() {
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5">
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold">태그 기반 수신자</h3>
+          <h3 className="flex items-center gap-2 text-sm font-bold">타겟 기반 수신자 <PinNote text="기획에서 '태그' 용어를 '타겟'으로 변경했습니다. 내부 데이터 키는 데모 안정성을 위해 tags로 유지했습니다." /></h3>
           <div className="flex items-center gap-2">
             <button onClick={selectAllMembers} className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-primary hover:bg-accent">전체 회원 선택</button>
             <span className="text-xs font-semibold text-primary">예상 {estimatedTarget.toLocaleString()}명</span>
           </div>
         </div>
+        <div className="mb-3 inline-flex rounded-lg border border-border bg-muted p-1">
+          {(["OR", "AND"] as const).map(mode => (
+            <button key={mode} onClick={() => setTargetMode(mode)} className={`px-3 py-1.5 rounded-md text-xs font-bold ${targetMode === mode ? "bg-primary text-white" : "text-muted-foreground hover:bg-card"}`}>
+              {mode === "OR" ? "하나라도 포함" : "모두 포함"}
+            </button>
+          ))}
+        </div>
         <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input value={tagSearch} onChange={event => setTagSearch(event.target.value)} placeholder="태그 검색" className="w-full pl-8 pr-4 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+          <input value={tagSearch} onChange={event => setTagSearch(event.target.value)} placeholder="타겟 검색" className="w-full pl-8 pr-4 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
         </div>
         <div className="flex flex-wrap gap-2 mb-4">
           {visibleTags.map(tag => (
@@ -1372,7 +1468,7 @@ function SendMessagePageWizard() {
         </div>
         {relatedTags.length > 0 && (
           <div className="mb-4 rounded-lg border border-border bg-muted p-3">
-            <div className="text-xs font-bold text-muted-foreground mb-2">유사 태그</div>
+            <div className="text-xs font-bold text-muted-foreground mb-2">유사 타겟</div>
             <div className="flex flex-wrap gap-2">
               {relatedTags.map(tag => (
                 <button key={tag} onClick={() => toggleTag(tag)} className="px-3 py-1.5 rounded-full text-xs font-semibold border border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground cursor-pointer transition-colors">
@@ -1386,7 +1482,7 @@ function SendMessagePageWizard() {
           <div className="flex items-center gap-2 border-b border-border bg-muted p-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <input value={memberSearch} onChange={event => setMemberSearch(event.target.value)} placeholder="회원명, 번호, 태그 검색" className="w-full pl-8 pr-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none" />
+              <input value={memberSearch} onChange={event => setMemberSearch(event.target.value)} placeholder="회원명, 번호, 타겟 검색" className="w-full pl-8 pr-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none" />
             </div>
             <Btn size="sm" variant="outline" onClick={addChecked}>포함</Btn>
             <Btn size="sm" variant="outline" onClick={excludeChecked}>제외</Btn>
@@ -1398,7 +1494,7 @@ function SendMessagePageWizard() {
                 <div className="text-xs font-bold">{member.name} <span className="font-mono text-muted-foreground">{member.phone}</span></div>
                 <div className="flex flex-wrap gap-1 mt-1">{(member.tags ?? []).slice(0, 5).map(tag => <span key={tag} className="px-1.5 py-0.5 rounded bg-muted text-[10px] text-muted-foreground">{tag}</span>)}</div>
               </div>
-              <span className="text-xs text-muted-foreground">{member.type}</span>
+              <span className="text-xs text-muted-foreground">{member.affiliate}</span>
             </label>
           ))}
         </div>
@@ -1422,10 +1518,10 @@ function SendMessagePageWizard() {
     <div className="grid grid-cols-1 xl:grid-cols-[420px_1fr] gap-5">
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="p-4 border-b border-border">
-          <h3 className="text-sm font-bold mb-3">템플릿 검색</h3>
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-bold">템플릿 검색 <PinNote text="메시지 작성 기능은 보류 항목이지만, 템플릿 기반 작성과 직접 작성의 현재 데모 흐름은 확인용으로 남겨두었습니다." /></h3>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input value={templateSearch} onChange={event => setTemplateSearch(event.target.value)} placeholder="템플릿명, 채널, 태그, 문구 검색" className="w-full pl-8 pr-4 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            <input value={templateSearch} onChange={event => setTemplateSearch(event.target.value)} placeholder="템플릿명, 채널, 타겟, 문구 검색" className="w-full pl-8 pr-4 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
           </div>
         </div>
         <div className="max-h-[560px] overflow-auto">
@@ -1488,7 +1584,7 @@ function SendMessagePageWizard() {
           )}
         </div>
         <div className="rounded-xl border border-border bg-card p-5">
-          <h3 className="text-sm font-bold mb-3">메시지 작성</h3>
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-bold">메시지 작성 <PinNote text="최종 발송 전 문구/채널 정책은 추가 확정이 필요해 보류로 표시했습니다." /></h3>
           <div className="mb-3 flex flex-wrap gap-2">
             {[["이름", "#{이름}"], ["포인트", "#{포인트}"], ["주문번호", "#{주문번호}"]].map(([label, value]) => (
               <button key={value} onClick={() => insertVariable(value)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted-foreground hover:bg-accent hover:text-foreground">{label} 삽입</button>
@@ -1515,18 +1611,21 @@ function SendMessagePageWizard() {
   const renderChannel = () => (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5">
       <div className="rounded-xl border border-border bg-card p-5">
-        <h3 className="text-sm font-bold mb-4">채널 선택</h3>
+        <h3 className="mb-4 flex items-center gap-2 text-sm font-bold">채널 선택 <PinNote text="회의에서 채널 선택은 보류로 분류되었습니다. 현재 화면은 동의 회원 수와 추천 채널을 보여주는 참고 UI로 유지했습니다." /></h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {CHANNELS.map(channel => (
-            <button key={channel.id} onClick={() => { setSelectedChannel(channel.id); if (channel.id === "smart-routing") setSmartRouting(true); }} className={`flex items-center gap-3 p-4 rounded-xl border transition-all cursor-pointer ${selectedChannel === channel.id ? "border-primary bg-accent" : "border-border hover:bg-blue-50/60"}`}>
+          {CHANNELS.map(channel => {
+            const consentCount = consentCountForChannel(channel.id);
+            const disabled = channel.id !== "smart-routing" && consentCount === 0;
+            return (
+            <button key={channel.id} disabled={disabled} onClick={() => { if (disabled) return; setSelectedChannel(channel.id); if (channel.id === "smart-routing") setSmartRouting(true); }} className={`flex items-center gap-3 p-4 rounded-xl border transition-all ${disabled ? "cursor-not-allowed border-border bg-muted/50 opacity-60" : selectedChannel === channel.id ? "cursor-pointer border-primary bg-accent" : "cursor-pointer border-border hover:bg-blue-50/60"}`}>
               <channel.icon className="w-4 h-4 text-primary" />
               <div className="text-left flex-1">
                 <div className="text-sm font-bold">{channel.label}</div>
-                <div className="text-xs text-muted-foreground mt-1">{channel.sub}</div>
+                <div className="text-xs text-muted-foreground mt-1">{channel.sub} · 동의 {consentCount.toLocaleString()}명</div>
               </div>
               {selectedChannel === channel.id && <CheckCircle2 className="w-4 h-4 text-primary" />}
             </button>
-          ))}
+          )})}
         </div>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
           <label className="flex items-center gap-3 rounded-lg border border-border bg-muted p-3 text-xs font-bold">
@@ -1678,7 +1777,7 @@ function RecipientBox({ title, members, onRemove }: { title: string; members: Me
 }
 
 // ─── Templates Page ───────────────────────────────────────────────────────────
-function TemplatesPage() {
+function TemplatesPage({ affiliateScope }: { affiliateScope: AffiliateScope }) {
   const [templates, setTemplates] = useState<Template[]>(() => createTemplateRows());
   const [search, setSearch] = useState("");
   const [tagFilter, setTagFilter] = useState("전체");
@@ -1690,26 +1789,27 @@ function TemplatesPage() {
   const [aiModal, setAiModal] = useState(false);
   const [aiChecking, setAiChecking] = useState(false);
   const [aiResult, setAiResult] = useState<string[]>([]);
-  const [form, setForm] = useState({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통", approvalStatus: "불필요" });
+  const defaultTemplateScope = affiliateScope === "전사 공통" ? "전사 공통" : `${affiliateScope} 전용`;
+  const [form, setForm] = useState({ name: "", channel: "SMS", content: "", category: "이벤트", scope: defaultTemplateScope, approvalStatus: "불필요" });
 
   const filtered = useMemo(() => templates.filter(t => {
     const tags = getTemplateTags(t);
     const keyword = !search || t.name.includes(search) || t.content.includes(search) || t.channel.includes(search) || t.category.includes(search) || tags.some(tag => tag.includes(search));
     const tagMatch = tagFilter === "전체" || tags.includes(tagFilter) || t.channel === tagFilter || t.category === tagFilter;
-    return keyword && tagMatch;
-  }), [templates, search, tagFilter]);
+    return isTemplateVisibleForScope(t, affiliateScope) && keyword && tagMatch;
+  }), [templates, search, tagFilter, affiliateScope]);
   const pageSize = 10;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)));
   const pagedTemplates = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const tagOptions = ["전체", ...Array.from(new Set(templates.flatMap(getTemplateTags))).slice(0, 18)];
+  const tagOptions = ["전체", ...Array.from(new Set(filtered.flatMap(getTemplateTags))).slice(0, 18)];
 
   const saveTemplate = () => {
     if (editModal) {
-      setTemplates(prev => prev.map(t => t.id === editModal.id ? { ...t, ...form } : t));
+      setTemplates(prev => prev.map(t => t.id === editModal.id ? { ...t, ...form, affiliate: affiliateFromScope(form.scope) } : t));
     } else {
-      setTemplates(prev => [...prev, { id: Date.now(), ...form, usageCount: 0, updatedAt: new Date().toISOString().slice(0, 10) }]);
+      setTemplates(prev => [...prev, { id: Date.now(), ...form, affiliate: affiliateFromScope(form.scope), usageCount: 0, updatedAt: new Date().toISOString().slice(0, 10) }]);
     }
-    setEditModal(null); setAddModal(false); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통", approvalStatus: "불필요" });
+    setEditModal(null); setAddModal(false); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", scope: defaultTemplateScope, approvalStatus: "불필요" });
   };
 
   const openEdit = (t: Template) => { setEditModal(t); setForm({ name: t.name, channel: t.channel, content: t.content, category: t.category, scope: t.scope ?? "전사 공통", approvalStatus: t.approvalStatus ?? "불필요" }); };
@@ -1733,19 +1833,14 @@ function TemplatesPage() {
         </div>
         <div><label className="text-xs font-semibold text-muted-foreground block mb-1">카테고리</label>
           <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none">
-            {["이벤트", "혜택", "안내", "VIP"].map(c => <option key={c}>{c}</option>)}
+            {["이벤트", "혜택", "안내", "마케팅"].map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div>
         <div><label className="text-xs font-semibold text-muted-foreground block mb-1">공개 범위</label>
           <select value={form.scope} onChange={e => setForm(f => ({ ...f, scope: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none">
-            {["전사 공통", "현대백화점 전용", "현대홈쇼핑 전용", "한섬 전용"].map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-        <div><label className="text-xs font-semibold text-muted-foreground block mb-1">승인 상태</label>
-          <select value={form.approvalStatus} onChange={e => setForm(f => ({ ...f, approvalStatus: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none">
-            {["불필요", "미등록", "심사 대기", "승인 완료", "반려"].map(c => <option key={c}>{c}</option>)}
+            {(affiliateScope === "전사 공통" ? ["전사 공통", "현대백화점 전용", "현대홈쇼핑 전용", "한섬 전용", "리빙 전용"] : ["전사 공통", `${affiliateScope} 전용`]).map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
       </div>
@@ -1753,7 +1848,7 @@ function TemplatesPage() {
         <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={4} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" />
         <div className="flex items-center justify-between mt-1.5">
           <span className="text-xs text-muted-foreground">{form.content.length}자</span>
-          <Btn size="sm" variant="outline" onClick={() => { setAiModal(true); runAiCheck(); }}><Sparkles className="w-3 h-3 text-primary" /> AI 검사</Btn>
+          <Btn size="sm" variant="outline" onClick={() => { setAiModal(true); runAiCheck(); }}><Sparkles className="w-3 h-3 text-primary" /> 문구 검사</Btn>
         </div>
       </div>
       <div className="flex justify-end gap-2">
@@ -1768,9 +1863,12 @@ function TemplatesPage() {
       <div className="flex items-center justify-between mb-5">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="템플릿명, 내용, 태그 검색..." className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-72 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="템플릿명, 내용, 타겟 검색..." className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-72 focus:outline-none focus:ring-2 focus:ring-primary/30" />
         </div>
-        <Btn onClick={() => { setAddModal(true); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통", approvalStatus: "불필요" }); }}><Plus className="w-3.5 h-3.5" /> 템플릿 추가</Btn>
+        <Btn onClick={() => { setAddModal(true); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", scope: defaultTemplateScope, approvalStatus: "불필요" }); }}><Plus className="w-3.5 h-3.5" /> 템플릿 추가</Btn>
+      </div>
+      <div className="mb-4 rounded-lg border border-border bg-muted px-4 py-3 text-xs font-semibold text-muted-foreground">
+        {scopeLabel(affiliateScope)} 기준: 전사 공통 템플릿과 {affiliateScope === "전사 공통" ? "모든 계열사 전용 템플릿" : `${affiliateScope} 전용 템플릿`}만 표시됩니다.
       </div>
       <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
         {tagOptions.map(tag => (
@@ -1784,8 +1882,7 @@ function TemplatesPage() {
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">채널</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">카테고리</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">공개 범위</th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">승인</th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">태그</th>
+            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">타겟</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">사용 횟수</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">수정일</th>
             <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">작업</th>
@@ -1799,7 +1896,6 @@ function TemplatesPage() {
               <td className="px-4 py-3.5"><Badge text={t.channel} variant="blue" /></td>
               <td className="px-4 py-3.5 hidden lg:table-cell"><Badge text={t.category} variant="default" /></td>
               <td className="px-4 py-3.5 hidden xl:table-cell"><span className="text-xs font-semibold text-muted-foreground">{t.scope ?? "전사 공통"}</span></td>
-              <td className="px-4 py-3.5"><Badge text={t.approvalStatus ?? "불필요"} variant={t.approvalStatus === "승인 완료" ? "green" : t.approvalStatus === "반려" ? "red" : t.approvalStatus === "심사 대기" ? "amber" : "default"} /></td>
               <td className="px-4 py-3.5 hidden xl:table-cell">
                 <div className="flex flex-wrap gap-1 max-w-56">
                   {getTemplateTags(t).slice(0, 3).map(tag => <span key={tag} className="px-2 py-0.5 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">{tag}</span>)}
@@ -1846,17 +1942,10 @@ function TemplatesPage() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               {[
-                ["평균 오픈율", `${detailModal.openRate ?? 0}%`],
-                ["클릭률", `${detailModal.clickRate ?? 0}%`],
+                ["템플릿 클릭률", `${detailModal.clickRate ?? 0}%`],
+                ["구매전환율", detailModal.category === "안내" ? "미집계" : `${Math.max(0, ((detailModal.clickRate ?? 0) / 4)).toFixed(1)}%`],
                 ["수신거부율", `${detailModal.optOutRate ?? 0}%`],
               ].map(([label, value]) => <div key={label} className="p-3 bg-muted rounded-lg"><div className="text-xs text-muted-foreground mb-1">{label}</div><div className="text-sm font-bold">{value}</div></div>)}
-            </div>
-            {detailModal.approvalStatus === "반려" && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">반려 사유: {detailModal.rejectReason ?? "심사 기준 미충족"}</div>
-            )}
-            <div>
-              <div className="text-xs font-bold text-muted-foreground mb-2">AI 검사 요약</div>
-              <AiReportDetail />
             </div>
           </div>
         )}
@@ -1890,21 +1979,22 @@ function TemplatesPage() {
 }
 
 // ─── History Page ─────────────────────────────────────────────────────────────
-function HistoryPage() {
+function HistoryPage({ affiliateScope }: { affiliateScope: AffiliateScope }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("전체");
   const [periodFilter, setPeriodFilter] = useState("30일");
   const [channelFilter, setChannelFilter] = useState("전체 채널");
   const [affiliateFilter, setAffiliateFilter] = useState("전체 계열사");
   const [selectedRecord, setSelectedRecord] = useState<SendRecord | null>(null);
-  const filtered = HISTORY.filter(r =>
+  const scopedHistory = getScopedHistory(HISTORY, affiliateScope);
+  const filtered = scopedHistory.filter(r =>
     (filter === "전체" || r.status === filter) &&
     (channelFilter === "전체 채널" || r.channel === channelFilter) &&
     (affiliateFilter === "전체 계열사" || r.affiliate === affiliateFilter) &&
     (r.template.includes(search) || r.channel.includes(search) || r.affiliate.includes(search))
   );
-  const channelOptions = ["전체 채널", ...Array.from(new Set(HISTORY.map(r => r.channel)))];
-  const affiliateOptions = ["전체 계열사", ...Array.from(new Set(HISTORY.map(r => r.affiliate)))];
+  const channelOptions = ["전체 채널", ...Array.from(new Set(scopedHistory.map(r => r.channel)))];
+  const affiliateOptions = ["전체 계열사", ...Array.from(new Set(scopedHistory.map(r => r.affiliate)))];
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
@@ -1926,12 +2016,15 @@ function HistoryPage() {
             {affiliateOptions.map(option => <option key={option}>{option}</option>)}
           </select>
         </div>
-        <Btn variant="outline" size="sm"><Download className="w-3.5 h-3.5" /> 내보내기</Btn>
+        <Btn variant="outline" size="sm"><Download className="w-3.5 h-3.5" /> 엑셀 내보내기</Btn>
+      </div>
+      <div className="mb-4 rounded-lg border border-border bg-muted px-4 py-3 text-xs font-semibold text-muted-foreground">
+        {scopeLabel(affiliateScope)} 기준 전송 기록입니다. 계열사 계정은 전사 공통과 자기 계열사 발송만 조회합니다.
       </div>
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         <table className="w-full text-sm">
           <thead><tr className="bg-muted border-b border-border">
-            {["발송일시", "계열사", "템플릿", "채널", "대상", "발송", "성공", "실패", "비용", "절감", "성공률", "상태"].map(h => (
+            {["발송일시", "계열사", "템플릿", "채널", "대상", "발송", "성공", "실패", "비용 절감", "1차 성공률", "상태"].map(h => (
               <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
             ))}
           </tr></thead>
@@ -1947,7 +2040,6 @@ function HistoryPage() {
                 <td className="px-4 py-3.5 text-xs font-bold">{r.count.toLocaleString()}</td>
                 <td className="px-4 py-3.5 text-xs font-bold text-emerald-600">{r.success.toLocaleString()}</td>
                 <td className="px-4 py-3.5 text-xs font-bold text-red-500">{r.fail.toLocaleString()}</td>
-                <td className="px-4 py-3.5 text-xs font-bold whitespace-nowrap">{formatWon(r.cost)}</td>
                 <td className="px-4 py-3.5 text-xs font-bold text-emerald-600 whitespace-nowrap">{formatWon(r.savedCost)}</td>
                 <td className="px-4 py-3.5">
                   <div className="flex items-center gap-2">
@@ -1978,7 +2070,7 @@ function HistoryPage() {
                 ["성공", `${selectedRecord.success.toLocaleString()}건`],
                 ["실패", `${selectedRecord.fail.toLocaleString()}건`],
                 ["총 소요 비용", formatWon(selectedRecord.cost)],
-                ["절감액", formatWon(selectedRecord.savedCost)],
+                ["절감액", `${formatWon(selectedRecord.savedCost)} (보류)`],
                 ["계열사", selectedRecord.affiliate],
                 ["최종 도달률", `${(((selectedRecord.success + selectedRecord.failoverSteps.slice(1).reduce((sum, step) => sum + step.success, 0)) / selectedRecord.count) * 100).toFixed(1)}%`],
               ].map(([label, value]) => <div key={label} className="p-3 bg-muted rounded-lg"><div className="text-xs text-muted-foreground mb-1">{label}</div><div className="text-sm font-bold">{value}</div></div>)}
@@ -2028,9 +2120,8 @@ function HistoryPage() {
 }
 
 // ─── Members Page ─────────────────────────────────────────────────────────────
-function MembersPage() {
+function MembersPage({ affiliateScope }: { affiliateScope: AffiliateScope }) {
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("전체");
   const [memberTagSearch, setMemberTagSearch] = useState("");
   const [memberTagGroupFilter, setMemberTagGroupFilter] = useState("전체");
   const [memberTagFilter, setMemberTagFilter] = useState("전체");
@@ -2042,24 +2133,23 @@ function MembersPage() {
   const [uploadModal, setUploadModal] = useState(false);
   const [page, setPage] = useState(1);
   const [members, setMembers] = useState<Member[]>(() => createMemberRows());
-  const blockedMembers = members.filter(member => !member.smsConsent || !member.kakaoConsent).slice(0, 18);
-  const allMemberTags = useMemo(() => uniqueTags([...MEMBER_TAGS, ...members.flatMap(member => member.tags ?? []), ...customMemberTags]), [members, customMemberTags]);
+  const scopedMembers = getScopedMembers(members, affiliateScope);
+  const blockedMembers = scopedMembers.filter(member => !member.smsConsent || !member.kakaoConsent).slice(0, 18);
+  const allMemberTags = useMemo(() => uniqueTags(["전체 회원", ...scopedMembers.flatMap(member => member.tags ?? []), ...customMemberTags]), [scopedMembers, customMemberTags]);
   const visibleMemberTags = allMemberTags.filter(tag =>
     (memberTagGroupFilter === "전체" || tagGroupOf(tag) === memberTagGroupFilter) &&
     (!memberTagSearch || tag.includes(memberTagSearch))
   );
 
-  const filtered = members.filter(m =>
+  const filtered = scopedMembers.filter(m =>
     memberTab === "members" &&
-    (typeFilter === "전체" || m.type === typeFilter) &&
-    (memberTagFilter === "전체" || (m.tags ?? []).includes(memberTagFilter) || m.type === memberTagFilter) &&
+    (memberTagFilter === "전체" || (m.tags ?? []).includes(memberTagFilter)) &&
     (m.name.includes(search) || m.phone.includes(search) || (m.tags ?? []).some(tag => tag.includes(search)))
   );
   const memberPageSize = 8;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / memberPageSize)));
   const pagedMembers = filtered.slice((currentPage - 1) * memberPageSize, currentPage * memberPageSize);
 
-  const typeMap: Record<string, string> = { VIP: "vip", 일반: "blue", 신규: "green", 휴면: "default" };
   const addTagToPool = () => {
     const tag = newMemberTag.trim();
     if (!tag) return;
@@ -2088,10 +2178,10 @@ function MembersPage() {
     <div className="p-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
         {[
-          { label: "전체 회원", value: "307,811", color: "text-foreground" },
-          { label: "VIP", value: "28,420", color: "text-amber-600" },
-          { label: "카카오 동의", value: "241,320", color: "text-yellow-600" },
-          { label: "SMS 동의", value: "198,441", color: "text-blue-600" },
+          { label: "계정 회원", value: (scopedMembers.length * 356).toLocaleString(), color: "text-foreground" },
+          { label: "일반 회원", value: (scopedMembers.filter(member => member.type === "일반").length * 356).toLocaleString(), color: "text-blue-600" },
+          { label: "신규 회원", value: (scopedMembers.filter(member => member.type === "신규").length * 356).toLocaleString(), color: "text-emerald-600" },
+          { label: "카카오 동의", value: (scopedMembers.filter(member => member.kakaoConsent).length * 356).toLocaleString(), color: "text-yellow-600" },
         ].map(s => (
           <div key={s.label} className="bg-card rounded-xl border border-border p-4">
             <div className="text-xs text-muted-foreground mb-1">{s.label}</div>
@@ -2105,13 +2195,11 @@ function MembersPage() {
             <button onClick={() => setMemberTab("members")} className={`px-3 py-1.5 rounded-md text-xs font-bold ${memberTab === "members" ? "bg-primary text-white" : "text-muted-foreground"}`}>회원 목록</button>
             <button onClick={() => setMemberTab("blocked")} className={`px-3 py-1.5 rounded-md text-xs font-bold ${memberTab === "blocked" ? "bg-primary text-white" : "text-muted-foreground"}`}>수신거부자 목록</button>
           </div>
+          <div className="rounded-lg border border-border bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground">{scopeLabel(affiliateScope)} 기준</div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="이름 또는 전화번호 검색" className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-56 focus:outline-none" />
+            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="이름, 전화번호, 타겟 검색" className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-56 focus:outline-none" />
           </div>
-          {memberTab === "members" && ["전체", "VIP", "일반", "신규", "휴면"].map(f => (
-            <button key={f} onClick={() => { setTypeFilter(f); setPage(1); }} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${typeFilter === f ? "bg-primary text-white" : "bg-card border border-border text-muted-foreground"}`}>{f}</button>
-          ))}
         </div>
         <div className="flex items-center gap-2">
           <Btn variant="outline" size="sm" onClick={() => setUploadModal(true)}><Upload className="w-3.5 h-3.5" /> 파일 업로드</Btn>
@@ -2123,26 +2211,26 @@ function MembersPage() {
       <div className="mb-4 rounded-xl border border-border bg-card p-4">
         <div className="mb-3 flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <h3 className="text-sm font-bold">회원 태그 관리</h3>
-            <p className="mt-1 text-xs text-muted-foreground">회원이 보유한 모든 태그를 검색, 그룹 필터, 회원 목록 필터, 신규 추가에 사용할 수 있습니다.</p>
+            <h3 className="flex items-center gap-2 text-sm font-bold">회원 타겟 관리 <PinNote text="타겟 유형은 일반, 신규, 휴면으로 고정했습니다. VIP는 회원 유형과 통계에서 제거했습니다." /></h3>
+            <p className="mt-1 text-xs text-muted-foreground">회원이 보유한 타겟을 검색, 그룹 필터, 회원 목록 필터, 신규 추가에 사용할 수 있습니다.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <input value={memberTagSearch} onChange={e => setMemberTagSearch(e.target.value)} placeholder="회원 태그 검색" className="w-full sm:w-56 pl-8 pr-4 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none" />
+              <input value={memberTagSearch} onChange={e => setMemberTagSearch(e.target.value)} placeholder="회원 타겟 검색" className="w-full sm:w-56 pl-8 pr-4 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none" />
             </div>
             <select value={memberTagGroupFilter} onChange={e => setMemberTagGroupFilter(e.target.value)} className="rounded-lg border border-border bg-input-background px-3 py-2 text-sm text-muted-foreground">
-              {[...TAG_GROUPS, { id: "사용자", label: "사용자 태그", tags: [] }].map(group => <option key={group.id} value={group.id}>{group.label}</option>)}
+              {[...TAG_GROUPS, { id: "사용자", label: "사용자 타겟", tags: [] }].map(group => <option key={group.id} value={group.id}>{group.label}</option>)}
             </select>
             <div className="flex gap-2">
-              <input value={newMemberTag} onChange={e => setNewMemberTag(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addTagToPool(); }} placeholder="새 태그 추가" className="min-w-0 flex-1 rounded-lg border border-border bg-input-background px-3 py-2 text-sm" />
+              <input value={newMemberTag} onChange={e => setNewMemberTag(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addTagToPool(); }} placeholder="새 타겟 추가" className="min-w-0 flex-1 rounded-lg border border-border bg-input-background px-3 py-2 text-sm" />
               <button onClick={addTagToPool} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white">추가</button>
             </div>
           </div>
         </div>
         <div className="max-h-32 overflow-y-auto rounded-lg bg-muted p-3">
           <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-            <span>태그 {visibleMemberTags.length.toLocaleString()}개</span>
+            <span>타겟 {visibleMemberTags.length.toLocaleString()}개</span>
             <button onClick={() => { setMemberTagFilter("전체"); setPage(1); }} className="font-bold text-primary">필터 초기화</button>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -2152,14 +2240,14 @@ function MembersPage() {
                 <span className="mr-1 text-[10px] opacity-70">{tagGroupLabel(tag)}</span>{tag}
               </button>
             ))}
-            {visibleMemberTags.length === 0 && <div className="py-3 text-xs text-muted-foreground">검색 조건에 맞는 회원 태그가 없습니다.</div>}
+            {visibleMemberTags.length === 0 && <div className="py-3 text-xs text-muted-foreground">검색 조건에 맞는 회원 타겟이 없습니다.</div>}
           </div>
         </div>
       </div>
       <div className="bg-card rounded-xl border border-border overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="bg-muted border-b border-border">
-            {["이름", "전화번호", "유형", "태그", "SMS 동의", "카카오 동의", "RCS 동의", "가입일"].map(h => (
+            {["이름", "전화번호", "계열사", "타겟", "SMS 동의", "카카오 동의", "RCS 동의", "가입일"].map(h => (
               <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
             ))}
           </tr></thead>
@@ -2167,7 +2255,7 @@ function MembersPage() {
             <tr key={m.id} className="border-b border-border hover:bg-blue-50/70 transition-colors cursor-pointer" onClick={() => setDetailMember(m)}>
               <td className="px-4 py-3.5 text-xs font-bold text-foreground">{m.name}</td>
               <td className="px-4 py-3.5 text-xs text-muted-foreground font-mono">{m.phone}</td>
-              <td className="px-4 py-3.5"><Badge text={m.type} variant={typeMap[m.type] || "default"} /></td>
+              <td className="px-4 py-3.5"><Badge text={m.affiliate ?? "-"} variant="default" /></td>
               <td className="px-4 py-3.5">
                 <div className="flex flex-wrap gap-1 max-w-48">
                   {(m.tags ?? []).slice(0, 3).map(tag => <span key={tag} className="px-1.5 py-0.5 rounded bg-muted text-[10px] text-muted-foreground">{tag}</span>)}
@@ -2264,8 +2352,7 @@ function MembersPage() {
           <div className="space-y-4">
             <div className="flex items-center gap-3 p-4 bg-muted rounded-xl">
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-lg font-bold text-primary">{detailMember.name[0]}</div>
-              <div><div className="font-bold text-foreground">{detailMember.name}</div><div className="text-xs text-muted-foreground">{detailMember.phone}</div></div>
-              <Badge text={detailMember.type} variant={typeMap[detailMember.type] || "default"} />
+              <div><div className="font-bold text-foreground">{detailMember.name}</div><div className="text-xs text-muted-foreground">{detailMember.phone} · {detailMember.affiliate}</div></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               {[
@@ -2274,7 +2361,7 @@ function MembersPage() {
               ].map(f => <div key={f.label} className="p-3 bg-muted rounded-lg"><div className="text-xs text-muted-foreground mb-1">{f.label}</div><div className="text-sm font-semibold">{f.value}</div></div>)}
             </div>
             <div>
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">보유 태그</h4>
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">보유 타겟</h4>
               <div className="flex flex-wrap gap-2">
                 {(detailMember.tags ?? []).map(tag => (
                   <button key={tag} onClick={() => removeTagFromDetailMember(tag)} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-semibold text-muted-foreground hover:bg-red-50 hover:text-red-600">
@@ -2284,9 +2371,9 @@ function MembersPage() {
               </div>
             </div>
             <div className="rounded-xl border border-border bg-muted p-3">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">태그 추가</h4>
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">타겟 추가</h4>
               <div className="flex gap-2 mb-3">
-                <input value={detailTagInput} onChange={e => setDetailTagInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addTagToDetailMember(); }} placeholder="회원에게 추가할 태그" className="min-w-0 flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm" />
+                <input value={detailTagInput} onChange={e => setDetailTagInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addTagToDetailMember(); }} placeholder="회원에게 추가할 타겟" className="min-w-0 flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm" />
                 <button onClick={() => addTagToDetailMember()} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white">추가</button>
               </div>
               <div className="max-h-24 overflow-y-auto">
@@ -2337,16 +2424,29 @@ function StatsReportActions() {
   );
 }
 
-function StatsOverview() {
+function StatsOverview({ affiliateScope }: { affiliateScope: AffiliateScope }) {
+  const [fallbackPeriod, setFallbackPeriod] = useState("일간");
+  const scopedHistory = getScopedHistory(HISTORY, affiliateScope);
+  const totalSends = scopedHistory.reduce((sum, record) => sum + record.count, 0);
+  const totalSuccess = scopedHistory.reduce((sum, record) => sum + record.success, 0);
+  const totalFail = scopedHistory.reduce((sum, record) => sum + record.fail, 0);
+  const totalCost = scopedHistory.reduce((sum, record) => sum + record.cost, 0);
+  const totalSaved = scopedHistory.reduce((sum, record) => sum + record.savedCost, 0);
+  const scopedMonthlyData = monthlyData.map(row => ({ ...row, sms: scaleCount(row.sms, affiliateScope), lms: scaleCount(row.lms, affiliateScope), kakao: scaleCount(row.kakao, affiliateScope), rcs: scaleCount(row.rcs, affiliateScope) }));
+  const scopedDailyTrend = dailyTrend.map(row => ({ ...row, sends: scaleCount(row.sends, affiliateScope), success: scaleCount(row.success, affiliateScope) }));
+  const scopedFallbackStageData = fallbackStageData.map(row => ({ ...row, count: scaleCount(row.count, affiliateScope), sms: scaleCount(row.sms, affiliateScope), lms: scaleCount(row.lms, affiliateScope), kakao: scaleCount(row.kakao, affiliateScope), rcs: scaleCount(row.rcs, affiliateScope) }));
+  const fallbackTotal = scopedFallbackStageData.slice(1).reduce((sum, row) => sum + row.count, 0);
+  const fallbackRate = totalSends ? ((fallbackTotal / totalSends) * 100).toFixed(2) : "0.00";
   return (
     <div className="p-6 space-y-5">
       <StatsReportActions />
+      <div className="rounded-lg border border-border bg-muted px-4 py-3 text-xs font-semibold text-muted-foreground">{scopeLabel(affiliateScope)} 기준 통계입니다.</div>
       <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
-        <StatCard label="이번달 총 발송" value="892,451" sub="전월 대비 +12.4%" trend={{ val: "+12.4%", up: true }} icon={<Send className="w-4 h-4" />} color="blue" />
-        <StatCard label="평균 성공률" value="98.4%" sub="실패 14,232건" trend={{ val: "+0.2%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
-        <StatCard label="일평균 발송" value="29,748" sub="최고 284,391건" icon={<Activity className="w-4 h-4" />} color="violet" />
-        <StatCard label="발송 비용(추정)" value="₩18.7M" sub="전월 대비 +8.1%" trend={{ val: "+8.1%", up: false }} icon={<Target className="w-4 h-4" />} color="amber" />
-        <StatCard label="스마트 라우팅 절감" value="₩5.5M" sub="가상 SMS/LMS 대비" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
+        <StatCard label="이번달 총 발송" value={totalSends.toLocaleString()} sub="전월 대비 +12.4%" trend={{ val: "+12.4%", up: true }} icon={<Send className="w-4 h-4" />} color="blue" />
+        <StatCard label="평균 성공률" value={`${totalSends ? ((totalSuccess / totalSends) * 100).toFixed(1) : "0.0"}%`} sub={`실패 ${totalFail.toLocaleString()}건`} trend={{ val: "+0.2%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
+        <StatCard label="일평균 발송" value={Math.round(totalSends / 30).toLocaleString()} sub={`최고 ${scaleCount(284391, affiliateScope).toLocaleString()}건`} icon={<Activity className="w-4 h-4" />} color="violet" />
+        <StatCard label="발송 비용(추정)" value={formatWon(totalCost)} sub="전월 대비 +8.1%" trend={{ val: "+8.1%", up: false }} icon={<Target className="w-4 h-4" />} color="amber" />
+        <StatCard label="대체 발송 전환" value={fallbackTotal.toLocaleString()} sub={`fallback 전환율 ${fallbackRate}%`} trend={{ val: "+1.8%p", up: true }} icon={<RefreshCw className="w-4 h-4" />} color="green" />
       </div>
       <div className="bg-card rounded-xl border border-border p-5">
         <h3 className="text-sm font-bold mb-4">실시간 발송 큐 상태</h3>
@@ -2368,7 +2468,7 @@ function StatsOverview() {
       <div className="bg-card rounded-xl border border-border p-5">
         <h3 className="text-sm font-bold mb-4">월별 채널별 발송 현황</h3>
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={monthlyData} barSize={10}>
+          <BarChart data={scopedMonthlyData} barSize={10}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
             <XAxis dataKey="month" tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
@@ -2385,7 +2485,7 @@ function StatsOverview() {
         <div className="bg-card rounded-xl border border-border p-5">
           <h3 className="text-sm font-bold mb-4">일별 발송 & 성공 추이</h3>
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={dailyTrend}>
+            <AreaChart data={scopedDailyTrend}>
               <defs>
                 <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#1843FA" stopOpacity={0.15} /><stop offset="95%" stopColor="#1843FA" stopOpacity={0} /></linearGradient>
               </defs>
@@ -2399,30 +2499,44 @@ function StatsOverview() {
           </ResponsiveContainer>
         </div>
         <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-3">시간대별 발송 분포</h3>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-bold">fallback 단계별 성공</h3>
+            <select value={fallbackPeriod} onChange={event => setFallbackPeriod(event.target.value)} className="rounded-lg border border-border bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground">
+              {["일간", "주간", "월간"].map(option => <option key={option}>{option}</option>)}
+            </select>
+          </div>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={[
-              { time: "06~08", count: 12000 }, { time: "08~10", count: 38000 }, { time: "10~12", count: 95000 },
-              { time: "12~14", count: 72000 }, { time: "14~16", count: 84000 }, { time: "16~18", count: 61000 },
-              { time: "18~20", count: 48000 }, { time: "20~22", count: 29000 },
-            ]} barSize={16}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-              <XAxis dataKey="time" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
-              <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
-              <Bar dataKey="count" name="발송수" fill="#1843FA" radius={[3, 3, 0, 0]} />
-            </BarChart>
+            <RePieChart>
+              <Pie data={scopedFallbackStageData} cx="50%" cy="50%" innerRadius={48} outerRadius={72} dataKey="count" nameKey="stage">
+                {scopedFallbackStageData.map(entry => <Cell key={entry.stage} fill={entry.color} />)}
+              </Pie>
+              <Tooltip formatter={(_, __, item) => {
+                const payload = item.payload as typeof scopedFallbackStageData[number];
+                return [`${payload.count.toLocaleString()}건 · ${payload.rate}%`, `카카오 ${payload.kakao.toLocaleString()} / SMS ${payload.sms.toLocaleString()} / LMS ${payload.lms.toLocaleString()} / RCS ${payload.rcs.toLocaleString()}`];
+              }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+            </RePieChart>
           </ResponsiveContainer>
+          <div className="mt-2 text-xs text-muted-foreground">{fallbackPeriod} 기준 1차/2차/3차 성공률과 채널별 건수를 확인합니다.</div>
         </div>
       </div>
     </div>
   );
 }
 
-function StatsChannel() {
+function StatsChannel({ affiliateScope }: { affiliateScope: AffiliateScope }) {
+  const [period, setPeriod] = useState("최근 6개월");
+  const scopedMonthlyData = monthlyData.map(row => ({ ...row, sms: scaleCount(row.sms, affiliateScope), lms: scaleCount(row.lms, affiliateScope), kakao: scaleCount(row.kakao, affiliateScope), rcs: scaleCount(row.rcs, affiliateScope) }));
+  const scopedChannelCostData = channelCostData.map(row => ({ ...row, sends: scaleCount(row.sends, affiliateScope), cost: scaleCount(row.cost, affiliateScope) }));
   return (
     <div className="p-6 space-y-5">
       <StatsReportActions />
+      <div className="flex items-center justify-between rounded-lg border border-border bg-muted px-4 py-3 text-xs font-semibold text-muted-foreground">
+        <span>{scopeLabel(affiliateScope)} 기준 채널 분석입니다.</span>
+        <select value={period} onChange={event => setPeriod(event.target.value)} className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-muted-foreground">
+          {["최근 7일", "최근 30일", "최근 6개월", "올해"].map(option => <option key={option}>{option}</option>)}
+        </select>
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {channelPie.map((c, i) => (
           <div key={i} className="bg-card rounded-xl border border-border p-4 text-center">
@@ -2436,7 +2550,7 @@ function StatsChannel() {
         <div className="bg-card rounded-xl border border-border p-5">
           <h3 className="text-sm font-bold mb-4">채널별 성공률/실패율 비교</h3>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={channelCostData} layout="vertical" barSize={16}>
+            <BarChart data={scopedChannelCostData} layout="vertical" barSize={16}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" horizontal={false} />
               <XAxis type="number" domain={[96, 100]} tick={{ fontSize: 10 }} tickFormatter={v => `${v}%`} />
               <YAxis type="category" dataKey="channel" tick={{ fontSize: 10 }} width={90} />
@@ -2463,9 +2577,9 @@ function StatsChannel() {
         </div>
       </div>
       <div className="bg-card rounded-xl border border-border p-5">
-        <h3 className="text-sm font-bold mb-4">채널별 월별 추이</h3>
+        <h3 className="text-sm font-bold mb-4">채널별 추이</h3>
         <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={monthlyData}>
+          <LineChart data={scopedMonthlyData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
             <XAxis dataKey="month" tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
@@ -2484,7 +2598,7 @@ function StatsChannel() {
           <thead><tr className="bg-muted border-b border-border">
             {["채널", "발송량", "성공률", "실패율", "총 비용", "평균 단가"].map(h => <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>)}
           </tr></thead>
-          <tbody>{channelCostData.map(row => (
+          <tbody>{scopedChannelCostData.map(row => (
             <tr key={row.channel} className="border-b border-border hover:bg-muted/30">
               <td className="px-4 py-3 text-xs font-bold">{row.channel}</td>
               <td className="px-4 py-3 text-xs">{row.sends.toLocaleString()}건</td>
@@ -2500,35 +2614,37 @@ function StatsChannel() {
   );
 }
 
-function StatsRouting() {
+function StatsRouting({ affiliateScope }: { affiliateScope: AffiliateScope }) {
+  const scopedRoutingSavingsData = routingSavingsData.map(row => ({ ...row, actual: scaleCount(row.actual, affiliateScope), baseline: scaleCount(row.baseline, affiliateScope), saved: scaleCount(row.saved, affiliateScope) }));
+  const latestRouting = scopedRoutingSavingsData[scopedRoutingSavingsData.length - 1];
   return (
     <div className="p-6 space-y-5">
       <StatsReportActions />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="실제 청구 비용" value="₩18.7M" sub="6월 누적" icon={<Target className="w-4 h-4" />} color="amber" />
-        <StatCard label="SMS/LMS 가상 비용" value="₩24.2M" sub="동일 물량 기준" icon={<TrendingUp className="w-4 h-4" />} color="violet" />
-        <StatCard label="누적 절감액" value="₩5.5M" sub="절감률 22.7%" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
-        <StatCard label="대체 발송 전환" value="5,549" sub="최종 실패 24건" icon={<RefreshCw className="w-4 h-4" />} color="blue" />
+      <div className="rounded-lg border border-border bg-muted px-4 py-3 text-xs font-semibold text-muted-foreground">{scopeLabel(affiliateScope)} 기준 비용/라우팅 분석입니다.</div>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <StatCard label="실제 청구 비용" value={formatWon(latestRouting.actual)} sub="6월 누적" icon={<Target className="w-4 h-4" />} color="amber" />
+        <StatCard label="최대 비용" value={formatWon(latestRouting.baseline)} sub="동일 물량 최고 단가 기준" icon={<TrendingUp className="w-4 h-4" />} color="violet" />
+        <StatCard label="월별 절감액" value={formatWon(latestRouting.saved)} sub="6월 절감률 22.7%" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_0.7fr] gap-4">
         <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">실제 비용 vs SMS/LMS 가상 비용</h3>
+          <h3 className="text-sm font-bold mb-4">실제 비용 vs 최대 비용</h3>
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={routingSavingsData}>
+            <LineChart data={scopedRoutingSavingsData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
               <XAxis dataKey="month" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
               <Tooltip formatter={(v: number) => [formatWon(v)]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Line type="monotone" dataKey="actual" name="실제 청구 비용" stroke="#1843FA" strokeWidth={2.5} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="baseline" name="SMS/LMS 가상 비용" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="baseline" name="최대 비용" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
         <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">누적 절감액 추이</h3>
+          <h3 className="text-sm font-bold mb-4">월별 절감액 추이</h3>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={routingSavingsData}>
+            <AreaChart data={scopedRoutingSavingsData}>
               <defs>
                 <linearGradient id="savingGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10B981" stopOpacity={0.25} /><stop offset="95%" stopColor="#10B981" stopOpacity={0} /></linearGradient>
               </defs>
@@ -2541,127 +2657,118 @@ function StatsRouting() {
           </ResponsiveContainer>
         </div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">Failover 전환 건수</h3>
-          <div className="space-y-3">
-            {fallbackStats.map(item => (
-              <div key={item.label}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-semibold">{item.label}</span>
-                  <span className="text-xs font-bold">{item.count.toLocaleString()}건</span>
-                </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, item.count / 55)}%` }} /></div>
-              </div>
-            ))}
-          </div>
+      <div className="bg-card rounded-xl border border-border p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <h3 className="text-sm font-bold">스마트 라우팅 절감</h3>
+          <PinNote text="발송 현황의 스마트 라우팅 절감 영역과 비용/라우팅의 대체 발송 전환 영역을 서로 바꾸라는 메모를 반영했습니다." />
         </div>
-        <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">계열사별 비용 점유</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={affiliateStats} barSize={22}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
-              <Tooltip formatter={(v: number) => [typeof v === "number" ? formatWon(v) : v]} />
-              <Bar dataKey="cost" name="비용" fill="#1843FA" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {scopedRoutingSavingsData.slice(-3).map(row => (
+            <div key={row.month} className="rounded-lg bg-muted p-4">
+              <div className="text-xs text-muted-foreground mb-1">{row.month}</div>
+              <div className="text-lg font-bold text-emerald-600">{formatWon(row.saved)}</div>
+              <div className="mt-1 text-xs text-muted-foreground">최대 비용 대비 {(((row.baseline - row.actual) / row.baseline) * 100).toFixed(1)}% 절감</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-function StatsMember() {
+function StatsMember({ affiliateScope }: { affiliateScope: AffiliateScope }) {
+  const scopedMemberTagData = memberTypeData.map(row => ({ ...row, count: scaleCount(row.count, affiliateScope) }));
   return (
     <div className="p-6 space-y-5">
       <StatsReportActions />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="VIP 회원" value="28,420" sub="오픈율 68.4%" icon={<Tag className="w-4 h-4" />} color="amber" />
-        <StatCard label="일반 회원" value="198,341" sub="오픈율 41.2%" icon={<Users className="w-4 h-4" />} color="blue" />
-        <StatCard label="신규 회원" value="34,210" sub="이번달 +1,284명" trend={{ val: "+3.9%", up: true }} icon={<TrendingUp className="w-4 h-4" />} color="green" />
-        <StatCard label="휴면 회원" value="23,420" sub="6개월 이상 미활동" trend={{ val: "-284명", up: true }} icon={<Clock className="w-4 h-4" />} color="violet" />
+      <div className="rounded-lg border border-border bg-muted px-4 py-3 text-xs font-semibold text-muted-foreground">{scopeLabel(affiliateScope)} 기준 회원 분석입니다.</div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard label="일반 회원" value={scopedMemberTagData[0].count.toLocaleString()} sub="고정 회원 유형" icon={<Users className="w-4 h-4" />} color="blue" />
+        <StatCard label="신규 회원" value={scopedMemberTagData[1].count.toLocaleString()} sub={`이번달 +${scaleCount(1284, affiliateScope).toLocaleString()}명`} trend={{ val: "+3.9%", up: true }} icon={<TrendingUp className="w-4 h-4" />} color="green" />
+        <StatCard label="휴면 회원" value={scopedMemberTagData[2].count.toLocaleString()} sub="6개월 이상 미활동" trend={{ val: `-${scaleCount(284, affiliateScope).toLocaleString()}명`, up: true }} icon={<Clock className="w-4 h-4" />} color="violet" />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">회원 유형별 오픈율 & 성공률</h3>
+          <h3 className="text-sm font-bold mb-4">회원 유형별 분포</h3>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={memberTypeData} barSize={20}>
+            <BarChart data={scopedMemberTagData} barSize={20}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
               <XAxis dataKey="type" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} />
-              <Tooltip formatter={(v: number) => [`${v}%`]} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="rate" name="발송 성공률" fill="#1843FA" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="open" name="메시지 오픈율" fill="#10B981" radius={[3, 3, 0, 0]} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
+              <Tooltip formatter={(v: number) => [`${v.toLocaleString()}명`]} />
+              <Bar dataKey="count" name="회원 수" fill="#1843FA" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
         <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">채널 동의 현황</h3>
+          <h3 className="text-sm font-bold mb-4">신규 회원 가입자 수</h3>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={[
-              { label: "SMS", 동의: 198441, 미동의: 109370 },
-              { label: "카카오", 동의: 241320, 미동의: 66491 },
-              { label: "RCS", 동의: 48210, 미동의: 259601 },
-            ]} barSize={28}>
+            <AreaChart data={newMemberTrend.map(row => ({ ...row, count: scaleCount(row.count, affiliateScope) }))}>
+              <defs>
+                <linearGradient id="newMemberGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10B981" stopOpacity={0.22} /><stop offset="95%" stopColor="#10B981" stopOpacity={0} /></linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
               <Tooltip formatter={(v: number) => [v.toLocaleString() + "명"]} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="동의" fill="#1843FA" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="미동의" fill="#E4E4E7" radius={[3, 3, 0, 0]} />
-            </BarChart>
+              <Area type="monotone" dataKey="count" name="신규 가입자" stroke="#10B981" fill="url(#newMemberGrad)" strokeWidth={2} />
+            </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <div className="px-5 py-3 border-b border-border"><h3 className="text-sm font-bold">회원 유형별 상세 지표</h3></div>
-        <table className="w-full text-sm">
-          <thead><tr className="bg-muted border-b border-border">
-            {["유형", "회원 수", "발송 성공률", "오픈율", "발송 건수/인"].map(h => <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">{h}</th>)}
-          </tr></thead>
-          <tbody>{memberTypeData.map(m => (
-            <tr key={m.type} className="border-b border-border last:border-0 hover:bg-muted/30">
-              <td className="px-4 py-3.5"><Badge text={m.type} variant={m.type === "VIP" ? "vip" : "blue"} /></td>
-              <td className="px-4 py-3.5 text-xs font-bold">{m.count.toLocaleString()}명</td>
-              <td className="px-4 py-3.5">
-                <div className="flex items-center gap-2"><div className="w-20 bg-muted rounded-full h-1.5"><div className="bg-primary h-1.5 rounded-full" style={{ width: `${m.rate}%` }} /></div><span className="text-xs font-semibold">{m.rate}%</span></div>
-              </td>
-              <td className="px-4 py-3.5">
-                <div className="flex items-center gap-2"><div className="w-20 bg-muted rounded-full h-1.5"><div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${m.open}%` }} /></div><span className="text-xs font-semibold">{m.open}%</span></div>
-              </td>
-              <td className="px-4 py-3.5 text-xs font-semibold text-muted-foreground">{(Math.floor(Math.random() * 8) + 3).toFixed(1)}건</td>
-            </tr>
-          ))}</tbody>
-        </table>
+      <div className="rounded-xl border border-border bg-card p-5">
+        <h3 className="text-sm font-bold mb-4">채널 동의 현황</h3>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={[
+            { label: "SMS", 동의: scaleCount(198441, affiliateScope), 미동의: scaleCount(109370, affiliateScope) },
+            { label: "카카오", 동의: scaleCount(241320, affiliateScope), 미동의: scaleCount(66491, affiliateScope) },
+            { label: "RCS", 동의: scaleCount(48210, affiliateScope), 미동의: scaleCount(259601, affiliateScope) },
+          ]} barSize={28}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+            <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+            <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
+            <Tooltip formatter={(v: number) => [v.toLocaleString() + "명"]} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Bar dataKey="동의" fill="#1843FA" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="미동의" fill="#E4E4E7" radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
 }
 
-function StatsPerformance() {
+function StatsPerformance({ affiliateScope }: { affiliateScope: AffiliateScope }) {
+  const [channel, setChannel] = useState("카카오 친구톡");
+  const channelFactor = { "카카오 친구톡": 1, "카카오 알림톡": 0.82, SMS: 0.76, LMS: 0.68, RCS: 0.91 }[channel] ?? 1;
+  const scopedPerformance = performanceData.map(row => ({
+    month: row.month,
+    clickRate: Number((row.clickRate * channelFactor).toFixed(1)),
+    conversionRate: Number((row.conversionRate * channelFactor).toFixed(1)),
+  }));
   return (
     <div className="p-6 space-y-5">
       <StatsReportActions />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="평균 오픈율" value="49.4%" sub="전월 대비 +1.5%p" trend={{ val: "+1.5%p", up: true }} icon={<Eye className="w-4 h-4" />} color="blue" />
-        <StatCard label="평균 클릭률" value="19.1%" sub="업계 평균 8.2%" trend={{ val: "+0.8%p", up: true }} icon={<Target className="w-4 h-4" />} color="green" />
-        <StatCard label="전환율" value="5.8%" sub="전월 대비 +0.6%p" trend={{ val: "+0.6%p", up: true }} icon={<TrendingUp className="w-4 h-4" />} color="violet" />
+      <div className="flex items-center justify-between rounded-lg border border-border bg-muted px-4 py-3 text-xs font-semibold text-muted-foreground">
+        <span>{scopeLabel(affiliateScope)} 기준 성과 분석입니다.</span>
+        <select value={channel} onChange={event => setChannel(event.target.value)} className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-muted-foreground">
+          {["카카오 친구톡", "카카오 알림톡", "SMS", "LMS", "RCS"].map(option => <option key={option}>{option}</option>)}
+        </select>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard label="평균 클릭률" value={`${scopedPerformance.at(-1)?.clickRate ?? 0}%`} sub={`${channel} 기준`} trend={{ val: "+0.8%p", up: true }} icon={<Target className="w-4 h-4" />} color="green" />
+        <StatCard label="구매전환율" value={`${scopedPerformance.at(-1)?.conversionRate ?? 0}%`} sub="구매 목적 템플릿만 평균 반영" trend={{ val: "+0.6%p", up: true }} icon={<TrendingUp className="w-4 h-4" />} color="violet" />
         <StatCard label="수신 거부율" value="0.12%" sub="업계 평균 0.41%" trend={{ val: "-0.02%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="amber" />
       </div>
       <div className="bg-card rounded-xl border border-border p-5">
         <h3 className="text-sm font-bold mb-4">월별 성과 지표 추이</h3>
         <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={performanceData}>
+          <LineChart data={scopedPerformance}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
             <XAxis dataKey="month" tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} />
             <Tooltip formatter={(v: number) => [`${v}%`]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Line type="monotone" dataKey="openRate" stroke="#1843FA" strokeWidth={2.5} dot={{ r: 4 }} name="오픈율" />
             <Line type="monotone" dataKey="clickRate" stroke="#10B981" strokeWidth={2.5} dot={{ r: 4 }} name="클릭률" />
             <Line type="monotone" dataKey="conversionRate" stroke="#F59E0B" strokeWidth={2.5} dot={{ r: 4 }} name="전환율" />
           </LineChart>
@@ -2672,26 +2779,22 @@ function StatsPerformance() {
           <h3 className="text-sm font-bold mb-4">템플릿별 성과 Top 5</h3>
           <div className="space-y-3">
             {[
-              { name: "생일 축하 메시지", open: 78.4, click: 34.2 },
-              { name: "VIP 멤버십 전용 혜택", open: 71.2, click: 28.9 },
-              { name: "신규 가입 환영", open: 68.1, click: 25.4 },
-              { name: "6월 여름 할인 이벤트", open: 54.3, click: 21.8 },
-              { name: "포인트 소멸 안내", open: 62.8, click: 18.1 },
+              ...templatePerformanceTop,
             ].map((t, i) => (
               <div key={i} className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-foreground">{t.name}</span>
-                  <span className="text-xs text-muted-foreground">오픈 {t.open}% · 클릭 {t.click}%</span>
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">{t.name}{t.ai && <Badge text="AI 템플릿" variant="violet" />}</span>
+                  <span className="text-xs text-muted-foreground">클릭 {t.click}% · 구매전환 {t.purchase === null ? "미집계" : `${t.purchase}%`}</span>
                 </div>
                 <div className="flex gap-1">
-                  <div className="flex-1 bg-muted rounded-full h-1.5"><div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${t.open}%` }} /></div>
+                  <div className="flex-1 bg-muted rounded-full h-1.5"><div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${t.click}%` }} /></div>
                 </div>
               </div>
             ))}
           </div>
         </div>
         <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">요일별 오픈율</h3>
+          <h3 className="text-sm font-bold mb-4">요일별 클릭률</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={[
               { day: "월", rate: 42.1 }, { day: "화", rate: 49.8 }, { day: "수", rate: 51.2 },
@@ -2701,10 +2804,25 @@ function StatsPerformance() {
               <XAxis dataKey="day" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} domain={[30, 55]} />
               <Tooltip formatter={(v: number) => [`${v}%`]} />
-              <Bar dataKey="rate" name="오픈율" fill="#1843FA" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="rate" name="클릭률" fill="#1843FA" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
+      </div>
+      <div className="bg-card rounded-xl border border-border p-5">
+        <h3 className="text-sm font-bold mb-4">시간별 클릭률</h3>
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={hourlyClickData.map(row => ({ ...row, click: Number((row.click * channelFactor).toFixed(1)) }))}>
+            <defs>
+              <linearGradient id="hourlyClickGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#1843FA" stopOpacity={0.2} /><stop offset="95%" stopColor="#1843FA" stopOpacity={0} /></linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+            <XAxis dataKey="hour" tick={{ fontSize: 11 }} />
+            <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} />
+            <Tooltip formatter={(v: number) => [`${v}%`]} />
+            <Area type="monotone" dataKey="click" name="클릭률" stroke="#1843FA" fill="url(#hourlyClickGrad)" strokeWidth={2} />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
@@ -2714,25 +2832,26 @@ function StatsPerformance() {
 function MainLayout({ currentPage, setCurrentPage, onLogout }: {
   currentPage: Page; setCurrentPage: (p: Page) => void; onLogout: () => void;
 }) {
+  const [affiliateScope, setAffiliateScope] = useState<AffiliateScope>("현대백화점");
   const renderPage = () => {
     switch (currentPage) {
-      case "dashboard": return <DashboardPage setPage={setCurrentPage} />;
-      case "send": return <SendMessagePageWizard />;
-      case "templates": return <TemplatesPage />;
-      case "history": return <HistoryPage />;
-      case "members": return <MembersPage />;
-      case "stats-overview": return <StatsOverview />;
-      case "stats-channel": return <StatsChannel />;
-      case "stats-routing": return <StatsRouting />;
-      case "stats-member": return <StatsMember />;
-      case "stats-performance": return <StatsPerformance />;
+      case "dashboard": return <DashboardPage setPage={setCurrentPage} affiliateScope={affiliateScope} />;
+      case "send": return <SendMessagePageWizard affiliateScope={affiliateScope} />;
+      case "templates": return <TemplatesPage affiliateScope={affiliateScope} />;
+      case "history": return <HistoryPage affiliateScope={affiliateScope} />;
+      case "members": return <MembersPage affiliateScope={affiliateScope} />;
+      case "stats-overview": return <StatsOverview affiliateScope={affiliateScope} />;
+      case "stats-channel": return <StatsChannel affiliateScope={affiliateScope} />;
+      case "stats-routing": return <StatsRouting affiliateScope={affiliateScope} />;
+      case "stats-member": return <StatsMember affiliateScope={affiliateScope} />;
+      case "stats-performance": return <StatsPerformance affiliateScope={affiliateScope} />;
     }
   };
   return (
     <div className="flex h-screen bg-background overflow-hidden" style={{ fontFamily: "'Pretendard Variable', 'Pretendard', 'Inter', sans-serif" }}>
       <Sidebar current={currentPage} setCurrent={setCurrentPage} onLogout={onLogout} />
       <div className="flex-1 flex flex-col min-w-0">
-        <Header page={currentPage} />
+        <Header page={currentPage} affiliate={affiliateScope} setAffiliate={setAffiliateScope} />
         <main className="flex-1 overflow-y-auto">{renderPage()}</main>
       </div>
     </div>
