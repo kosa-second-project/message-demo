@@ -117,7 +117,7 @@ const HISTORY: SendRecord[] = [
   { id: 6, template: "배송 완료 안내", channel: "SMS", targetType: "배송 완료자", count: 2841, success: 2830, fail: 11, sentAt: "2026-06-18 16:00", status: "완료", cost: 28410, savedCost: 0, affiliate: "현대백화점", failoverSteps: [{ label: "1차 SMS", requested: 2841, success: 2830, fail: 11 }] },
 ];
 
-const formatWon = (value: number) => `\${value.toLocaleString()}`;
+const formatWon = (value: number) => `₩${value.toLocaleString()}`;
 const QUEUE_STATUS = [
   { label: "대기", count: 0, color: "bg-slate-400" },
   { label: "발송 중", count: 2500, color: "bg-blue-500" },
@@ -520,8 +520,8 @@ function DashboardPage({ setPage }: { setPage: (p: Page) => void }) {
         <StatCard label="총 발송 건수" value="892,451" sub="6월 누적" trend={{ val: "+12.4%", up: true }} icon={<Send className="w-4 h-4" />} color="blue" />
         <StatCard label="발송 성공률" value="98.7%" sub="실패 165건" trend={{ val: "+0.3%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
         <StatCard label="활성 회원 수" value="284,391" sub="전체 307,811명" trend={{ val: "+1,284명", up: true }} icon={<Users className="w-4 h-4" />} color="violet" />
-        <StatCard label="실제 청구 비용" value="\18.7M" sub="최대 비용 \24.2M" trend={{ val: "-22.7%", up: true }} icon={<BarChart3 className="w-4 h-4" />} color="amber" />
-        <StatCard label="스마트 라우팅 절감" value="\5.5M" sub="최대 비용 대비" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
+        <StatCard label="실제 청구 비용" value="₩18.7M" sub="최대 비용 ₩24.2M" trend={{ val: "-22.7%", up: true }} icon={<BarChart3 className="w-4 h-4" />} color="amber" />
+        <StatCard label="스마트 라우팅 절감" value="₩5.5M" sub="최대 비용 대비" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
       </div>
 
       <div className="bg-card rounded-xl border border-border p-5">
@@ -558,7 +558,7 @@ function DashboardPage({ setPage }: { setPage: (p: Page) => void }) {
             <LineChart data={routingSavingsData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
               <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `\${(v / 1000000).toFixed(0)}M`} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
               <Tooltip formatter={(v: number) => [formatWon(v)]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Line type="monotone" dataKey="actual" stroke="#1843FA" strokeWidth={2.5} dot={{ r: 3 }} name="실제 비용" />
@@ -905,21 +905,18 @@ function SendMessagePageWizard() {
           </div>
         </div>
         <div className="max-h-[560px] overflow-auto">
-          {visibleTemplates.map(template => {
-            const locked = (template.channel.includes("알림톡") || template.channel === "RCS") && template.approvalStatus !== "승인 완료";
-            return (
-            <button key={template.id} disabled={locked} onClick={() => !locked && pickTemplate(template)} className={`block w-full text-left px-4 py-3 border-b border-border last:border-0 transition-colors ${locked ? "cursor-not-allowed opacity-55 bg-muted/40" : selectedTemplateId === template.id ? "bg-accent cursor-pointer" : "hover:bg-blue-50/60 cursor-pointer"}`}>
+          {visibleTemplates.map(template => (
+            <button key={template.id} onClick={() => pickTemplate(template)} className={`block w-full text-left px-4 py-3 border-b border-border last:border-0 transition-colors ${selectedTemplateId === template.id ? "bg-accent cursor-pointer" : "hover:bg-blue-50/60 cursor-pointer"}`}>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-bold truncate">{template.name}</span>
                 <Badge text={template.channel} variant="blue" />
-                {template.approvalStatus && <Badge text={locked ? template.approvalStatus : template.approvalStatus} variant={locked ? "red" : template.approvalStatus === "승인 완료" ? "green" : "default"} />}
               </div>
               <p className="text-xs text-muted-foreground truncate">{template.content.replace(/\n/g, " ")}</p>
               <div className="flex flex-wrap gap-1 mt-2">
                 {getTemplateTags(template).slice(0, 4).map(tag => <span key={tag} className="px-1.5 py-0.5 rounded bg-muted text-[10px] text-muted-foreground">{tag}</span>)}
               </div>
             </button>
-          )})}
+          ))}
         </div>
         <div className="px-4 py-3 border-t border-border bg-muted text-xs text-muted-foreground">
           {filteredTemplates.length.toLocaleString()}건 검색됨 · 상위 10건 표시
@@ -1207,10 +1204,7 @@ function TemplatesPage() {
   const [templatePreviewMode, setTemplatePreviewMode] = useState<"basic" | "kakao" | "rich">("kakao");
   const [addModal, setAddModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [aiModal, setAiModal] = useState(false);
-  const [aiChecking, setAiChecking] = useState(false);
-  const [aiResult, setAiResult] = useState<string[]>([]);
-  const [form, setForm] = useState({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통", approvalStatus: "불필요" });
+  const [form, setForm] = useState({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통" });
 
   const filtered = useMemo(() => templates.filter(t => {
     const tags = getTemplateTags(t);
@@ -1229,18 +1223,10 @@ function TemplatesPage() {
     } else {
       setTemplates(prev => [...prev, { id: Date.now(), ...form, usageCount: 0, updatedAt: new Date().toISOString().slice(0, 10) }]);
     }
-    setEditModal(null); setAddModal(false); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통", approvalStatus: "불필요" });
+    setEditModal(null); setAddModal(false); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통" });
   };
 
-  const openEdit = (t: Template) => { setEditModal(t); setForm({ name: t.name, channel: t.channel, content: t.content, category: t.category, scope: t.scope ?? "전사 공통", approvalStatus: t.approvalStatus ?? "불필요" }); };
-
-  const runAiCheck = () => {
-    setAiChecking(true);
-    setTimeout(() => {
-      setAiChecking(false);
-      setAiResult(["맞춤법 검사 완료 ? 이상 없음", "광고성 표현 감지 없음", "'무료', '보장' 등 주의 표현 없음", "가독성 점수: 88/100"]);
-    }, 1600);
-  };
+  const openEdit = (t: Template) => { setEditModal(t); setForm({ name: t.name, channel: t.channel, content: t.content, category: t.category, scope: t.scope ?? "전사 공통" }); };
 
   const FormFields = () => (
     <div className="space-y-3">
@@ -1257,23 +1243,15 @@ function TemplatesPage() {
           </select>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div><label className="text-xs font-semibold text-muted-foreground block mb-1">공개 범위</label>
-          <select value={form.scope} onChange={e => setForm(f => ({ ...f, scope: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none">
-            {["전사 공통", "현대백화점 전용", "현대홈쇼핑 전용", "한섬 전용"].map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-        <div><label className="text-xs font-semibold text-muted-foreground block mb-1">승인 상태</label>
-          <select value={form.approvalStatus} onChange={e => setForm(f => ({ ...f, approvalStatus: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none">
-            {["불필요", "미등록", "심사 대기", "승인 완료", "반려"].map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
+      <div><label className="text-xs font-semibold text-muted-foreground block mb-1">공개 범위</label>
+        <select value={form.scope} onChange={e => setForm(f => ({ ...f, scope: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none">
+          {["전사 공통", "현대백화점 전용", "현대홈쇼핑 전용", "한섬 전용"].map(c => <option key={c}>{c}</option>)}
+        </select>
       </div>
       <div><label className="text-xs font-semibold text-muted-foreground block mb-1">메시지 내용</label>
         <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={4} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" />
         <div className="flex items-center justify-between mt-1.5">
           <span className="text-xs text-muted-foreground">{form.content.length}자</span>
-          <Btn size="sm" variant="outline" onClick={() => { setAiModal(true); runAiCheck(); }}><Sparkles className="w-3 h-3 text-primary" /> AI 검사</Btn>
         </div>
       </div>
       <div className="flex justify-end gap-2">
@@ -1290,7 +1268,7 @@ function TemplatesPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="템플릿명, 내용, 타겟 검색..." className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-72 focus:outline-none focus:ring-2 focus:ring-primary/30" />
         </div>
-        <Btn onClick={() => { setAddModal(true); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통", approvalStatus: "불필요" }); }}><Plus className="w-3.5 h-3.5" /> 템플릿 추가</Btn>
+        <Btn onClick={() => { setAddModal(true); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통" }); }}><Plus className="w-3.5 h-3.5" /> 템플릿 추가</Btn>
       </div>
       <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
         {tagOptions.map(tag => (
@@ -1304,7 +1282,6 @@ function TemplatesPage() {
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">채널</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">카테고리</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">공개 범위</th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">승인</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">타겟</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">사용 횟수</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">수정일</th>
@@ -1319,7 +1296,6 @@ function TemplatesPage() {
               <td className="px-4 py-3.5"><Badge text={t.channel} variant="blue" /></td>
               <td className="px-4 py-3.5 hidden lg:table-cell"><Badge text={t.category} variant="default" /></td>
               <td className="px-4 py-3.5 hidden xl:table-cell"><span className="text-xs font-semibold text-muted-foreground">{t.scope ?? "전사 공통"}</span></td>
-              <td className="px-4 py-3.5"><Badge text={t.approvalStatus ?? "불필요"} variant={t.approvalStatus === "승인 완료" ? "green" : t.approvalStatus === "반려" ? "red" : t.approvalStatus === "심사 대기" ? "amber" : "default"} /></td>
               <td className="px-4 py-3.5 hidden xl:table-cell">
                 <div className="flex flex-wrap gap-1 max-w-56">
                   {getTemplateTags(t).slice(0, 3).map(tag => <span key={tag} className="px-2 py-0.5 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">{tag}</span>)}
@@ -1387,19 +1363,11 @@ function TemplatesPage() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {[
-                ["사용 후 반응률", `${detailModal.openRate ?? 0}%`],
-                ["클릭률", `${detailModal.clickRate ?? 0}%`],
+                ["템플릿 클릭률", `${detailModal.clickRate ?? 0}%`],
                 ["수신거부율", `${detailModal.optOutRate ?? 0}%`],
               ].map(([label, value]) => <div key={label} className="p-3 bg-muted rounded-lg"><div className="text-xs text-muted-foreground mb-1">{label}</div><div className="text-sm font-bold">{value}</div></div>)}
-            </div>
-            {detailModal.approvalStatus === "반려" && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">반려 사유: {detailModal.rejectReason ?? "심사 기준 미충족"}</div>
-            )}
-            <div>
-              <div className="text-xs font-bold text-muted-foreground mb-2">AI 검사 요약</div>
-              <AiReportDetail />
             </div>
           </div>
         )}
@@ -1412,21 +1380,6 @@ function TemplatesPage() {
           <Btn variant="outline" onClick={() => setDeleteId(null)}>취소</Btn>
           <Btn variant="danger" onClick={() => { setTemplates(t => t.filter(x => x.id !== deleteId)); setDeleteId(null); }}>삭제</Btn>
         </div>
-      </Modal>
-      <Modal open={aiModal} onClose={() => setAiModal(false)} title="AI 메시지 검사 결과">
-        {aiChecking ? (
-          <div className="flex items-center justify-center py-8 gap-3">
-            <Sparkles className="w-6 h-6 text-primary animate-pulse" /><span className="text-sm">분석 중...</span>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-lg text-xs text-emerald-700">
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-              종합 점수 88점 · 발송 가능, 일부 채널 길이 검토 권장
-            </div>
-            <AiReportDetail />
-          </div>
-        )}
       </Modal>
     </div>
   );
@@ -1474,7 +1427,7 @@ function HistoryPage() {
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         <table className="w-full text-sm">
           <thead><tr className="bg-muted border-b border-border">
-            {["발송일시", "계열사", "템플릿", "채널", "대상", "발송", "성공", "실패", "비용", "비용 절감", "1차 성공률", "상태"].map(h => (
+            {["발송일시", "계열사", "템플릿", "채널", "대상", "발송", "성공", "실패", "비용 절감", "1차 성공률", "상태"].map(h => (
               <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
             ))}
           </tr></thead>
@@ -1490,7 +1443,6 @@ function HistoryPage() {
                 <td className="px-4 py-3.5 text-xs font-bold">{r.count.toLocaleString()}</td>
                 <td className="px-4 py-3.5 text-xs font-bold text-emerald-600">{r.success.toLocaleString()}</td>
                 <td className="px-4 py-3.5 text-xs font-bold text-red-500">{r.fail.toLocaleString()}</td>
-                <td className="px-4 py-3.5 text-xs font-bold whitespace-nowrap">{formatWon(r.cost)}</td>
                 <td className="px-4 py-3.5 text-xs font-bold text-emerald-600 whitespace-nowrap">{formatWon(r.savedCost)}</td>
                 <td className="px-4 py-3.5">
                   <div className="flex items-center gap-2">
@@ -1846,6 +1798,7 @@ function StatsReportActions() {
 }
 
 function StatsOverview() {
+  const [fallbackPeriod, setFallbackPeriod] = useState("일간");
   return (
     <div className="p-6 space-y-5">
       <StatsReportActions />
@@ -1853,7 +1806,7 @@ function StatsOverview() {
         <StatCard label="이번달 총 발송" value="892,451" sub="전월 대비 +12.4%" trend={{ val: "+12.4%", up: true }} icon={<Send className="w-4 h-4" />} color="blue" />
         <StatCard label="평균 성공률" value="98.4%" sub="실패 14,232건" trend={{ val: "+0.2%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
         <StatCard label="일평균 발송" value="29,748" sub="최고 284,391건" icon={<Activity className="w-4 h-4" />} color="violet" />
-        <StatCard label="실제 청구 비용" value="\18.7M" sub="전월 대비 +8.1%" trend={{ val: "+8.1%", up: false }} icon={<Target className="w-4 h-4" />} color="amber" />
+        <StatCard label="실제 청구 비용" value="₩18.7M" sub="전월 대비 +8.1%" trend={{ val: "+8.1%", up: false }} icon={<Target className="w-4 h-4" />} color="amber" />
         <StatCard label="대체 발송 전환" value="5,549" sub="전환율 1.9%" trend={{ val: "+0.4%p", up: true }} icon={<RefreshCw className="w-4 h-4" />} color="green" />
       </div>
       <div className="bg-card rounded-xl border border-border p-5">
@@ -1907,7 +1860,12 @@ function StatsOverview() {
           </ResponsiveContainer>
         </div>
         <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-3">Fallback 전환 막대그래프</h3>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-bold">Fallback 전환 막대그래프</h3>
+            <select value={fallbackPeriod} onChange={event => setFallbackPeriod(event.target.value)} className="rounded-lg border border-border bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground">
+              {["일간", "주간", "월간"].map(option => <option key={option}>{option}</option>)}
+            </select>
+          </div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={fallbackStageData} barSize={18}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
@@ -2017,10 +1975,10 @@ function StatsRouting() {
     <div className="p-6 space-y-5">
       <StatsReportActions />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="실제 청구 비용" value="\18.7M" sub="6월 누적" icon={<Target className="w-4 h-4" />} color="amber" />
-        <StatCard label="최대 비용" value="\24.2M" sub="동일 물량 기준" icon={<TrendingUp className="w-4 h-4" />} color="violet" />
-        <StatCard label="월별 절감액" value="\5.5M" sub="절감률 22.7%" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
-        <StatCard label="스마트 라우팅 절감" value="\5.5M" sub="최대 비용 대비" icon={<RefreshCw className="w-4 h-4" />} color="blue" />
+        <StatCard label="실제 청구 비용" value="₩18.7M" sub="6월 누적" icon={<Target className="w-4 h-4" />} color="amber" />
+        <StatCard label="최대 비용" value="₩24.2M" sub="동일 물량 기준" icon={<TrendingUp className="w-4 h-4" />} color="violet" />
+        <StatCard label="월별 절감액" value="₩5.5M" sub="절감률 22.7%" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
+        <StatCard label="스마트 라우팅 절감" value="₩5.5M" sub="최대 비용 대비" icon={<RefreshCw className="w-4 h-4" />} color="blue" />
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_0.7fr] gap-4">
         <div className="bg-card rounded-xl border border-border p-5">
@@ -2029,7 +1987,7 @@ function StatsRouting() {
             <LineChart data={routingSavingsData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
               <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `\${(v / 1000000).toFixed(0)}M`} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
               <Tooltip formatter={(v: number) => [formatWon(v)]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Line type="monotone" dataKey="actual" name="실제 청구 비용" stroke="#1843FA" strokeWidth={2.5} dot={{ r: 3 }} />
@@ -2046,7 +2004,7 @@ function StatsRouting() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
               <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `\${(v / 1000000).toFixed(0)}M`} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
               <Tooltip formatter={(v: number) => [formatWon(v)]} />
               <Area type="monotone" dataKey="saved" name="절감액" stroke="#10B981" fill="url(#savingGrad)" strokeWidth={2} />
             </AreaChart>
