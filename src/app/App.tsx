@@ -24,7 +24,7 @@ interface Template {
   scope?: string; openRate?: number; clickRate?: number; optOutRate?: number;
 }
 interface Member {
-  id: number; name: string; phone: string; type: string; smsConsent: boolean; kakaoConsent: boolean; rcsConsent: boolean; joinedAt: string; lastSend: string; tags?: string[];
+  id: number; name: string; phone: string; type: string; smsConsent: boolean; kakaoConsent: boolean; emailConsent: boolean; rcsConsent: boolean; joinedAt: string; lastSend: string; tags?: string[];
 }
 interface SendRecord {
   id: number; template: string; channel: string; targetType: string; count: number; success: number; fail: number; sentAt: string; status: string;
@@ -37,18 +37,26 @@ const TEMPLATES: Template[] = [
   { id: 2, name: "생일 축하 메시지", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 생일을 진심으로 축하드립니다! 특별한 생일 쿠폰을 확인해보세요.", category: "혜택", usageCount: 2341, updatedAt: "2026-06-18", scope: "전사 공통", openRate: 78.4, clickRate: 34.2, optOutRate: 0.05 },
   { id: 3, name: "신규 가입 환영", channel: "카카오 알림톡", content: "[현대퓨처넷] #{이름}님, 가입을 환영합니다! 신규 가입 혜택 5,000P가 적립되었습니다.", category: "안내", usageCount: 891, updatedAt: "2026-06-15", scope: "전사 공통", openRate: 68.1, clickRate: 25.4, optOutRate: 0.08 },
   { id: 4, name: "포인트 소멸 안내", channel: "LMS", content: "[현대퓨처넷] 안내 드립니다. #{이름}님의 포인트 #{포인트}P가 2026년 6월 30일 소멸 예정입니다. 지금 바로 사용하세요!", category: "안내", usageCount: 445, updatedAt: "2026-06-10", scope: "현대홈쇼핑 전용", openRate: 62.8, clickRate: 18.1, optOutRate: 0.11 },
-  { id: 5, name: "우수회원 전용 혜택", channel: "카카오 친구톡", content: "[현대퓨처넷] #{이름}님께만 드리는 우수회원 전용 특가 상품을 안내해드립니다. 특별한 혜택을 놓치지 마세요!", category: "혜택", usageCount: 312, updatedAt: "2026-06-08", scope: "한섬 전용", openRate: 71.2, clickRate: 28.9, optOutRate: 0.22 },
+  { id: 5, name: "우수고객 전용 혜택", channel: "카카오 친구톡", content: "[현대퓨처넷] #{이름}님께만 드리는 우수고객 전용 특가 상품을 안내해드립니다. 특별한 혜택을 놓치지 마세요!", category: "혜택", usageCount: 312, updatedAt: "2026-06-08", scope: "한섬 전용", openRate: 71.2, clickRate: 28.9, optOutRate: 0.22 },
   { id: 6, name: "배송 완료 안내", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 주문하신 상품이 배송 완료되었습니다. 주문번호: #{주문번호}", category: "안내", usageCount: 5821, updatedAt: "2026-06-01", scope: "전사 공통", openRate: 66.4, clickRate: 12.6, optOutRate: 0.03 },
 ];
 const TEMPLATE_TAGS = ["일반", "신규", "휴면", "생일", "포인트", "쿠폰", "최근구매", "장바구니", "앱사용자", "현대백화점", "현대홈쇼핑", "한섬", "리빙", "패션", "오프라인방문"];
-const MEMBER_TAGS = ["전체 회원", "일반", "신규", "휴면", "생일 대상자", "포인트 소멸 예정", "최근구매", "장바구니 이탈", "쿠폰 반응", "앱사용자", "카카오 동의", "SMS 동의", "RCS 동의", "LMS 동의", "현대백화점", "현대홈쇼핑", "한섬", "리빙 관심", "패션 관심", "오프라인 방문", "미동의 제외"];
+const MEMBER_TAGS = [
+  "전체 고객", "일반", "신규", "휴면", "생일 대상자", "포인트 소멸 예정", "최근구매", "장바구니 이탈", "쿠폰 반응", "앱사용자",
+  "카카오 동의", "SMS 동의", "RCS 동의", "LMS 동의", "현대백화점", "현대홈쇼핑", "한섬", "리빙 관심", "패션 관심", "오프라인 방문", "미동의 제외",
+  "VIP", "VVIP", "우수고객", "멤버십 가입", "멤버십 만료 예정", "재구매 가능", "첫구매 완료", "최근 30일 구매", "최근 90일 미구매",
+  "쿠폰 보유", "쿠폰 만료 예정", "포인트 보유", "포인트 고액 보유", "리뷰 작성", "리뷰 미작성", "앱 푸시 동의", "이메일 동의",
+  "남성", "여성", "20대", "30대", "40대", "50대 이상", "서울/수도권", "지방", "오프라인 구매", "온라인 구매", "프로모션 반응",
+];
 const TAG_GROUPS = [
   { id: "전체", label: "전체 타겟", tags: [] },
-  { id: "대상", label: "회원 유형", tags: ["일반", "신규", "휴면", "생일 대상자", "앱사용자"] },
-  { id: "행동", label: "행동/관심", tags: ["최근구매", "장바구니", "장바구니 이탈", "쿠폰 반응", "리빙 관심", "패션 관심", "오프라인 방문", "오프라인방문"] },
-  { id: "목적", label: "목적", tags: ["이벤트", "쿠폰", "혜택", "안내", "포인트", "생일", "재구매", "포인트 소멸 예정"] },
+  { id: "대상", label: "고객 유형", tags: ["일반", "신규", "휴면", "생일 대상자", "앱사용자"] },
+  { id: "행동", label: "행동/관심", tags: ["최근구매", "장바구니", "장바구니 이탈", "쿠폰 반응", "리빙 관심", "패션 관심", "오프라인 방문", "오프라인방문", "재구매 가능", "첫구매 완료", "최근 30일 구매", "최근 90일 미구매", "리뷰 작성", "리뷰 미작성", "오프라인 구매", "온라인 구매", "프로모션 반응"] },
+  { id: "목적", label: "목적", tags: ["이벤트", "쿠폰", "혜택", "안내", "포인트", "생일", "재구매", "포인트 소멸 예정", "쿠폰 보유", "쿠폰 만료 예정", "포인트 보유", "포인트 고액 보유"] },
   { id: "계열사", label: "계열사", tags: ["현대백화점", "현대홈쇼핑", "한섬", "리빙", "패션"] },
-  { id: "동의", label: "수신 동의", tags: ["카카오 동의", "SMS 동의", "RCS 동의", "LMS 동의", "미동의 제외"] },
+  { id: "동의", label: "수신 동의", tags: ["카카오 동의", "SMS 동의", "RCS 동의", "LMS 동의", "앱 푸시 동의", "이메일 동의", "미동의 제외"] },
+  { id: "등급", label: "등급/멤버십", tags: ["VIP", "VVIP", "우수고객", "멤버십 가입", "멤버십 만료 예정"] },
+  { id: "인구통계", label: "인구통계", tags: ["남성", "여성", "20대", "30대", "40대", "50대 이상", "서울/수도권", "지방"] },
 ];
 const uniqueTags = (tags: string[]) => Array.from(new Set(tags.filter(Boolean))).sort((a, b) => a.localeCompare(b, "ko"));
 const tagGroupOf = (tag: string) => TAG_GROUPS.find(group => group.id !== "전체" && group.tags.includes(tag))?.id ?? "사용자";
@@ -82,14 +90,14 @@ const createTemplateRows = () => Array.from({ length: 72 }, (_, index) => {
   };
 });
 const MEMBERS: Member[] = [
-  { id: 1, name: "김민준", phone: "010-****-3841", type: "일반", smsConsent: true, kakaoConsent: true, rcsConsent: false, joinedAt: "2023-03-12", lastSend: "2026-06-22" },
-  { id: 2, name: "이서연", phone: "010-****-7291", type: "일반", smsConsent: true, kakaoConsent: false, rcsConsent: false, joinedAt: "2024-01-08", lastSend: "2026-06-21" },
-  { id: 3, name: "박지호", phone: "010-****-5502", type: "신규", smsConsent: true, kakaoConsent: true, rcsConsent: true, joinedAt: "2026-05-30", lastSend: "2026-06-20" },
-  { id: 4, name: "최수아", phone: "010-****-1183", type: "휴면", smsConsent: false, kakaoConsent: true, rcsConsent: false, joinedAt: "2022-11-20", lastSend: "2026-06-19" },
-  { id: 5, name: "정도윤", phone: "010-****-9947", type: "휴면", smsConsent: true, kakaoConsent: false, rcsConsent: false, joinedAt: "2021-07-04", lastSend: "2025-12-01" },
-  { id: 6, name: "윤지아", phone: "010-****-6620", type: "일반", smsConsent: true, kakaoConsent: true, rcsConsent: false, joinedAt: "2024-08-15", lastSend: "2026-06-18" },
-  { id: 7, name: "한예준", phone: "010-****-3309", type: "일반", smsConsent: false, kakaoConsent: true, rcsConsent: false, joinedAt: "2025-02-28", lastSend: "2026-06-17" },
-  { id: 8, name: "오서윤", phone: "010-****-8814", type: "신규", smsConsent: true, kakaoConsent: true, rcsConsent: true, joinedAt: "2023-09-01", lastSend: "2026-06-22" },
+  { id: 1, name: "김민준", phone: "010-****-3841", type: "일반", smsConsent: true, kakaoConsent: true, emailConsent: true, rcsConsent: false, joinedAt: "2023-03-12", lastSend: "2026-06-22" },
+  { id: 2, name: "이서연", phone: "010-****-7291", type: "일반", smsConsent: true, kakaoConsent: false, emailConsent: true, rcsConsent: false, joinedAt: "2024-01-08", lastSend: "2026-06-21" },
+  { id: 3, name: "박지호", phone: "010-****-5502", type: "신규", smsConsent: true, kakaoConsent: true, emailConsent: false, rcsConsent: true, joinedAt: "2026-05-30", lastSend: "2026-06-20" },
+  { id: 4, name: "최수아", phone: "010-****-1183", type: "휴면", smsConsent: false, kakaoConsent: true, emailConsent: true, rcsConsent: false, joinedAt: "2022-11-20", lastSend: "2026-06-19" },
+  { id: 5, name: "정도윤", phone: "010-****-9947", type: "휴면", smsConsent: true, kakaoConsent: false, emailConsent: false, rcsConsent: false, joinedAt: "2021-07-04", lastSend: "2025-12-01" },
+  { id: 6, name: "윤지아", phone: "010-****-6620", type: "일반", smsConsent: true, kakaoConsent: true, emailConsent: true, rcsConsent: false, joinedAt: "2024-08-15", lastSend: "2026-06-18" },
+  { id: 7, name: "한예준", phone: "010-****-3309", type: "일반", smsConsent: false, kakaoConsent: true, emailConsent: true, rcsConsent: false, joinedAt: "2025-02-28", lastSend: "2026-06-17" },
+  { id: 8, name: "오서윤", phone: "010-****-8814", type: "신규", smsConsent: true, kakaoConsent: true, emailConsent: false, rcsConsent: true, joinedAt: "2023-09-01", lastSend: "2026-06-22" },
 ];
 const createMemberRows = () => Array.from({ length: 96 }, (_, index) => {
   const base = MEMBERS[index % MEMBERS.length];
@@ -104,15 +112,16 @@ const createMemberRows = () => Array.from({ length: 96 }, (_, index) => {
     lastSend: `2026-06-${String(23 - (index % 14)).padStart(2, "0")}`,
     smsConsent: index % 5 !== 0,
     kakaoConsent: index % 4 !== 0,
+    emailConsent: index % 6 !== 0,
     rcsConsent: index % 3 === 0,
     tags: [base.type, MEMBER_TAGS[(index + 3) % MEMBER_TAGS.length], MEMBER_TAGS[(index + 9) % MEMBER_TAGS.length], index % 2 === 0 ? "최근구매" : "장바구니 이탈"],
   };
 });
 const HISTORY: SendRecord[] = [
-  { id: 1, template: "6월 여름 할인 이벤트", channel: "스마트 라우팅", targetType: "전체 회원", count: 284391, success: 279112, fail: 5279, sentAt: "2026-06-22 14:00", status: "완료", cost: 3128400, savedCost: 1245600, affiliate: "현대백화점", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 284391, success: 279112, fail: 5279 }, { label: "2차 SMS 대체", requested: 5279, success: 5144, fail: 135 }] },
+  { id: 1, template: "6월 여름 할인 이벤트", channel: "스마트 라우팅", targetType: "전체 고객", count: 284391, success: 279112, fail: 5279, sentAt: "2026-06-22 14:00", status: "완료", cost: 3128400, savedCost: 1245600, affiliate: "현대백화점", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 284391, success: 279112, fail: 5279 }, { label: "2차 SMS 대체", requested: 5279, success: 5144, fail: 135 }] },
   { id: 2, template: "포인트 소멸 안내", channel: "LMS", targetType: "일반·휴면", count: 92841, success: 91220, fail: 1621, sentAt: "2026-06-21 09:30", status: "완료", cost: 2785230, savedCost: 0, affiliate: "현대홈쇼핑", failoverSteps: [{ label: "1차 LMS", requested: 92841, success: 91220, fail: 1621 }] },
   { id: 3, template: "생일 축하 메시지", channel: "SMS", targetType: "생일 대상자", count: 1284, success: 1270, fail: 14, sentAt: "2026-06-20 08:00", status: "완료", cost: 12840, savedCost: 0, affiliate: "전사 공통", failoverSteps: [{ label: "1차 SMS", requested: 1284, success: 1270, fail: 14 }] },
-  { id: 4, template: "우수회원 전용 혜택", channel: "스마트 라우팅", targetType: "일반", count: 18420, success: 18198, fail: 222, sentAt: "2026-06-19 11:00", status: "완료", cost: 198720, savedCost: 82680, affiliate: "한섬", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 18420, success: 18198, fail: 222 }, { label: "2차 SMS 대체", requested: 222, success: 219, fail: 3 }] },
+  { id: 4, template: "우수고객 전용 혜택", channel: "스마트 라우팅", targetType: "일반", count: 18420, success: 18198, fail: 222, sentAt: "2026-06-19 11:00", status: "완료", cost: 198720, savedCost: 82680, affiliate: "한섬", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 18420, success: 18198, fail: 222 }, { label: "2차 SMS 대체", requested: 222, success: 219, fail: 3 }] },
   { id: 5, template: "신규 가입 환영", channel: "카카오 알림톡", targetType: "신규 가입자", count: 341, success: 338, fail: 3, sentAt: "2026-06-19 실시간", status: "진행중", cost: 2046, savedCost: 1364, affiliate: "전사 공통", failoverSteps: [{ label: "1차 카카오 알림톡", requested: 341, success: 338, fail: 3 }] },
   { id: 6, template: "배송 완료 안내", channel: "SMS", targetType: "배송 완료자", count: 2841, success: 2830, fail: 11, sentAt: "2026-06-18 16:00", status: "완료", cost: 28410, savedCost: 0, affiliate: "현대백화점", failoverSteps: [{ label: "1차 SMS", requested: 2841, success: 2830, fail: 11 }] },
 ];
@@ -190,12 +199,12 @@ const newMemberData = [
   { month: "6월", count: 1284 },
 ];
 const performanceData = [
-  { month: "1월", openRate: 38.2, clickRate: 12.4, conversionRate: 3.2 },
-  { month: "2월", openRate: 41.1, clickRate: 14.2, conversionRate: 3.9 },
-  { month: "3월", openRate: 44.8, clickRate: 16.1, conversionRate: 4.4 },
-  { month: "4월", openRate: 43.2, clickRate: 15.8, conversionRate: 4.1 },
-  { month: "5월", openRate: 47.9, clickRate: 18.3, conversionRate: 5.2 },
-  { month: "6월", openRate: 49.4, clickRate: 19.1, conversionRate: 5.8 },
+  { month: "1월", clickRate: 12.4, conversionRate: 3.2 },
+  { month: "2월", clickRate: 14.2, conversionRate: 3.9 },
+  { month: "3월", clickRate: 16.1, conversionRate: 4.4 },
+  { month: "4월", clickRate: 15.8, conversionRate: 4.1 },
+  { month: "5월", clickRate: 18.3, conversionRate: 5.2 },
+  { month: "6월", clickRate: 19.1, conversionRate: 5.8 },
 ];
 const fallbackStageData = [
   { stage: "1차", kakao: 98.9, sms: 99.1, lms: 98.2 },
@@ -218,7 +227,7 @@ const hourlyClickData = [
 ];
 const templatePerformanceTop = [
   { name: "생일 축하 메시지", click: 34.2, conversion: 7.1, source: "기본 템플릿" },
-  { name: "우수회원 전용 혜택", click: 28.9, conversion: 6.4, source: "AI 템플릿" },
+  { name: "우수고객 전용 혜택", click: 28.9, conversion: 6.4, source: "AI 템플릿" },
   { name: "신규 가입 환영", click: 25.4, conversion: null, source: "AI 템플릿" },
   { name: "6월 여름 할인 이벤트", click: 21.8, conversion: 5.2, source: "기본 템플릿" },
   { name: "포인트 소멸 안내", click: 18.1, conversion: null, source: "기본 템플릿" },
@@ -233,8 +242,8 @@ function StatCard({ label, value, sub, trend, icon, color = "blue" }: {
     amber: "bg-amber-50 text-amber-600", violet: "bg-violet-50 text-violet-600",
   };
   return (
-    <div className="bg-card rounded-xl border border-border p-5">
-      <div className="flex items-start justify-between mb-3">
+    <div className="bg-card rounded-xl border border-border p-4">
+      <div className="flex items-start justify-between mb-2">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
         <span className={`p-2 rounded-lg ${colorMap[color]}`}>{icon}</span>
       </div>
@@ -356,7 +365,6 @@ function AiReportDetail({ compact = false }: { compact?: boolean }) {
 function LoginPage({ onLogin }: { onLogin: () => void }) {
   const [id, setId] = useState("");
   const [pw, setPw] = useState("");
-  const [affiliate, setAffiliate] = useState("현대백화점");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -373,19 +381,18 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-4">
             <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center">
-              <Megaphone className="w-5 h-5 text-white" />
+              <MessageSquare className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-foreground tracking-tight">현대퓨처넷</span>
+            <span className="text-xl font-bold text-foreground tracking-tight">메시징 시스템</span>
           </div>
-          <p className="text-sm text-muted-foreground">메시징 시스템에 로그인하세요</p>
+          <p className="text-sm text-muted-foreground">운영자 계정으로 로그인하세요</p>
         </div>
         <div className="bg-card rounded-2xl border border-border p-8 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1.5">관리자 ID</label>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1.5">ID</label>
               <input
                 value={id} onChange={e => { setId(e.target.value); setError(""); }}
-                placeholder="admin"
                 className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
             </div>
@@ -393,16 +400,8 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
               <label className="block text-xs font-semibold text-muted-foreground mb-1.5">비밀번호</label>
               <input
                 type="password" value={pw} onChange={e => { setPw(e.target.value); setError(""); }}
-                placeholder="????????"
                 className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1.5">계열사</label>
-              <select value={affiliate} onChange={e => setAffiliate(e.target.value)} className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
-                {["현대백화점", "현대홈쇼핑", "한섬", "전사 공통"].map(option => <option key={option}>{option}</option>)}
-              </select>
-              <p className="mt-1.5 text-xs text-muted-foreground">{affiliate} 권한으로 로그인됩니다.</p>
             </div>
             {error && <p className="text-xs text-red-500">{error}</p>}
             <button
@@ -412,11 +411,8 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
               {loading ? "로그인 중..." : "로그인"}
             </button>
           </form>
-          <div className="mt-4 p-3 bg-muted rounded-lg">
-            <p className="text-xs text-muted-foreground text-center">데모: 아무 값이나 입력 후 로그인</p>
-          </div>
         </div>
-        <p className="text-center text-xs text-muted-foreground mt-6">ⓒ 2026 현대퓨처넷. All rights reserved.</p>
+        <p className="text-center text-xs text-muted-foreground mt-6">ⓒ 2026 Messaging System. All rights reserved.</p>
       </div>
     </div>
   );
@@ -428,13 +424,13 @@ const NAV_ITEMS = [
   { page: "send" as Page, icon: Send, label: "메시지 발송" },
   { page: "templates" as Page, icon: FileText, label: "템플릿 관리" },
   { page: "history" as Page, icon: History, label: "전송 기록" },
-  { page: "members" as Page, icon: Users, label: "회원 관리" },
+  { page: "members" as Page, icon: Users, label: "고객 관리" },
 ];
 const STAT_ITEMS = [
   { page: "stats-overview" as Page, label: "발송 현황" },
   { page: "stats-channel" as Page, label: "채널 분석" },
   { page: "stats-routing" as Page, label: "비용/라우팅 분석" },
-  { page: "stats-member" as Page, label: "회원 분석" },
+  { page: "stats-member" as Page, label: "고객 분석" },
   { page: "stats-performance" as Page, label: "성과 분석" },
 ];
 
@@ -447,11 +443,11 @@ function Sidebar({ current, setCurrent, onLogout }: { current: Page; setCurrent:
       <div className="px-5 py-5 border-b border-sidebar-border">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shrink-0">
-            <Megaphone className="w-4 h-4 text-white" />
+            <MessageSquare className="w-4 h-4 text-white" />
           </div>
           <div>
-            <div className="text-sm font-bold text-foreground leading-tight">현대퓨처넷</div>
-            <div className="text-[10px] text-muted-foreground">Messaging System</div>
+            <div className="text-sm font-bold text-foreground leading-tight">현대홈쇼핑</div>
+            <div className="text-[10px] text-muted-foreground">관리자</div>
           </div>
         </div>
       </div>
@@ -505,8 +501,8 @@ function Sidebar({ current, setCurrent, onLogout }: { current: Page; setCurrent:
 // ─── Header ───────────────────────────────────────────────────────────────────
 const PAGE_TITLES: Record<Page, string> = {
   dashboard: "대시보드", send: "메시지 발송", templates: "템플릿 관리", history: "전송 기록",
-  members: "회원 관리", "stats-overview": "통계 · 발송 현황", "stats-channel": "통계 · 채널 분석",
-  "stats-routing": "통계 · 비용/라우팅 분석", "stats-member": "통계 · 회원 분석", "stats-performance": "통계 · 성과 분석",
+  members: "고객 관리", "stats-overview": "통계 · 발송 현황", "stats-channel": "통계 · 채널 분석",
+  "stats-routing": "통계 · 비용/라우팅 분석", "stats-member": "통계 · 고객 분석", "stats-performance": "통계 · 성과 분석",
 };
 function Header({ page }: { page: Page }) {
   return (
@@ -528,75 +524,129 @@ function Header({ page }: { page: Page }) {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 function DashboardPage({ setPage }: { setPage: (p: Page) => void }) {
+  const [hoveredQueue, setHoveredQueue] = useState<{ label: string; count: number; rate: number; x: number; y: number } | null>(null);
+  const queueTotal = QUEUE_STATUS.reduce((sum, current) => sum + current.count, 0);
+  const queueColors: Record<string, string> = {
+    "대기": "#94A3B8",
+    "발송 중": "#3B82F6",
+    "완료": "#10B981",
+    "실패": "#EF4444",
+  };
+  const showQueueTooltip = (item: typeof QUEUE_STATUS[number], event: React.MouseEvent<HTMLButtonElement>) => {
+    const rate = queueTotal === 0 ? 0 : (item.count / queueTotal) * 100;
+    const tooltipWidth = 176;
+    const tooltipHeight = 88;
+    const offset = 14;
+    const viewportPadding = 12;
+    setHoveredQueue({
+      label: item.label,
+      count: item.count,
+      rate,
+      x: Math.min(event.clientX + offset, window.innerWidth - tooltipWidth - viewportPadding),
+      y: Math.min(event.clientY + offset, window.innerHeight - tooltipHeight - viewportPadding),
+    });
+  };
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
-        <StatCard label="오늘 발송 현황" value="12,847" sub="발송 중 2,500건" trend={{ val: "+8.2%", up: true }} icon={<Send className="w-4 h-4" />} color="blue" />
-        <StatCard label="발송 성공률/실패" value="98.7%" sub="실패 165건" trend={{ val: "+0.3%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
-        <StatCard label="활성 회원 현황" value="284,391" sub="전체 307,811명" trend={{ val: "+1,284명", up: true }} icon={<Users className="w-4 h-4" />} color="violet" />
-        <StatCard label="월 누적 발송 현황" value="892,451" sub="6월 누적" trend={{ val: "+12.4%", up: true }} icon={<BarChart3 className="w-4 h-4" />} color="amber" />
-        <StatCard label="스마트 라우팅 절감 현황" value="₩5.5M" sub="월 누적 절감" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
+      <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
+        <StatCard label="총 발송 건수" value="892,451" icon={<Send className="w-4 h-4" />} color="blue" />
+        <StatCard label="발송 성공률/실패 현황" value="98.7% / 165건" icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
+        <StatCard label="활성 고객 수 (일반, 신규)" value="198,341" icon={<Users className="w-4 h-4" />} color="violet" />
+        <StatCard label="실제 청구 비용" value="₩18,700,000" icon={<BarChart3 className="w-4 h-4" />} color="amber" />
+        <StatCard label="스마트 라우팅 절감 현황" value="₩5,500,000" icon={<Zap className="w-4 h-4" />} color="green" />
       </div>
 
-      <div className="bg-card rounded-xl border border-border p-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between mb-4">
+      <div className="bg-card rounded-xl border border-border p-4">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between mb-3">
           <div>
             <h3 className="text-sm font-bold text-foreground">실시간 발송 큐 상태</h3>
             <p className="text-xs text-muted-foreground mt-1">대량 발송 엔진의 현재 처리 흐름입니다.</p>
           </div>
           <button onClick={() => setPage("stats-routing")} className="text-xs text-primary font-semibold hover:underline flex items-center gap-0.5">상세 분석 <ChevronRight className="w-3 h-3" /></button>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-          {QUEUE_STATUS.map(item => (
-            <div key={item.label} className="rounded-lg bg-muted p-3">
-              <div className="text-xs text-muted-foreground mb-1">{item.label}</div>
-              <div className="text-lg font-bold">{item.count.toLocaleString()}건</div>
-            </div>
-          ))}
-        </div>
-        <div className="h-2 rounded-full bg-muted overflow-hidden flex">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
           {QUEUE_STATUS.map(item => {
-            const total = QUEUE_STATUS.reduce((sum, current) => sum + current.count, 0);
-            return <div key={item.label} className={`${item.color} h-full`} style={{ width: `${Math.max(2, (item.count / total) * 100)}%` }} />;
+            const rate = queueTotal === 0 ? 0 : (item.count / queueTotal) * 100;
+            return (
+              <div key={item.label} className="rounded-lg bg-muted px-3 py-2">
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: queueColors[item.label] }} />
+                    <span className="text-xs text-muted-foreground">{item.label}</span>
+                  </div>
+                  <span className="text-[11px] font-bold text-muted-foreground">{rate.toFixed(1)}%</span>
+                </div>
+                <div className="text-lg font-bold">{item.count.toLocaleString()}건</div>
+              </div>
+            );
           })}
+        </div>
+        <div className="relative">
+          {hoveredQueue && (
+            <div
+              className="pointer-events-none fixed z-50 w-44 rounded-lg border border-border bg-card p-3 text-xs shadow-lg"
+              style={{ left: hoveredQueue.x, top: hoveredQueue.y }}
+            >
+              <div className="font-bold text-foreground">{hoveredQueue.label}</div>
+              <div className="mt-1 text-muted-foreground">건수 {hoveredQueue.count.toLocaleString()}건</div>
+              <div className="text-muted-foreground">비중 {hoveredQueue.rate.toFixed(1)}%</div>
+            </div>
+          )}
+          <div className="flex h-4 overflow-hidden rounded-full bg-muted">
+            {QUEUE_STATUS.map(item => {
+              const rate = queueTotal === 0 ? 0 : (item.count / queueTotal) * 100;
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  className="h-full transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  style={{ width: `${Math.max(item.count === 0 ? 2 : 4, rate)}%`, backgroundColor: queueColors[item.label] }}
+                  onMouseEnter={event => showQueueTooltip(item, event)}
+                  onMouseMove={event => showQueueTooltip(item, event)}
+                  onMouseLeave={() => setHoveredQueue(null)}
+                  onFocus={() => setHoveredQueue({ label: item.label, count: item.count, rate, x: 16, y: 16 })}
+                  onBlur={() => setHoveredQueue(null)}
+                  aria-label={`${item.label}: ${item.count.toLocaleString()}건, ${rate.toFixed(1)}%`}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 bg-card rounded-xl border border-border p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-foreground">최근 발송 추이</h3>
-            <span className="text-xs text-muted-foreground">최근 7일</span>
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="lg:col-span-2 bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-foreground">비용 비교 현황</h3>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={dailyTrend}>
-              <defs>
-                <linearGradient id="dashboardRecentGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#1843FA" stopOpacity={0.16} />
-                  <stop offset="95%" stopColor="#1843FA" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
-              <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Area type="monotone" dataKey="sends" stroke="#1843FA" fill="url(#dashboardRecentGrad)" strokeWidth={2} name="발송" />
-              <Area type="monotone" dataKey="success" stroke="#10B981" fill="none" strokeWidth={2} strokeDasharray="4 3" name="성공" />
-            </AreaChart>
-          </ResponsiveContainer>
+          <div className="min-h-0 flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={routingSavingsData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
+                <Tooltip formatter={(v: number) => [formatWon(v)]} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Line type="monotone" dataKey="actual" name="실제 비용" stroke="#1843FA" strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="baseline" name="최대 비용" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-        <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold text-foreground mb-4">채널별 발송 비중</h3>
-          <ResponsiveContainer width="100%" height={160}>
-            <RePieChart>
-              <Pie data={channelPie} cx="50%" cy="50%" innerRadius={45} outerRadius={65} dataKey="value" paddingAngle={3}>
-                {channelPie.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-              </Pie>
-              <Tooltip formatter={(v: number) => [`${v}%`]} />
-            </RePieChart>
-          </ResponsiveContainer>
-          <div className="mt-3 space-y-1.5">
+        <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
+          <h3 className="text-sm font-bold text-foreground mb-3">채널별 발송 비중</h3>
+          <div className="min-h-0 flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <RePieChart>
+                <Pie data={channelPie} cx="50%" cy="50%" innerRadius={38} outerRadius={56} dataKey="value" paddingAngle={3}>
+                  {channelPie.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Pie>
+                <Tooltip formatter={(v: number) => [`${v}%`]} />
+              </RePieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-2 space-y-1">
             {channelPie.map((c, i) => (
               <div key={i} className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: c.color }} /><span className="text-muted-foreground">{c.name}</span></div>
@@ -607,15 +657,15 @@ function DashboardPage({ setPage }: { setPage: (p: Page) => void }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-card rounded-xl border border-border p-5">
-          <div className="flex items-center justify-between mb-4">
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="bg-card rounded-xl border border-border p-4 min-h-0 overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold text-foreground">최근 전송 기록</h3>
             <button onClick={() => setPage("history")} className="text-xs text-primary font-semibold hover:underline flex items-center gap-0.5">전체보기 <ChevronRight className="w-3 h-3" /></button>
           </div>
-          <div className="space-y-3">
-            {HISTORY.slice(0, 4).map(r => (
-              <div key={r.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+          <div className="space-y-1.5">
+            {HISTORY.slice(0, 3).map(r => (
+              <div key={r.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
                 <div>
                   <div className="text-xs font-semibold text-foreground">{r.template}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">{r.sentAt} · {r.targetType}</div>
@@ -628,23 +678,28 @@ function DashboardPage({ setPage }: { setPage: (p: Page) => void }) {
             ))}
           </div>
         </div>
-        <div className="bg-card rounded-xl border border-border p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-foreground">주요 업무 바로가기</h3>
-            <SpecPin>대시보드는 보류 범위라 운영 바로가기만 유지</SpecPin>
+        <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-foreground">일별 발송 추이</h3>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: "메시지 발송", page: "send" as Page, Icon: Send },
-              { label: "템플릿 관리", page: "templates" as Page, Icon: FileText },
-              { label: "전송 기록", page: "history" as Page, Icon: History },
-              { label: "회원 관리", page: "members" as Page, Icon: Users },
-            ].map(({ label, page, Icon }) => (
-              <button key={label} onClick={() => setPage(page)} className="flex items-center gap-3 rounded-lg border border-border bg-muted p-3 text-left transition-colors hover:bg-accent">
-                <Icon className="h-4 w-4 text-primary" />
-                <span className="text-xs font-bold text-foreground">{label}</span>
-              </button>
-            ))}
+          <div className="min-h-0 flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={dailyTrend}>
+                <defs>
+                  <linearGradient id="dashboardDailySendsGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#1843FA" stopOpacity={0.16} />
+                    <stop offset="95%" stopColor="#1843FA" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
+                <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Area type="monotone" dataKey="sends" stroke="#1843FA" fill="url(#dashboardDailySendsGrad)" strokeWidth={2} name="발송" />
+                <Area type="monotone" dataKey="success" stroke="#10B981" fill="none" strokeWidth={2} strokeDasharray="4 3" name="성공" />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
@@ -654,18 +709,27 @@ function DashboardPage({ setPage }: { setPage: (p: Page) => void }) {
 
 // ─── Send Message Page ────────────────────────────────────────────────────────
 const CHANNELS = [
-  { id: "smart-routing", label: "스마트 라우팅", sub: "최저가 조합 자동 선택", icon: Zap },
   { id: "sms", label: "SMS", sub: "90자 이내 단문", icon: Phone },
   { id: "lms", label: "LMS", sub: "2,000자 이내 장문", icon: Mail },
   { id: "kakao-noti", label: "카카오 알림톡", sub: "거래/안내 메시지", icon: MessageSquare },
   { id: "kakao-friend", label: "카카오 친구톡", sub: "마케팅 메시지", icon: Megaphone },
   { id: "rcs", label: "RCS", sub: "리치 미디어 메시지", icon: Zap },
 ];
+const PERSONAL_FIELDS = [
+  ["고객명", "#{이름}"],
+  ["포인트", "#{포인트}"],
+  ["주문번호", "#{주문번호}"],
+  ["쿠폰명", "#{쿠폰명}"],
+  ["쿠폰만료일", "#{쿠폰만료일}"],
+  ["등급", "#{등급}"],
+  ["매장명", "#{매장명}"],
+  ["배송예정일", "#{배송예정일}"],
+  ["추천상품", "#{추천상품}"],
+];
 function SendMessagePageWizard() {
   const members = useMemo(() => createMemberRows(), []);
   const templates = useMemo(() => createTemplateRows(), []);
   const [step, setStep] = useState(1);
-  const [mode, setMode] = useState<"manual" | "ai">("manual");
   const [selectedTags, setSelectedTags] = useState<string[]>(["카카오 동의"]);
   const [targetMatchMode, setTargetMatchMode] = useState<"OR" | "AND">("OR");
   const [tagSearch, setTagSearch] = useState("");
@@ -676,18 +740,36 @@ function SendMessagePageWizard() {
   const [manualName, setManualName] = useState("");
   const [manualPhone, setManualPhone] = useState("");
   const [templateSearch, setTemplateSearch] = useState("");
+  const [templateTargetFilters, setTemplateTargetFilters] = useState<string[]>([]);
+  const [templateCategoryFilter, setTemplateCategoryFilter] = useState("전체");
+  const [templateChannelFilter, setTemplateChannelFilter] = useState("전체");
   const [selectedTemplateId, setSelectedTemplateId] = useState<number>(templates[0]?.id ?? 0);
   const [messageDraft, setMessageDraft] = useState(templates[0]?.content ?? "");
-  const [previewMode, setPreviewMode] = useState<"basic" | "kakao" | "rich">("kakao");
-  const [selectedChannel, setSelectedChannel] = useState("smart-routing");
-  const [channelPriority, setChannelPriority] = useState(["kakao-friend", "sms", "lms"]);
+  const [previewMode, setPreviewMode] = useState<"message" | "kakao" | "email">("kakao");
+  const [selectedChannel, setSelectedChannel] = useState("kakao-noti");
+  const [channelSettingsOpen, setChannelSettingsOpen] = useState(true);
+  const [channelPriority, setChannelPriority] = useState(["kakao-noti"]);
   const [sendType, setSendType] = useState<"now" | "later">("now");
-  const [smartRouting, setSmartRouting] = useState(true);
+  const [scheduleDate, setScheduleDate] = useState("2026-06-26");
+  const [scheduleTime, setScheduleTime] = useState("10:00");
   const [failoverEnabled, setFailoverEnabled] = useState(true);
-  const [fallbacks, setFallbacks] = useState({ name: "고객님", point: "0", order: "주문번호 없음" });
+  const previewMessage = messageDraft
+    .replaceAll("#{이름}", "고객님")
+    .replaceAll("#{포인트}", "0")
+    .replaceAll("#{주문번호}", "주문번호 없음")
+    .replaceAll("#{쿠폰명}", "10% 할인 쿠폰")
+    .replaceAll("#{쿠폰만료일}", "2026-06-30")
+    .replaceAll("#{등급}", "VIP")
+    .replaceAll("#{매장명}", "더현대 서울")
+    .replaceAll("#{배송예정일}", "2026-06-28")
+    .replaceAll("#{추천상품}", "여름 신상품");
+  const [marketingCopies, setMarketingCopies] = useState<string[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiPlan, setAiPlan] = useState<null | { title: string; reason: string; audience: string; template: string; channel: string; message: string }>(null);
   const [aiResult, setAiResult] = useState(false);
+  const [aiReportOpen, setAiReportOpen] = useState(false);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [saveTemplateForm, setSaveTemplateForm] = useState({ name: "", category: "마케팅", channels: ["카카오 알림톡"] });
   const [aiJobs, setAiJobs] = useState([
     { name: "오타·맞춤법", model: "small-ko-proof", status: "대기", result: "-" },
     { name: "광고 표기", model: "small-policy-ad", status: "대기", result: "-" },
@@ -698,49 +780,116 @@ function SendMessagePageWizard() {
   ]);
 
   const selectedTemplate = templates.find(template => template.id === selectedTemplateId);
-  const visibleTags = (tagSearch ? MEMBER_TAGS.filter(tag => tag.includes(tagSearch)) : MEMBER_TAGS).slice(0, 12);
+  const visibleTags = (tagSearch ? MEMBER_TAGS.filter(tag => tag.includes(tagSearch)) : MEMBER_TAGS).slice(0, 36);
   const relatedTags = MEMBER_TAGS
     .filter(tag => !selectedTags.includes(tag) && (tagSearch ? [...tagSearch].some(ch => tag.includes(ch)) : selectedTags.some(selected => tag.includes(selected) || selected.includes(tag))))
-    .slice(0, 8);
+    .slice(0, 12);
   const candidateMembers = members.filter(member => {
     const memberTags = member.tags ?? [];
-    const tagMatch = selectedTags.length === 0 || selectedTags.includes("전체 회원") || (
+    const tagMatch = selectedTags.length === 0 || selectedTags.includes("전체 고객") || (
       targetMatchMode === "AND"
         ? selectedTags.every(tag => memberTags.includes(tag) || member.type === tag)
         : selectedTags.some(tag => memberTags.includes(tag) || member.type === tag)
     );
     const keyword = !memberSearch || member.name.includes(memberSearch) || member.phone.includes(memberSearch) || memberTags.some(tag => tag.includes(memberSearch));
-    const hasReceivableChannel = member.smsConsent || member.kakaoConsent || member.rcsConsent;
+    const hasReceivableChannel = member.smsConsent || member.kakaoConsent || member.emailConsent;
     return tagMatch && keyword && hasReceivableChannel;
   });
-  const visibleMembers = candidateMembers.slice(0, 12);
+  const visibleMembers = candidateMembers.slice(0, 32);
   const filteredTemplates = templates.filter(template => {
     const tags = getTemplateTags(template);
-    return !templateSearch || template.name.includes(templateSearch) || template.content.includes(templateSearch) || template.channel.includes(templateSearch) || tags.some(tag => tag.includes(templateSearch));
+    const keywordMatch = !templateSearch || template.name.includes(templateSearch) || template.content.includes(templateSearch) || template.channel.includes(templateSearch) || tags.some(tag => tag.includes(templateSearch));
+    const targetMatch = templateTargetFilters.length === 0 || templateTargetFilters.every(tag => tags.includes(tag));
+    const categoryMatch = templateCategoryFilter === "전체" || template.category === templateCategoryFilter || tags.includes(templateCategoryFilter);
+    const channelMatch = templateChannelFilter === "전체" || template.channel === templateChannelFilter;
+    return keywordMatch && targetMatch && categoryMatch && channelMatch;
   });
   const visibleTemplates = filteredTemplates.slice(0, 10);
+  const templateTargetOptions = uniqueTags(templates.flatMap(getTemplateTags)).slice(0, 8);
+  const templateCategoryOptions = ["전체", ...Array.from(new Set(templates.map(template => template.category)))];
+  const templateChannelOptions = ["전체", ...Array.from(new Set(templates.map(template => template.channel)))];
+  const allVisibleMembersChecked = visibleMembers.length > 0 && visibleMembers.every(member => checkedMembers.includes(member.id));
   const selectedRecipientCount = checkedMembers.length || candidateMembers.length;
-  const estimatedTarget = selectedTags.includes("전체 회원") ? 284391 : Math.max(selectedRecipientCount, candidateMembers.length * 1370);
+  const estimatedTarget = selectedTags.includes("전체 고객") ? 284391 : Math.max(selectedRecipientCount, candidateMembers.length * 1370);
   const messageMode = messageDraft.length > 90 ? "LMS" : "SMS";
   const selectedChannelMeta = CHANNELS.find(channel => channel.id === selectedChannel);
-  const unitCost = selectedChannel === "smart-routing" || smartRouting ? 7 : selectedChannel === "sms" ? 10 : selectedChannel === "lms" ? 30 : selectedChannel === "kakao-noti" ? 6 : selectedChannel === "rcs" ? 14 : 8;
+  const channelUnitCost = (channelId: string) => channelId === "sms" ? 10 : channelId === "lms" ? 30 : channelId === "kakao-noti" ? 6 : channelId === "rcs" ? 14 : 8;
+  const unitCost = !selectedChannel ? 0 : channelUnitCost(selectedChannel);
   const estimatedCost = estimatedTarget * unitCost;
   const baselineCost = estimatedTarget * (messageMode === "LMS" ? 30 : 10);
   const estimatedSaving = Math.max(0, baselineCost - estimatedCost);
+  const channelAudienceBase = checkedMembers.length > 0 ? members.filter(member => checkedMembers.includes(member.id)) : candidateMembers;
+  const channelAudienceRatio = (channelId: string) => {
+    if (channelAudienceBase.length === 0) return 1;
+    const reachableCount = channelAudienceBase.filter(member => {
+      if (channelId === "sms" || channelId === "lms") return member.smsConsent;
+      if (channelId === "kakao-noti" || channelId === "kakao-friend") return member.kakaoConsent;
+      if (channelId === "rcs") return member.rcsConsent;
+      return member.smsConsent || member.kakaoConsent || member.rcsConsent || member.emailConsent;
+    }).length;
+    return Math.max(0.08, reachableCount / channelAudienceBase.length);
+  };
+  const getChannelEstimate = (channelId: string) => {
+    const count = Math.round(estimatedTarget * channelAudienceRatio(channelId));
+    const cost = count * channelUnitCost(channelId);
+    return { count, cost };
+  };
+  const selectedChannelSummary = channelPriority
+    .map(channelId => CHANNELS.find(channel => channel.id === channelId)?.label)
+    .filter(Boolean)
+    .join(" > ");
+  const selectedChannelLabels = channelPriority
+    .map(channelId => CHANNELS.find(channel => channel.id === channelId)?.label)
+    .filter(Boolean);
   const aiComplete = aiJobs.every(job => job.status === "완료") && aiResult;
-  const canSend = selectedTags.length > 0 && messageDraft.trim().length > 0 && !!selectedChannel && aiComplete;
-  const stepMeta = ["수신자 선택", "메시지 작성", "채널 선택", "검토 및 발송"];
+  const messageStepReady = messageDraft.trim().length > 0 && !!selectedChannel && aiComplete;
+  const canSend = selectedTags.length > 0 && messageStepReady;
+  const stepMeta = ["수신자 선택", "메시지 작성", "검토 및 발송"];
   const stepReady = [
     selectedTags.length > 0,
-    messageDraft.trim().length > 0,
-    !!selectedChannel,
+    messageStepReady,
     canSend,
   ];
+  const nextDisabledReason = step === 1 && !stepReady[0]
+    ? "수신자를 먼저 선택해 주세요."
+    : step === 2 && !messageDraft.trim()
+      ? "메시지를 작성해 주세요."
+      : step === 2 && !selectedChannel
+        ? "채널을 선택해 주세요."
+        : step === 2 && !aiComplete
+          ? "AI 검사를 완료해야 검토 및 발송으로 이동할 수 있습니다."
+          : "";
+  const canGoToStep = (value: number) => value === 1 || stepReady.slice(0, value - 1).every(Boolean);
 
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag]);
-  const selectAllMembers = () => setSelectedTags(["전체 회원"]);
+  const selectAllMembers = () => setSelectedTags(["전체 고객"]);
   const selectAllSearchedMembers = () => setCheckedMembers(candidateMembers.map(member => member.id));
+  const toggleVisibleMembers = () => {
+    const visibleIds = visibleMembers.map(member => member.id);
+    setCheckedMembers(prev => allVisibleMembersChecked ? prev.filter(id => !visibleIds.includes(id)) : Array.from(new Set([...prev, ...visibleIds])));
+  };
+  const toggleTemplateTargetFilter = (tag: string) => {
+    setTemplateTargetFilters(prev => prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag]);
+  };
+  const toggleChannelPriority = (channelId: string) => {
+    if (channelId === "rcs") return;
+    setChannelPriority(prev => {
+      const next = prev.includes(channelId)
+        ? prev.filter(id => id !== channelId)
+        : [...prev, channelId];
+      setSelectedChannel(next[0] ?? "");
+      return next;
+    });
+  };
   const insertVariable = (value: string) => setMessageDraft(prev => `${prev}${prev.endsWith(" ") || prev.length === 0 ? "" : " "}${value}`);
+  const recommendMarketingCopy = () => {
+    const copies = [
+      "[현대퓨처넷] #{이름}님, 지금 #{등급} 고객님께 준비된 #{쿠폰명}이 도착했습니다. #{쿠폰만료일} 전에 혜택을 확인해 주세요.",
+      "[현대퓨처넷] #{이름}님을 위한 #{추천상품} 혜택을 준비했습니다. 가까운 #{매장명} 또는 앱에서 특별 혜택을 만나보세요.",
+      "[현대퓨처넷] #{이름}님, 보유 포인트 #{포인트}P와 함께 사용할 수 있는 혜택이 있습니다. 오늘 추천 상품을 확인해 보세요.",
+    ];
+    setMarketingCopies(copies);
+  };
   const toggleMemberCheck = (id: number) => setCheckedMembers(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
   const mergeMembers = (base: Member[], add: Member[]) => [...base, ...add.filter(member => !base.some(item => item.id === member.id))];
   const addChecked = () => {
@@ -757,7 +906,7 @@ function SendMessagePageWizard() {
   };
   const addManualMember = () => {
     if (!manualName.trim() || !manualPhone.trim()) return;
-    const manual: Member = { id: Date.now(), name: manualName, phone: manualPhone, type: "수동", smsConsent: true, kakaoConsent: true, rcsConsent: false, joinedAt: "-", lastSend: "-", tags: ["수동 추가"] };
+    const manual: Member = { id: Date.now(), name: manualName, phone: manualPhone, type: "수동", smsConsent: true, kakaoConsent: true, emailConsent: true, rcsConsent: false, joinedAt: "-", lastSend: "-", tags: ["수동 추가"] };
     setIncludedMembers(prev => mergeMembers(prev, [manual]));
     setManualName("");
     setManualPhone("");
@@ -766,11 +915,27 @@ function SendMessagePageWizard() {
     setSelectedTemplateId(template.id);
     setMessageDraft(template.content);
   };
+  const openSaveTemplate = () => {
+    setSaveTemplateForm({
+      name: selectedTemplate ? `${selectedTemplate.name} 복사본` : "새 메시지 템플릿",
+      category: selectedTemplate?.category ?? "마케팅",
+      channels: selectedChannelMeta?.label ? [selectedChannelMeta.label] : ["카카오 알림톡"],
+    });
+    setSaveTemplateOpen(true);
+  };
+  const toggleSaveTemplateChannel = (channel: string) => {
+    setSaveTemplateForm(prev => {
+      const channels = prev.channels.includes(channel)
+        ? prev.channels.filter(item => item !== channel)
+        : [...prev.channels, channel];
+      return { ...prev, channels };
+    });
+  };
   const runAiPlan = () => {
     setAiLoading(true);
     window.setTimeout(() => {
       const template = templates.find(item => getTemplateTags(item).includes("최근구매")) ?? templates[0];
-      const message = "[현대퓨처넷] #{이름}님, 최근 관심 상품 기준으로 선별한 우수회원 혜택이 준비되었습니다. 앱에서 쿠폰과 사용 기간을 확인해 주세요. 수신거부 080-000-0000";
+      const message = "[현대퓨처넷] #{이름}님, 최근 관심 상품 기준으로 선별한 우수고객 혜택이 준비되었습니다. 앱에서 쿠폰과 사용 기간을 확인해 주세요. 수신거부 080-000-0000";
       setAiPlan({
         title: "최근구매 고객 재구매 캠페인",
         reason: "최근구매·카카오 동의·일반 타겟 조합의 예상 반응률이 가장 높습니다.",
@@ -790,6 +955,7 @@ function SendMessagePageWizard() {
   };
   const runAiCheck = () => {
     setAiResult(false);
+    setAiReportOpen(false);
     setAiJobs(jobs => jobs.map(job => ({ ...job, status: "실행중", result: "queued" })));
     aiJobs.forEach((job, index) => {
       window.setTimeout(() => {
@@ -831,180 +997,344 @@ function SendMessagePageWizard() {
   );
 
   const renderRecipients = () => (
-    <div className="space-y-5">
-      <div className="rounded-xl border border-border bg-card p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold">타겟 기반 수신자</h3>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            <span className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-primary">선택 {checkedMembers.length.toLocaleString()}명</span>
-            <span className="text-xs font-semibold text-primary">예상 {estimatedTarget.toLocaleString()}명</span>
-          </div>
+    <div className="grid h-full min-h-0 grid-cols-1 xl:grid-cols-[360px_1fr] gap-3">
+      <div className="rounded-xl border border-border bg-card p-4 flex min-h-0 flex-col">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold">타겟 선택</h3>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_auto] gap-3 mb-3">
+        <div className="space-y-3 min-h-0 flex-1">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input value={tagSearch} onChange={event => setTagSearch(event.target.value)} placeholder="타겟 검색" className="w-full pl-8 pr-4 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
           </div>
-          <div className="inline-flex rounded-lg border border-border bg-muted p-1">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-xs font-bold text-muted-foreground">조건</div>
+          </div>
+          <div className="grid grid-cols-2 rounded-lg border border-border bg-muted p-1">
             {(["OR", "AND"] as const).map(option => (
               <button key={option} onClick={() => setTargetMatchMode(option)} className={`px-3 py-1.5 rounded-md text-xs font-bold ${targetMatchMode === option ? "bg-primary text-white" : "text-muted-foreground hover:bg-card"}`}>
                 {option === "OR" ? "하나라도 포함" : "모두 포함"}
               </button>
             ))}
           </div>
-          <button onClick={selectAllMembers} className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold text-primary hover:bg-accent">전체 회원 타겟</button>
-        </div>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {visibleTags.map(tag => (
-            <button key={tag} onClick={() => toggleTag(tag)} className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${selectedTags.includes(tag) ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-accent"}`}>
-              {tag}
-            </button>
-          ))}
-        </div>
-        {relatedTags.length > 0 && (
-          <div className="mb-4 rounded-lg border border-border bg-muted p-3">
-            <div className="text-xs font-bold text-muted-foreground mb-2">유사 타겟</div>
-            <div className="flex flex-wrap gap-2">
-              {relatedTags.map(tag => (
-                <button key={tag} onClick={() => toggleTag(tag)} className="px-3 py-1.5 rounded-full text-xs font-semibold border border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground cursor-pointer transition-colors">
+          <div className="min-h-0 flex-1 overflow-y-auto rounded-lg bg-muted p-2">
+            <div className="flex flex-wrap gap-1.5">
+              {visibleTags.map(tag => (
+                <button key={tag} onClick={() => toggleTag(tag)} className={`px-2.5 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${selectedTags.includes(tag) ? "bg-primary text-white border-primary" : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}>
                   {tag}
                 </button>
               ))}
             </div>
           </div>
-        )}
-        <div className="rounded-xl border border-border overflow-hidden">
+          {relatedTags.length > 0 && (
+            <div className="rounded-lg border border-border bg-muted p-2">
+              <div className="text-xs font-bold text-muted-foreground mb-2">유사 타겟</div>
+              <div className="flex flex-wrap gap-1.5">
+                {relatedTags.map(tag => (
+                  <button key={tag} onClick={() => toggleTag(tag)} className="px-2.5 py-1 rounded-full text-xs font-semibold border border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground cursor-pointer transition-colors">
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="h-full min-h-0">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
           <div className="flex items-center gap-2 border-b border-border bg-muted p-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <input value={memberSearch} onChange={event => setMemberSearch(event.target.value)} placeholder="회원명, 번호, 타겟 검색" className="w-full pl-8 pr-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none" />
+              <input value={memberSearch} onChange={event => setMemberSearch(event.target.value)} placeholder="고객명, 번호, 타겟 검색" className="w-full pl-8 pr-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none" />
             </div>
-            <Btn size="sm" variant="outline" onClick={selectAllSearchedMembers}>검색 결과 전체 선택</Btn>
           </div>
-          <div className="grid grid-cols-[36px_1.2fr_1.6fr_0.7fr_0.9fr] gap-3 border-b border-border bg-muted/60 px-3 py-2 text-xs font-bold text-muted-foreground">
-            <span />
-            <span>회원</span>
-            <span>타겟</span>
+          <div className="grid grid-cols-[36px_0.8fr_1fr_0.45fr_2.2fr_0.45fr_0.45fr_0.45fr] gap-3 border-b border-border bg-muted/60 px-3 py-2 text-xs font-bold text-muted-foreground">
+            <button type="button" onClick={toggleVisibleMembers} className={`flex h-5 w-5 items-center justify-center rounded border transition-colors ${allVisibleMembersChecked ? "border-primary bg-primary text-white" : "border-border bg-card text-transparent hover:border-primary"}`}>
+              <Check className="h-3.5 w-3.5" />
+            </button>
+            <span>고객명</span>
+            <span>번호</span>
             <span>유형</span>
-            <span>수신 가능 채널</span>
+            <span>타겟</span>
+            <span>문자</span>
+            <span>카카오</span>
+            <span>이메일</span>
           </div>
-          {visibleMembers.map(member => (
-            <label key={member.id} className="grid grid-cols-[36px_1.2fr_1.6fr_0.7fr_0.9fr] gap-3 px-3 py-2.5 border-b border-border last:border-0 hover:bg-blue-50/60 cursor-pointer transition-colors">
-              <input type="checkbox" checked={checkedMembers.includes(member.id)} onChange={() => toggleMemberCheck(member.id)} />
-              <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold">{member.name} <span className="font-mono text-muted-foreground">{member.phone}</span></div>
-              </div>
-              <div className="flex flex-wrap gap-1">{(member.tags ?? []).slice(0, 5).map(tag => <span key={tag} className="px-1.5 py-0.5 rounded bg-muted text-[10px] text-muted-foreground">{tag}</span>)}</div>
-              <span className="text-xs text-muted-foreground">{member.type}</span>
-              <span className="text-xs text-muted-foreground">{[
-                member.kakaoConsent ? "카카오" : "",
-                member.smsConsent ? "SMS" : "",
-                member.rcsConsent ? "RCS" : "",
-              ].filter(Boolean).join(", ")}</span>
-            </label>
-          ))}
-          {visibleMembers.length === 0 && (
-            <div className="px-3 py-8 text-center text-xs text-muted-foreground">수신 가능한 채널이 있는 회원만 표시됩니다.</div>
-          )}
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {visibleMembers.map(member => {
+              const checked = checkedMembers.includes(member.id);
+              return (
+                <label key={member.id} className="grid grid-cols-[36px_0.8fr_1fr_0.45fr_2.2fr_0.45fr_0.45fr_0.45fr] gap-3 px-3 py-2.5 border-b border-border last:border-0 hover:bg-blue-50/60 cursor-pointer transition-colors">
+                  <span className={`relative flex h-5 w-5 items-center justify-center rounded border transition-colors ${checked ? "border-primary bg-primary text-white" : "border-border bg-card text-transparent"}`}>
+                    <Check className="h-3.5 w-3.5" />
+                    <input className="sr-only" type="checkbox" checked={checked} onChange={() => toggleMemberCheck(member.id)} />
+                  </span>
+                  <span className="text-xs font-bold">{member.name}</span>
+                  <span className="font-mono text-xs text-muted-foreground">{member.phone}</span>
+                  <span className="text-xs text-muted-foreground">{member.type}</span>
+                  <div className="flex min-w-0 gap-1 overflow-hidden whitespace-nowrap">
+                    {(member.tags ?? []).slice(0, 5).map(tag => <span key={tag} className="shrink-0 px-1.5 py-0.5 rounded bg-muted text-[10px] text-muted-foreground">{tag}</span>)}
+                  </div>
+                  <span>{member.smsConsent ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-400" />}</span>
+                  <span>{member.kakaoConsent ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-400" />}</span>
+                  <span>{member.emailConsent ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-400" />}</span>
+                </label>
+              );
+            })}
+            {visibleMembers.length === 0 && (
+              <div className="px-3 py-8 text-center text-xs text-muted-foreground">수신 가능한 채널이 있는 고객만 표시됩니다.</div>
+            )}
+          </div>
+          <div className="flex h-12 shrink-0 items-center border-t border-primary/15 bg-primary/5 px-4">
+            <span className="text-sm font-bold text-foreground">
+              {candidateMembers.length.toLocaleString()}명 중 {checkedMembers.length.toLocaleString()}명 선택
+            </span>
+          </div>
         </div>
-        <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="text-xs font-semibold text-muted-foreground">
-            검색 결과 {candidateMembers.length.toLocaleString()}명 · 체크 {checkedMembers.length.toLocaleString()}명
-          </div>
-          <div className="flex gap-2">
-            <Btn size="sm" variant="outline" onClick={addChecked} disabled={checkedMembers.length === 0}>포함 대상 추가</Btn>
-            <Btn size="sm" variant="outline" onClick={excludeChecked} disabled={checkedMembers.length === 0}>제외 대상 추가</Btn>
-          </div>
+      </div>
+    </div>
+  );
+
+  const renderChannelSettings = () => (
+    <div className="rounded-xl border border-border bg-card">
+      <button onClick={() => setChannelSettingsOpen(prev => !prev)} className="flex w-full cursor-pointer flex-col gap-3 p-4 text-left xl:flex-row xl:items-center xl:justify-between">
+        <div>
+          <h3 className="text-sm font-bold">채널 선택</h3>
+          <p className="mt-1 text-xs text-muted-foreground">{selectedChannelSummary || "채널 미선택"}</p>
         </div>
-        <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
-          <div className="rounded-xl border border-border bg-card p-3 min-h-36">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="text-xs font-bold">회원 직접 추가</div>
-              <SpecPin>수동 추가 회원은 포함 대상으로 처리</SpecPin>
-            </div>
-            <div className="space-y-2">
-              <input value={manualName} onChange={event => setManualName(event.target.value)} placeholder="회원명" className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-xs focus:outline-none" />
-              <input value={manualPhone} onChange={event => setManualPhone(event.target.value)} placeholder="전화번호" className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-xs focus:outline-none" />
-              <Btn size="sm" className="w-full justify-center" onClick={addManualMember}>직접 추가</Btn>
-            </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-lg bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground">
+            {estimatedTarget.toLocaleString()}명
+          </span>
+          <span className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
+            {formatWon(estimatedCost)}
+          </span>
+          <span className="flex items-center gap-1.5 px-1 text-xs font-bold text-muted-foreground">
+            {channelSettingsOpen ? "접기" : "더보기"}
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${channelSettingsOpen ? "rotate-180" : ""}`} />
+          </span>
+        </div>
+      </button>
+      <div className={`overflow-hidden transition-all duration-300 ease-out ${channelSettingsOpen ? "max-h-[900px] opacity-100" : "max-h-0 opacity-0"}`}>
+        <div className="px-4 pb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
+            {CHANNELS.map(channel => {
+              const priority = channelPriority.indexOf(channel.id) + 1;
+              const estimate = getChannelEstimate(channel.id);
+              const disabled = channel.id === "rcs";
+              const selected = priority > 0;
+              return (
+                <button key={channel.id} disabled={disabled} onClick={() => toggleChannelPriority(channel.id)} className={`relative rounded-lg border p-3 text-left transition-all ${disabled ? "cursor-not-allowed border-border bg-muted/40 opacity-55" : selected ? "cursor-pointer border-primary bg-accent shadow-sm" : "cursor-pointer border-border bg-card"}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <span className={`flex h-8 w-8 items-center justify-center rounded-md ${selected ? "bg-primary text-white" : "bg-muted text-primary"}`}>
+                      <channel.icon className="h-4 w-4" />
+                    </span>
+                    {disabled ? (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold text-muted-foreground">비활성</span>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <span className={`flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-bold ${priority > 0 ? "border-primary bg-primary text-white" : "border-border bg-muted text-muted-foreground"}`}>
+                          {priority || "+"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-2">
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-bold">{channel.label}</div>
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold text-muted-foreground">{channelUnitCost(channel.id)}원/건</span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">{channel.sub}</div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 border-t border-border pt-3 text-xs">
+                    <span className="text-muted-foreground">대상 인원</span>
+                    <b className="text-right">{estimate.count.toLocaleString()}명</b>
+                    <span className="text-muted-foreground">예상 금액</span>
+                    <b className="text-right">{formatWon(estimate.cost)}</b>
+                  </div>
+                </button>
+              );
+            })}
           </div>
-          <RecipientBox title="포함 대상" members={includedMembers} onRemove={(id) => setIncludedMembers(prev => prev.filter(member => member.id !== id))} />
-          <RecipientBox title="제외 대상" members={excludedMembers} onRemove={(id) => setExcludedMembers(prev => prev.filter(member => member.id !== id))} />
         </div>
       </div>
     </div>
   );
 
   const renderMessage = () => (
-    <div className="grid grid-cols-1 xl:grid-cols-[420px_1fr] gap-5">
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <div className="p-4 border-b border-border">
-          <h3 className="text-sm font-bold mb-3">템플릿 검색</h3>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input value={templateSearch} onChange={event => setTemplateSearch(event.target.value)} placeholder="템플릿명, 채널, 타겟, 문구 검색" className="w-full pl-8 pr-4 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
-        </div>
-        <div className="max-h-[560px] overflow-auto">
-          {visibleTemplates.map(template => (
-            <button key={template.id} onClick={() => pickTemplate(template)} className={`block w-full text-left px-4 py-3 border-b border-border last:border-0 transition-colors ${selectedTemplateId === template.id ? "bg-accent cursor-pointer" : "hover:bg-blue-50/60 cursor-pointer"}`}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-bold truncate">{template.name}</span>
-                <Badge text={template.channel} variant="blue" />
-              </div>
-              <p className="text-xs text-muted-foreground truncate">{template.content.replace(/\n/g, " ")}</p>
-              <div className="flex flex-wrap gap-1 mt-2">
-                {getTemplateTags(template).slice(0, 4).map(tag => <span key={tag} className="px-1.5 py-0.5 rounded bg-muted text-[10px] text-muted-foreground">{tag}</span>)}
-              </div>
-            </button>
-          ))}
-        </div>
-        <div className="px-4 py-3 border-t border-border bg-muted text-xs text-muted-foreground">
-          {filteredTemplates.length.toLocaleString()}건 검색됨 · 상위 10건 표시
-        </div>
-      </div>
-      <div className="space-y-4">
-        <div className="rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div>
-              <h3 className="text-sm font-bold">스마트폰 미리보기</h3>
-              <p className="text-xs text-muted-foreground mt-1">{selectedTemplate ? selectedTemplate.name : "직접 작성"}</p>
+    <div className="flex min-h-full flex-col gap-4">
+      {renderChannelSettings()}
+      <div className="grid h-[640px] shrink-0 grid-cols-1 gap-4 xl:grid-cols-[380px_minmax(0,1fr)_340px]">
+        <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
+          <div className="min-h-[236px] p-5 border-b border-border">
+            <div className="mb-3 flex min-h-[36px] items-center">
+              <h3 className="text-sm font-bold">템플릿 검색</h3>
             </div>
-            <div className="flex items-center gap-2">
-              <SpecPin>메시지 작성 상세 정책은 보류</SpecPin>
-              <Badge text={`${messageMode} · ${unitCost}원/건`} variant={messageMode === "LMS" ? "amber" : "blue"} />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <input value={templateSearch} onChange={event => setTemplateSearch(event.target.value)} placeholder="템플릿명, 채널, 문구 검색" className="w-full pl-8 pr-4 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <select value={templateCategoryFilter} onChange={event => setTemplateCategoryFilter(event.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
+                {templateCategoryOptions.map(option => <option key={option}>{option}</option>)}
+              </select>
+              <select value={templateChannelFilter} onChange={event => setTemplateChannelFilter(event.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
+                {templateChannelOptions.map(option => <option key={option}>{option}</option>)}
+              </select>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {templateTargetOptions.map(tag => (
+                <button key={tag} onClick={() => toggleTemplateTargetFilter(tag)} className={`cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-bold ${templateTargetFilters.includes(tag) ? "border-primary bg-primary text-white" : "border-border bg-card text-muted-foreground"}`}>
+                  {tag}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 rounded-lg border border-primary/25 bg-blue-50 px-3 py-2">
+              <div className="text-[11px] font-bold text-primary">선택한 템플릿</div>
+              <div className="mt-1 truncate text-xs font-bold text-blue-950">{selectedTemplate ? selectedTemplate.name : "직접 작성"}</div>
             </div>
           </div>
-          <div className="mb-3 inline-flex rounded-lg border border-border bg-muted p-1">
-            {[
-              ["basic", "기본"],
-              ["kakao", "카카오"],
-              ["rich", "리치"],
-            ].map(([value, label]) => (
-              <button key={value} onClick={() => setPreviewMode(value as "basic" | "kakao" | "rich")} className={`px-3 py-1.5 rounded-md text-xs font-bold ${previewMode === value ? "bg-primary text-white" : "text-muted-foreground hover:bg-card"}`}>{label}</button>
+          <div className="min-h-0 flex-1 overflow-auto">
+            {visibleTemplates.map(template => (
+              <button key={template.id} onClick={() => pickTemplate(template)} className={`block w-full cursor-pointer text-left px-4 py-3 border-b border-border last:border-0 ${selectedTemplateId === template.id ? "bg-accent" : "bg-card"}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-bold truncate">{template.name}</span>
+                  <Badge text={template.channel} variant="blue" />
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-2">{template.content.replace(/\n/g, " ")}</p>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {getTemplateTags(template).slice(0, 3).map(tag => <span key={tag} className="px-1.5 py-0.5 rounded bg-muted text-[10px] text-muted-foreground">{tag}</span>)}
+                </div>
+              </button>
             ))}
           </div>
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            {selectedTemplate && <Badge text={selectedTemplate.channel} variant="blue" />}
-            {selectedTemplate && getTemplateTags(selectedTemplate).map(tag => <span key={tag} className="px-2 py-0.5 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">{tag}</span>)}
+          <div className="px-4 py-3 border-t border-border bg-muted text-xs text-muted-foreground">
+            {filteredTemplates.length.toLocaleString()}건 검색됨
           </div>
-          <div className={`mx-auto max-w-[300px] rounded-[2rem] border-8 p-2 shadow-xl ${previewMode === "basic" ? "border-slate-800 bg-slate-800" : previewMode === "kakao" ? "border-[#3A1D1D] bg-[#3A1D1D]" : "border-slate-900 bg-slate-900"}`}>
-            <div className="rounded-[1.35rem] bg-white overflow-hidden">
-              <div className={`flex items-center justify-between px-4 py-2 text-[11px] font-bold ${previewMode === "kakao" ? "bg-[#F7E600] text-[#3A1D1D]" : "bg-slate-50"}`}>
-                <span>9:41</span><span>{previewMode === "basic" ? "문자" : previewMode === "kakao" ? "카카오톡" : selectedChannelMeta?.label ?? "채널 선택"}</span>
+        </div>
+
+        <div className="flex min-h-0 flex-col rounded-xl border border-border bg-card p-5">
+          <div className="mb-4 flex min-h-[36px] flex-wrap items-center justify-between gap-3">
+            <h3 className="text-sm font-bold">메시지 작성</h3>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+            <button title="템플릿 저장" onClick={openSaveTemplate} className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 text-xs font-bold text-foreground shadow-sm transition-colors hover:bg-accent">
+              <FileText className="w-3.5 h-3.5" /> 템플릿 저장
+            </button>
+            <button title="AI 문구 추천" onClick={recommendMarketingCopy} className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-3.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-primary/90">
+              <Sparkles className="w-3.5 h-3.5" /> AI 문구 추천
+            </button>
+            <button title="AI 검사" onClick={runAiCheck} disabled={!messageDraft || aiJobs.some(job => job.status === "실행중")} className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-500 px-3.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50">
+              <CheckCircle2 className="w-3.5 h-3.5" /> AI 검사
+            </button>
+            </div>
+          </div>
+          {marketingCopies.length > 0 && (
+            <div className="mb-3 rounded-xl border border-border bg-muted p-3">
+              <div className="mb-2 text-xs font-bold text-muted-foreground">AI 추천 문구</div>
+              <div className="space-y-2">
+                {marketingCopies.map(copy => (
+                  <button key={copy} onClick={() => { setMessageDraft(copy); setSelectedTemplateId(0); }} className="block w-full rounded-lg bg-card px-3 py-2 text-left text-xs leading-relaxed text-foreground">
+                    {copy}
+                  </button>
+                ))}
               </div>
-              <div className={`p-4 min-h-[280px] ${previewMode === "basic" ? "bg-white" : previewMode === "kakao" ? "bg-[#BACEDE]" : "bg-[#f2f4f7]"}`}>
-                <div className="mb-2 text-[11px] text-muted-foreground">{previewMode === "basic" ? "010-0000-0000" : "현대퓨처넷"}</div>
-                <div className={`max-w-[220px] p-3 text-sm leading-relaxed shadow-sm whitespace-pre-wrap ${previewMode === "basic" ? "rounded-2xl bg-primary text-white ml-auto" : previewMode === "kakao" ? "rounded-2xl rounded-tl-sm bg-[#FFF8C5]" : "rounded-2xl rounded-tl-sm bg-white"}`}>
-                  {messageDraft.replaceAll("#{이름}", fallbacks.name).replaceAll("#{포인트}", fallbacks.point).replaceAll("#{주문번호}", fallbacks.order)}
-                </div>
-                {previewMode !== "basic" && (selectedChannel === "kakao-friend" || selectedChannel === "rcs" || previewMode === "rich") && (
-                  <div className="mt-2 grid grid-cols-2 gap-1.5 max-w-[220px]">
-                    <button className="rounded-lg bg-primary px-2 py-2 text-[11px] font-bold text-white">쿠폰 확인</button>
-                    <button className="rounded-lg bg-white px-2 py-2 text-[11px] font-bold text-primary border border-border">상세 보기</button>
+            </div>
+          )}
+          {(aiJobs.some(job => job.status === "실행중") || aiComplete) && (
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              {aiJobs.slice(0, 3).map(job => (
+                <Badge key={job.name} text={`${job.name} ${job.status}`} variant={job.status === "완료" ? "green" : job.status === "실행중" ? "amber" : "default"} />
+              ))}
+              {aiComplete && (
+                <button onClick={() => setAiReportOpen(true)} className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-full bg-emerald-600 px-3 text-xs font-bold text-white shadow-sm">
+                  <Eye className="h-3 w-3" /> 리포트 보기
+                </button>
+              )}
+            </div>
+          )}
+          <div className="mb-3">
+            <div className="mb-2 text-xs font-bold text-muted-foreground">개인화 항목</div>
+            <div className="flex flex-wrap gap-2">
+            {PERSONAL_FIELDS.map(([label, value]) => (
+              <button key={value} onClick={() => insertVariable(value)} className="cursor-pointer rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted-foreground transition-colors hover:border-primary/40 hover:bg-accent hover:text-foreground">{label}</button>
+            ))}
+            </div>
+          </div>
+          <textarea value={messageDraft} onChange={event => { setMessageDraft(event.target.value); setSelectedTemplateId(0); }} className="min-h-0 flex-1 w-full px-3.5 py-2.5 rounded-lg border border-border bg-input-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" />
+        </div>
+
+        <div className="flex min-h-0 flex-col rounded-xl border border-border bg-card p-5">
+          <div className="mb-4 flex min-h-[36px] items-center justify-between gap-3">
+            <h3 className="text-sm font-bold">미리보기</h3>
+            <div className="inline-flex rounded-lg border border-border bg-muted p-1">
+              {[
+                ["message", "메시지"],
+                ["kakao", "카카오톡"],
+                ["email", "이메일"],
+              ].map(([value, label]) => (
+                <button key={value} onClick={() => setPreviewMode(value as "message" | "kakao" | "email")} className={`px-2.5 py-1.5 rounded-md text-xs font-bold ${previewMode === value ? "bg-primary text-white" : "text-muted-foreground"}`}>{label}</button>
+              ))}
+            </div>
+          </div>
+          <div className="relative mx-auto aspect-[1179/2556] w-[260px] shrink-0 overflow-hidden rounded-[2.8rem] bg-gradient-to-b from-slate-700 via-slate-950 to-black p-[6px] shadow-2xl ring-1 ring-slate-500/40">
+            <div className="absolute -left-1 top-24 h-14 w-1 rounded-l bg-slate-800" />
+            <div className="absolute -right-1 top-32 h-20 w-1 rounded-r bg-slate-800" />
+            <div className="relative flex h-full flex-col overflow-hidden rounded-[2.35rem] bg-white">
+              <div className="absolute left-1/2 top-3 z-30 flex h-6 w-20 -translate-x-1/2 items-center justify-center rounded-full bg-black shadow-lg">
+                <span className="mr-2 h-1.5 w-7 rounded-full bg-slate-700" />
+                <span className="h-2 w-2 rounded-full bg-slate-800 ring-1 ring-slate-600" />
+              </div>
+              <div className={`flex items-center justify-between px-6 pb-2 pt-4 text-[11px] font-bold ${previewMode === "kakao" ? "bg-[#F7E600] text-[#3A1D1D]" : "bg-slate-50 text-slate-700"}`}>
+                <span>9:41</span>
+                <span className="flex items-center gap-1">
+                  <span className="h-2.5 w-3.5 rounded-sm border border-current" />
+                  <span className="h-2 w-3 rounded-sm bg-current" />
+                </span>
+              </div>
+              <div className={`border-b border-black/5 px-5 py-3 text-center text-xs font-bold ${previewMode === "kakao" ? "bg-[#F7E600] text-[#3A1D1D]" : "bg-white text-slate-800"}`}>
+                {previewMode === "message" ? "메시지" : previewMode === "kakao" ? "카카오톡" : "Mail"}
+              </div>
+              <div className={`h-0 min-h-0 flex-1 overflow-y-auto overscroll-contain p-3.5 pb-10 ${previewMode === "message" ? "bg-white" : previewMode === "kakao" ? "bg-[#BACEDE]" : "bg-slate-50"}`}>
+                {previewMode === "email" ? (
+                  <div className="min-h-full bg-white text-slate-900">
+                    <div className="mb-3 flex items-center gap-2 border-b border-border pb-3">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">M</div>
+                      <div className="text-sm font-bold">Gmail</div>
+                    </div>
+                    <div className="mb-3 text-base font-bold leading-snug">{selectedTemplate ? selectedTemplate.name : "메시지 제목"}</div>
+                    <div className="mb-4 flex items-start gap-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">현</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="truncate text-xs font-bold">현대퓨처넷</div>
+                          <div className="text-[10px] text-muted-foreground">오전 9:41</div>
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-muted-foreground">to me</div>
+                      </div>
+                    </div>
+                    <div className="whitespace-pre-wrap rounded-xl border border-border bg-white p-3 text-xs leading-relaxed text-foreground shadow-sm">{previewMessage}</div>
+                    <div className="mt-4 flex gap-2">
+                      <button className="rounded-full border border-border px-3 py-1.5 text-[11px] font-bold text-muted-foreground">답장</button>
+                      <button className="rounded-full border border-border px-3 py-1.5 text-[11px] font-bold text-muted-foreground">전달</button>
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    <div className="mb-2 text-[11px] text-muted-foreground">{previewMode === "message" ? "010-0000-0000" : "현대퓨처넷"}</div>
+                    <div className={`max-w-[185px] p-3 text-sm leading-relaxed shadow-sm whitespace-pre-wrap ${previewMode === "message" ? "ml-auto rounded-2xl bg-primary text-white" : "rounded-2xl rounded-tl-sm bg-[#FFF8C5]"}`}>
+                      {previewMessage}
+                    </div>
+                    {previewMode === "kakao" && (
+                      <div className="mt-2 grid grid-cols-2 gap-1.5 max-w-[185px]">
+                        <button className="rounded-lg bg-white px-2 py-2 text-[11px] font-bold text-[#3A1D1D]">쿠폰 확인</button>
+                        <button className="rounded-lg bg-white px-2 py-2 text-[11px] font-bold text-[#3A1D1D]">상세 보기</button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
+              <div className="absolute bottom-2.5 left-1/2 h-1.5 w-28 -translate-x-1/2 rounded-full bg-slate-900/85" />
             </div>
           </div>
           {messageDraft.length > 90 && (
@@ -1013,171 +1343,101 @@ function SendMessagePageWizard() {
             </div>
           )}
         </div>
-        <div className="rounded-xl border border-border bg-card p-5">
-          <h3 className="text-sm font-bold mb-3">메시지 작성</h3>
-          <div className="mb-3 flex flex-wrap gap-2">
-            {[["이름", "#{이름}"], ["포인트", "#{포인트}"], ["주문번호", "#{주문번호}"]].map(([label, value]) => (
-              <button key={value} onClick={() => insertVariable(value)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted-foreground hover:bg-accent hover:text-foreground">{label} 삽입</button>
-            ))}
-          </div>
-          <textarea value={messageDraft} onChange={event => { setMessageDraft(event.target.value); setSelectedTemplateId(0); }} rows={9} className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-input-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" />
-          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-            <span>{messageDraft.length}자 · {messageMode} 기준</span>
-            <Btn size="sm" variant="outline"><FileText className="w-3 h-3" /> 템플릿으로 저장</Btn>
-          </div>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {[
-              ["이름 기본값", "name"],
-              ["포인트 기본값", "point"],
-              ["주문번호 기본값", "order"],
-            ].map(([label, key]) => (
-              <label key={key} className="text-xs font-semibold text-muted-foreground">
-                {label}
-                <input value={fallbacks[key as keyof typeof fallbacks]} onChange={event => setFallbacks(prev => ({ ...prev, [key]: event.target.value }))} className="mt-1 w-full rounded-lg border border-border bg-input-background px-2 py-1.5 text-xs text-foreground" />
-              </label>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderChannel = () => (
-    <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5">
-      <div className="rounded-xl border border-border bg-card p-5">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-bold">채널 선택</h3>
-            <p className="mt-1 text-xs text-muted-foreground">기본값은 최저비용 추천 조합이며, 우선순위는 1차부터 3차까지 지정합니다.</p>
-          </div>
-          <div className="flex flex-wrap justify-end gap-2">
-            <SpecPin>채널 선택 정책은 보류</SpecPin>
-            <Badge text="최저비용 추천 선택됨" variant="green" />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {CHANNELS.map(channel => (
-            <button key={channel.id} onClick={() => { setSelectedChannel(channel.id); if (channel.id === "smart-routing") setSmartRouting(true); }} className={`flex items-center gap-3 p-4 rounded-xl border transition-all cursor-pointer ${selectedChannel === channel.id ? "border-primary bg-accent" : "border-border hover:bg-blue-50/60"}`}>
-              <channel.icon className="w-4 h-4 text-primary" />
-              <div className="text-left flex-1">
-                <div className="text-sm font-bold">{channel.label}</div>
-                <div className="text-xs text-muted-foreground mt-1">{channel.sub}</div>
-              </div>
-              {channel.id === channelPriority[0] && <Badge text="1순위" variant="green" />}
-              {selectedChannel === channel.id && <CheckCircle2 className="w-4 h-4 text-primary" />}
-            </button>
-          ))}
-        </div>
-        <div className="mt-4 rounded-xl border border-border bg-muted p-4">
-          <div className="text-xs font-bold text-muted-foreground mb-3">발송 우선순위</div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {[0, 1, 2].map(index => (
-              <label key={index} className="text-xs font-semibold text-muted-foreground">
-                {index + 1}순위
-                <select
-                  value={channelPriority[index]}
-                  onChange={event => {
-                    const next = [...channelPriority];
-                    next[index] = event.target.value;
-                    setChannelPriority(next);
-                    if (index === 0) setSelectedChannel(event.target.value);
-                  }}
-                  className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground"
-                >
-                  {CHANNELS.filter(channel => channel.id !== "smart-routing").map(channel => <option key={channel.id} value={channel.id}>{channel.label}</option>)}
-                </select>
-              </label>
-            ))}
-          </div>
-        </div>
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-          <label className="flex items-center gap-3 rounded-lg border border-border bg-muted p-3 text-xs font-bold">
-            <input type="checkbox" checked={smartRouting} onChange={event => setSmartRouting(event.target.checked)} />
-            스마트 라우팅 최저가 조합 사용
-          </label>
-          <label className="flex items-center gap-3 rounded-lg border border-border bg-muted p-3 text-xs font-bold">
-            <input type="checkbox" checked={failoverEnabled} onChange={event => setFailoverEnabled(event.target.checked)} />
-            대체 발송 활성화
-          </label>
-        </div>
-      </div>
-      <div className="rounded-xl border border-border bg-card p-5">
-        <h3 className="text-sm font-bold mb-3">선택 요약</h3>
-        <div className="space-y-2 text-xs">
-          <div className="flex justify-between rounded-lg bg-muted p-3"><span className="text-muted-foreground">대상</span><b>{estimatedTarget.toLocaleString()}명</b></div>
-          <div className="flex justify-between rounded-lg bg-muted p-3"><span className="text-muted-foreground">체크 선택</span><b>{checkedMembers.length.toLocaleString()}명</b></div>
-          <div className="flex justify-between rounded-lg bg-muted p-3"><span className="text-muted-foreground">메시지</span><b>{messageDraft.length}자</b></div>
-          <div className="flex justify-between rounded-lg bg-muted p-3"><span className="text-muted-foreground">채널</span><b>{selectedChannel === "smart-routing" ? "최저비용" : selectedChannelMeta?.label}</b></div>
-          <div className="flex justify-between rounded-lg bg-muted p-3"><span className="text-muted-foreground">예상 비용</span><b>{formatWon(estimatedCost)}</b></div>
-          <div className="flex justify-between rounded-lg bg-emerald-50 p-3 text-emerald-700"><span>예상 절감액</span><b>{formatWon(estimatedSaving)}</b></div>
-        </div>
       </div>
     </div>
   );
 
   const renderReview = () => (
-    <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-5">
-      <div className="rounded-xl border border-border bg-card p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-sm font-bold">AI 메시지 검사</h3>
-            <p className="text-xs text-muted-foreground mt-1">소형 LLM 검사 작업을 비동기로 실행합니다.</p>
-          </div>
-          <Btn onClick={runAiCheck} disabled={!messageDraft || aiJobs.some(job => job.status === "실행중")}>
-            <Sparkles className="w-3.5 h-3.5" /> AI 검사 실행
-          </Btn>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {aiJobs.map(job => (
-            <div key={job.name} className="rounded-lg border border-border p-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold">{job.name}</span>
-                <Badge text={job.status} variant={job.status === "완료" ? "green" : job.status === "실행중" ? "amber" : "default"} />
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_1fr]">
+        <div className="rounded-xl border border-border bg-card p-5">
+          <h3 className="mb-3 text-sm font-bold">발송 방식</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => setSendType("now")} className={`cursor-pointer rounded-lg border px-3 py-3 text-left transition-colors ${sendType === "now" ? "border-primary bg-accent" : "border-border bg-card"}`}>
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <Clock className="h-4 w-4 text-primary" /> 즉시 발송
               </div>
-              <div className="text-xs text-muted-foreground">{job.model} · {job.result}</div>
+            </button>
+            <button onClick={() => setSendType("later")} className={`cursor-pointer rounded-lg border px-3 py-3 text-left transition-colors ${sendType === "later" ? "border-primary bg-accent" : "border-border bg-card"}`}>
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <CalendarDays className="h-4 w-4 text-primary" /> 예약 발송
+              </div>
+            </button>
+          </div>
+          {sendType === "later" && (
+            <div className="mt-3 rounded-xl border border-border bg-muted p-3">
+              <div className="mb-2 text-xs font-bold text-muted-foreground">예약 일시</div>
+              <div className="mb-3 grid grid-cols-3 gap-2">
+                {[
+                  ["오늘 10:00", "2026-06-26", "10:00"],
+                  ["오늘 14:00", "2026-06-26", "14:00"],
+                  ["내일 09:00", "2026-06-27", "09:00"],
+                ].map(([label, date, time]) => (
+                  <button key={label} onClick={() => { setScheduleDate(date); setScheduleTime(time); }} className={`cursor-pointer rounded-lg border px-2 py-2 text-xs font-bold ${scheduleDate === date && scheduleTime === time ? "border-primary bg-accent text-primary" : "border-border bg-card text-muted-foreground"}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="text-xs font-bold text-muted-foreground">
+                  날짜
+                  <input type="date" value={scheduleDate} onChange={event => setScheduleDate(event.target.value)} className="mt-1.5 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground" />
+                </label>
+                <label className="text-xs font-bold text-muted-foreground">
+                  시간
+                  <input type="time" value={scheduleTime} onChange={event => setScheduleTime(event.target.value)} className="mt-1.5 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground" />
+                </label>
+              </div>
             </div>
-          ))}
+          )}
         </div>
-        {aiComplete && <div className="mt-4"><AiReportDetail compact /></div>}
-      </div>
-      <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-        <h3 className="text-sm font-bold">발송 요청</h3>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="p-3 bg-muted rounded-lg"><span className="block text-muted-foreground mb-1">대상</span><b>{estimatedTarget.toLocaleString()}명</b></div>
-          <div className="p-3 bg-muted rounded-lg"><span className="block text-muted-foreground mb-1">채널</span><b>{selectedChannelMeta?.label}</b></div>
-          <div className="p-3 bg-muted rounded-lg"><span className="block text-muted-foreground mb-1">체크 선택</span><b>{checkedMembers.length.toLocaleString()}명</b></div>
-          <div className="p-3 bg-muted rounded-lg"><span className="block text-muted-foreground mb-1">AI 검사</span><b>{aiComplete ? "완료" : "필요"}</b></div>
-          <div className="p-3 bg-muted rounded-lg"><span className="block text-muted-foreground mb-1">예상 비용</span><b>{formatWon(estimatedCost)}</b></div>
-          <div className="p-3 bg-emerald-50 rounded-lg text-emerald-700"><span className="block mb-1">예상 절감액</span><b>{formatWon(estimatedSaving)}</b></div>
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-bold">비용 계산</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-border bg-muted p-4">
+              <div className="text-xs font-bold text-muted-foreground">대상 인원</div>
+              <div className="mt-2 text-xl font-bold">{estimatedTarget.toLocaleString()}명</div>
+            </div>
+            <div className="rounded-xl border border-border bg-muted p-4">
+              <div className="text-xs font-bold text-muted-foreground">채널</div>
+              <div className="mt-2 space-y-1.5">
+                {selectedChannelLabels.length > 0 ? selectedChannelLabels.map((label, index) => (
+                  <div key={label} className="flex items-center gap-2 text-sm font-bold text-foreground">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] text-white">{index + 1}</span>
+                    <span>{label}</span>
+                  </div>
+                )) : <span className="text-xl font-bold">미선택</span>}
+              </div>
+            </div>
+            <div className="rounded-xl border border-primary/20 bg-blue-50 p-4 text-blue-800">
+              <div className="text-xs font-bold text-blue-600">예상 발송 비용</div>
+              <div className="mt-2 text-2xl font-bold tracking-tight">{formatWon(estimatedCost)}</div>
+            </div>
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700">
+              <div className="text-xs font-bold">예상 절감액</div>
+              <div className="mt-2 text-2xl font-bold">{formatWon(estimatedSaving)}</div>
+              <div className="mt-2 text-xs font-semibold">{formatWon(baselineCost)} - {formatWon(estimatedCost)}</div>
+            </div>
+          </div>
         </div>
-        <div className="rounded-lg border border-border bg-muted p-3 text-xs">
-          <div className="flex justify-between"><span className="text-muted-foreground">문자 판별</span><b>{messageMode}</b></div>
-          <div className="flex justify-between mt-1"><span className="text-muted-foreground">대체 발송</span><b>{failoverEnabled ? "활성" : "비활성"}</b></div>
-          <div className="mt-2 text-[11px] text-muted-foreground">예상 비용은 실패 시 대체 라우팅 비용을 제외해 계산합니다.</div>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => setSendType("now")} className={`flex-1 py-2.5 rounded-lg border text-xs font-semibold cursor-pointer ${sendType === "now" ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:bg-accent"}`}>즉시 발송</button>
-          <button onClick={() => setSendType("later")} className={`flex-1 py-2.5 rounded-lg border text-xs font-semibold cursor-pointer ${sendType === "later" ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:bg-accent"}`}>예약 발송</button>
-        </div>
-        {sendType === "later" && <input type="datetime-local" className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm" />}
-        <Btn variant="success" disabled={!canSend} onClick={() => alert("발송 요청이 생성되었습니다.")} className="w-full justify-center">
-          <Send className="w-3.5 h-3.5" /> 발송 요청
-        </Btn>
       </div>
     </div>
   );
 
   return (
-    <div className="p-6 space-y-5">
-      <div className="rounded-xl border border-border bg-card p-5">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
+      <div className="rounded-xl border border-border bg-card p-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-2 overflow-x-auto">
             {stepMeta.map((label, index) => {
               const value = index + 1;
               const active = step === value;
               const done = step > value;
+              const disabledStep = !canGoToStep(value);
               return (
-                <button key={label} onClick={() => setStep(value)} className="flex items-center gap-2 text-left cursor-pointer">
+                <button key={label} disabled={disabledStep} title={disabledStep ? "이전 단계를 먼저 완료해 주세요." : label} onClick={() => setStep(value)} className={`flex items-center gap-2 text-left ${disabledStep ? "cursor-not-allowed opacity-45" : "cursor-pointer"}`}>
                   <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${active ? "bg-primary border-primary text-white" : done ? "bg-primary/10 border-primary text-primary" : "border-border text-muted-foreground"}`}>
                     {done ? <Check className="w-3.5 h-3.5" /> : value}
                   </span>
@@ -1187,37 +1447,82 @@ function SendMessagePageWizard() {
               );
             })}
           </div>
-          <div className="inline-flex w-fit rounded-xl border border-border bg-muted p-1">
-            {[
-              ["manual", "수동 설정"],
-              ["ai", "AI 자동 추천"],
-            ].map(([value, label]) => (
-              <button key={value} onClick={() => setMode(value as "manual" | "ai")} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${mode === value ? "bg-primary text-white" : "text-muted-foreground hover:bg-card"}`}>{label}</button>
-            ))}
-          </div>
         </div>
       </div>
 
-      {mode === "ai" && renderAiRecommendation()}
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        {step === 1 && renderRecipients()}
+        {step === 2 && renderMessage()}
+        {step === 3 && renderReview()}
+      </div>
 
-      {step === 1 && renderRecipients()}
-      {step === 2 && renderMessage()}
-      {step === 3 && renderChannel()}
-      {step === 4 && renderReview()}
-
-      <div className="sticky bottom-0 z-10 -mx-6 border-t border-border bg-background/95 px-6 py-4">
+      <div className="border-t border-border bg-background/95 pt-3">
         <div className="flex items-center justify-between">
           <Btn variant="outline" disabled={step === 1} onClick={() => setStep(prev => Math.max(1, prev - 1))}>이전</Btn>
-          <div className="text-xs text-muted-foreground">
-            {stepMeta[step - 1]} · {step < 4 ? (stepReady[step - 1] ? "다음 단계 가능" : "필수값 필요") : (canSend ? "발송 가능" : "AI 검사 필요")}
-          </div>
-          {step < 4 ? (
-            <Btn disabled={!stepReady[step - 1]} onClick={() => setStep(prev => Math.min(4, prev + 1))}>다음 <ChevronRight className="w-3.5 h-3.5" /></Btn>
+          <div />
+          {step < stepMeta.length ? (
+            <div className="relative flex items-center">
+              {!stepReady[step - 1] && nextDisabledReason && (
+                <div className="absolute bottom-full right-0 mb-2 w-max max-w-none whitespace-nowrap rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white shadow-lg">
+                  {nextDisabledReason}
+                  <span className="absolute -bottom-1.5 right-6 h-3 w-3 rotate-45 bg-blue-700" />
+                </div>
+              )}
+              <span title={!stepReady[step - 1] ? nextDisabledReason || "필수값을 완료해 주세요." : ""}>
+                <Btn disabled={!stepReady[step - 1]} onClick={() => setStep(prev => Math.min(stepMeta.length, prev + 1))}>다음 <ChevronRight className="w-3.5 h-3.5" /></Btn>
+              </span>
+            </div>
           ) : (
             <Btn variant="success" disabled={!canSend} onClick={() => alert("발송 요청이 생성되었습니다.")}><Send className="w-3.5 h-3.5" /> 발송 요청</Btn>
           )}
         </div>
       </div>
+      <Modal open={aiReportOpen} onClose={() => setAiReportOpen(false)} title="AI 검사 리포트" wide>
+        <AiReportDetail />
+      </Modal>
+      <Modal open={saveTemplateOpen} onClose={() => setSaveTemplateOpen(false)} title="템플릿 저장">
+        <div className="space-y-4">
+          <label className="block text-sm font-semibold">
+            템플릿명
+            <input value={saveTemplateForm.name} onChange={event => setSaveTemplateForm(prev => ({ ...prev, name: event.target.value }))} className="mt-2 w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+          </label>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <label className="block text-sm font-semibold">
+              카테고리
+              <select value={saveTemplateForm.category} onChange={event => setSaveTemplateForm(prev => ({ ...prev, category: event.target.value }))} className="mt-2 w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                {["마케팅", "안내", "혜택", "이벤트", "배송", "고객"].map(category => <option key={category}>{category}</option>)}
+              </select>
+            </label>
+            <div className="block text-sm font-semibold">
+              채널
+              <div className="mt-2 flex flex-wrap gap-2">
+                {CHANNELS.filter(channel => channel.id !== "rcs").map(channel => (
+                  <button key={channel.id} onClick={() => toggleSaveTemplateChannel(channel.label)} className={`rounded-lg border px-3 py-2 text-xs font-bold ${saveTemplateForm.channels.includes(channel.label) ? "border-primary bg-accent text-primary" : "border-border bg-card text-muted-foreground"}`}>
+                    {channel.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-border bg-muted p-3">
+              <div className="mb-2 text-xs font-bold text-muted-foreground">저장될 메시지</div>
+              <pre className="max-h-48 overflow-auto whitespace-pre-wrap text-xs leading-relaxed text-foreground">{messageDraft}</pre>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-3">
+              <div className="mb-2 text-xs font-bold text-muted-foreground">미리보기</div>
+              <div className="rounded-2xl bg-slate-50 p-3">
+                <div className="mb-2 text-[11px] font-bold text-muted-foreground">현대퓨처넷</div>
+                <div className="rounded-2xl rounded-tl-sm bg-white p-3 text-xs leading-relaxed shadow-sm whitespace-pre-wrap">{previewMessage}</div>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Btn variant="outline" onClick={() => setSaveTemplateOpen(false)}>취소</Btn>
+            <Btn disabled={saveTemplateForm.channels.length === 0 || !saveTemplateForm.name.trim()} onClick={() => { setSaveTemplateOpen(false); alert("템플릿이 저장되었습니다."); }}>저장</Btn>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -1244,11 +1549,13 @@ function RecipientBox({ title, members, onRemove }: { title: string; members: Me
 function TemplatesPage() {
   const [templates, setTemplates] = useState<Template[]>(() => createTemplateRows());
   const [search, setSearch] = useState("");
-  const [tagFilter, setTagFilter] = useState("전체");
+  const [targetFilters, setTargetFilters] = useState<string[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState("전체");
+  const [channelFilter, setChannelFilter] = useState("전체");
   const [page, setPage] = useState(1);
   const [editModal, setEditModal] = useState<Template | null>(null);
   const [detailModal, setDetailModal] = useState<Template | null>(null);
-  const [templatePreviewMode, setTemplatePreviewMode] = useState<"basic" | "kakao" | "rich">("kakao");
+  const [templatePreviewMode, setTemplatePreviewMode] = useState<"message" | "kakao" | "email">("kakao");
   const [addModal, setAddModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통" });
@@ -1256,13 +1563,21 @@ function TemplatesPage() {
   const filtered = useMemo(() => templates.filter(t => {
     const tags = getTemplateTags(t);
     const keyword = !search || t.name.includes(search) || t.content.includes(search) || t.channel.includes(search) || t.category.includes(search) || tags.some(tag => tag.includes(search));
-    const tagMatch = tagFilter === "전체" || tags.includes(tagFilter) || t.channel === tagFilter || t.category === tagFilter;
-    return keyword && tagMatch;
-  }), [templates, search, tagFilter]);
+    const targetMatch = targetFilters.length === 0 || targetFilters.every(tag => tags.includes(tag));
+    const categoryMatch = categoryFilter === "전체" || t.category === categoryFilter;
+    const channelMatch = channelFilter === "전체" || t.channel === channelFilter;
+    return keyword && targetMatch && categoryMatch && channelMatch;
+  }), [templates, search, targetFilters, categoryFilter, channelFilter]);
   const pageSize = 10;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)));
   const pagedTemplates = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const tagOptions = ["전체", ...Array.from(new Set(templates.flatMap(getTemplateTags))).slice(0, 18)];
+  const targetOptions = uniqueTags(templates.flatMap(getTemplateTags)).slice(0, 16);
+  const categoryOptions = ["전체", ...Array.from(new Set(templates.map(template => template.category))).sort((a, b) => a.localeCompare(b, "ko"))];
+  const channelFilterOptions = ["전체", ...Array.from(new Set(templates.map(template => template.channel))).sort((a, b) => a.localeCompare(b, "ko"))];
+  const toggleTargetFilter = (tag: string) => {
+    setTargetFilters(prev => prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag]);
+    setPage(1);
+  };
 
   const saveTemplate = () => {
     if (editModal) {
@@ -1309,112 +1624,173 @@ function TemplatesPage() {
   );
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-5">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="템플릿명, 내용, 타겟 검색..." className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-72 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+    <div className="p-6 space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="템플릿명, 내용, 카테고리 검색..." className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-72 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
+          <select value={categoryFilter} onChange={event => { setCategoryFilter(event.target.value); setPage(1); }} className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
+            {categoryOptions.map(option => <option key={option}>{option}</option>)}
+          </select>
+          <select value={channelFilter} onChange={event => { setChannelFilter(event.target.value); setPage(1); }} className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
+            {channelFilterOptions.map(option => <option key={option}>{option}</option>)}
+          </select>
         </div>
         <Btn onClick={() => { setAddModal(true); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통" }); }}><Plus className="w-3.5 h-3.5" /> 템플릿 추가</Btn>
       </div>
-      <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
-        {tagOptions.map(tag => (
-          <button key={tag} onClick={() => { setTagFilter(tag); setPage(1); }} className={`px-3 py-1.5 rounded-full text-xs font-semibold border whitespace-nowrap transition-all ${tagFilter === tag ? "bg-primary text-white border-primary" : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}>{tag}</button>
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        {targetOptions.map(tag => (
+          <button key={tag} onClick={() => toggleTargetFilter(tag)} className={`px-3 py-1.5 rounded-full text-xs font-semibold border whitespace-nowrap transition-all ${targetFilters.includes(tag) ? "bg-primary text-white border-primary" : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}>{tag}</button>
         ))}
       </div>
-      <div className="bg-card rounded-xl border border-border overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead><tr className="bg-muted border-b border-border">
-            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">템플릿명</th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">채널</th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">카테고리</th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">공개 범위</th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">타겟</th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">사용 횟수</th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">수정일</th>
-            <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">작업</th>
-          </tr></thead>
-          <tbody>{pagedTemplates.map(t => (
-            <tr key={t.id} onClick={() => setDetailModal(t)} className="border-b border-border hover:bg-blue-50/70 transition-colors cursor-pointer">
-              <td className="px-4 py-3.5">
-                <div className="font-semibold text-foreground text-xs">{t.name}</div>
-                <div className="text-xs text-muted-foreground mt-0.5 truncate max-w-xs">{t.content.replace(/\n/g, " ")}</div>
-              </td>
-              <td className="px-4 py-3.5"><Badge text={t.channel} variant="blue" /></td>
-              <td className="px-4 py-3.5 hidden lg:table-cell"><Badge text={t.category} variant="default" /></td>
-              <td className="px-4 py-3.5 hidden xl:table-cell"><span className="text-xs font-semibold text-muted-foreground">{t.scope ?? "전사 공통"}</span></td>
-              <td className="px-4 py-3.5 hidden xl:table-cell">
-                <div className="flex flex-wrap gap-1 max-w-56">
-                  {getTemplateTags(t).slice(0, 3).map(tag => <span key={tag} className="px-2 py-0.5 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">{tag}</span>)}
-                </div>
-              </td>
-              <td className="px-4 py-3.5 hidden lg:table-cell"><span className="text-xs font-semibold">{t.usageCount.toLocaleString()}회</span></td>
-              <td className="px-4 py-3.5"><span className="text-xs text-muted-foreground">{t.updatedAt}</span></td>
-              <td className="px-4 py-3.5">
-                <div className="flex items-center justify-end gap-1">
-                  <button onClick={(e) => { e.stopPropagation(); openEdit(t); }} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
-                  <button onClick={(e) => { e.stopPropagation(); setDeleteId(t.id); }} className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-                </div>
-              </td>
-            </tr>
-          ))}</tbody>
-        </table>
+      <div className="bg-card overflow-hidden rounded-xl border border-border">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="bg-muted border-b border-border">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">템플릿명</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">카테고리</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">타겟</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">채널</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">사용 횟수</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">수정일</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">작업</th>
+            </tr></thead>
+            <tbody>{pagedTemplates.map(t => (
+              <tr key={t.id} onClick={() => setDetailModal(t)} className="border-b border-border hover:bg-blue-50/70 transition-colors cursor-pointer">
+                <td className="px-4 py-3.5">
+                  <div className="font-semibold text-foreground text-xs">{t.name}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5 truncate max-w-xs">{t.content.replace(/\n/g, " ")}</div>
+                </td>
+                <td className="px-4 py-3.5 hidden lg:table-cell"><Badge text={t.category} variant="default" /></td>
+                <td className="px-4 py-3.5 hidden xl:table-cell">
+                  <div className="flex flex-wrap gap-1 max-w-56">
+                    {getTemplateTags(t).slice(0, 3).map(tag => <span key={tag} className="px-2 py-0.5 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">{tag}</span>)}
+                  </div>
+                </td>
+                <td className="px-4 py-3.5"><Badge text={t.channel} variant="blue" /></td>
+                <td className="px-4 py-3.5 hidden lg:table-cell"><span className="text-xs font-semibold">{t.usageCount.toLocaleString()}회</span></td>
+                <td className="px-4 py-3.5"><span className="text-xs text-muted-foreground">{t.updatedAt}</span></td>
+                <td className="px-4 py-3.5">
+                  <div className="flex items-center justify-end gap-1">
+                    <button onClick={(e) => { e.stopPropagation(); openEdit(t); }} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
+                    <button onClick={(e) => { e.stopPropagation(); setDeleteId(t.id); }} className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
         <Pagination page={currentPage} total={filtered.length} pageSize={pageSize} onPage={setPage} />
       </div>
 
       <Modal open={!!detailModal} onClose={() => setDetailModal(null)} title="템플릿 상세" wide>
         {detailModal && (
-          <div className="space-y-4">
-            <div className="flex items-start justify-between gap-3 p-4 bg-muted rounded-xl">
-              <div>
-                <div className="text-base font-bold text-foreground mb-1">{detailModal.name}</div>
-                <div className="flex flex-wrap gap-1.5">
-                  <Badge text={detailModal.channel} variant="blue" />
-                  <Badge text={detailModal.category} variant="default" />
-                  {getTemplateTags(detailModal).map(tag => <span key={tag} className="px-2 py-0.5 rounded-full bg-card text-xs font-semibold text-muted-foreground border border-border">{tag}</span>)}
+          <div className="space-y-5">
+            <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
+              <div className="min-w-0 flex-1">
+                <div className="text-lg font-bold text-foreground">{detailModal.name}</div>
+                <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-muted-foreground">채널</span>
+                    <span className="font-bold text-blue-700">{detailModal.channel}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-muted-foreground">카테고리</span>
+                    <span className="font-bold text-foreground">{detailModal.category}</span>
+                  </div>
+                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                    <span className="mr-0.5 text-xs font-bold text-muted-foreground">태그</span>
+                    {getTemplateTags(detailModal).length > 0 ? getTemplateTags(detailModal).map(tag => <span key={tag} className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">{tag}</span>) : <span className="text-xs font-semibold text-muted-foreground">없음</span>}
+                  </div>
                 </div>
               </div>
               <Btn size="sm" variant="outline" onClick={() => { openEdit(detailModal); setDetailModal(null); }}><Edit2 className="w-3 h-3" /> 수정</Btn>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-b border-border pb-4 md:grid-cols-5">
               {[
                 ["사용 횟수", `${detailModal.usageCount.toLocaleString()}회`],
                 ["최근 수정", detailModal.updatedAt],
                 ["문자 길이", `${detailModal.content.length}자`],
-              ].map(([label, value]) => <div key={label} className="p-3 bg-muted rounded-lg"><div className="text-xs text-muted-foreground mb-1">{label}</div><div className="text-sm font-bold">{value}</div></div>)}
-            </div>
-            <div>
-              <div className="text-xs font-bold text-muted-foreground mb-2">메시지 내용</div>
-              <pre className="whitespace-pre-wrap rounded-xl border border-border bg-input-background p-4 text-sm leading-relaxed">{detailModal.content}</pre>
-            </div>
-            <div className="rounded-xl border border-border bg-muted p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="text-xs font-bold text-muted-foreground">핸드폰형 메시지 UI</div>
-                <div className="inline-flex rounded-lg border border-border bg-card p-1">
-                  {[
-                    ["basic", "기본"],
-                    ["kakao", "카카오"],
-                    ["rich", "리치"],
-                  ].map(([value, label]) => (
-                    <button key={value} onClick={() => setTemplatePreviewMode(value as "basic" | "kakao" | "rich")} className={`px-3 py-1 rounded-md text-[11px] font-bold ${templatePreviewMode === value ? "bg-primary text-white" : "text-muted-foreground"}`}>{label}</button>
-                  ))}
-                </div>
-              </div>
-              <div className="mx-auto max-w-[260px] rounded-[1.7rem] border-8 border-slate-900 bg-slate-900 p-2">
-                <div className="overflow-hidden rounded-[1.1rem] bg-white">
-                  <div className={`px-4 py-2 text-[11px] font-bold ${templatePreviewMode === "kakao" ? "bg-[#F7E600]" : "bg-slate-50"}`}>{templatePreviewMode === "basic" ? "문자" : templatePreviewMode === "kakao" ? "카카오톡" : "리치 메시지"}</div>
-                  <div className={`min-h-44 p-4 ${templatePreviewMode === "kakao" ? "bg-[#BACEDE]" : "bg-slate-50"}`}>
-                    <div className={`whitespace-pre-wrap rounded-2xl p-3 text-xs leading-relaxed ${templatePreviewMode === "basic" ? "ml-auto bg-primary text-white" : templatePreviewMode === "kakao" ? "bg-[#FFF8C5]" : "bg-white shadow-sm"}`}>{detailModal.content}</div>
-                    {templatePreviewMode === "rich" && <button className="mt-2 w-full rounded-lg bg-primary py-2 text-[11px] font-bold text-white">자세히 보기</button>}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {[
                 ["템플릿 클릭률", `${detailModal.clickRate ?? 0}%`],
                 ["수신거부율", `${detailModal.optOutRate ?? 0}%`],
-              ].map(([label, value]) => <div key={label} className="p-3 bg-muted rounded-lg"><div className="text-xs text-muted-foreground mb-1">{label}</div><div className="text-sm font-bold">{value}</div></div>)}
+              ].map(([label, value]) => <div key={label}><div className="mb-1 text-xs font-bold text-muted-foreground">{label}</div><div className="text-sm font-bold text-foreground">{value}</div></div>)}
+            </div>
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+              <section>
+                <div className="mb-2 text-xs font-bold text-muted-foreground">메시지 내용</div>
+                <div className="min-h-[420px] whitespace-pre-wrap rounded-lg border border-border bg-input-background p-4 text-sm leading-relaxed text-foreground">{detailModal.content}</div>
+              </section>
+              <section>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="text-xs font-bold text-muted-foreground">미리보기</div>
+                  <div className="inline-flex rounded-lg border border-border bg-muted p-1">
+                    {[
+                      ["message", "메시지"],
+                      ["kakao", "카카오톡"],
+                      ["email", "이메일"],
+                    ].map(([value, label]) => (
+                      <button key={value} onClick={() => setTemplatePreviewMode(value as "message" | "kakao" | "email")} className={`rounded-md px-2.5 py-1 text-[11px] font-bold transition-colors ${templatePreviewMode === value ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="relative mx-auto aspect-[1179/2556] w-[260px] shrink-0 overflow-hidden rounded-[2.8rem] bg-gradient-to-b from-slate-700 via-slate-950 to-black p-[6px] shadow-2xl ring-1 ring-slate-500/40">
+                  <div className="absolute -left-1 top-24 h-14 w-1 rounded-l bg-slate-800" />
+                  <div className="absolute -right-1 top-32 h-20 w-1 rounded-r bg-slate-800" />
+                  <div className="relative flex h-full flex-col overflow-hidden rounded-[2.35rem] bg-white">
+                    <div className="absolute left-1/2 top-3 z-30 flex h-6 w-20 -translate-x-1/2 items-center justify-center rounded-full bg-black shadow-lg">
+                      <span className="mr-2 h-1.5 w-7 rounded-full bg-slate-700" />
+                      <span className="h-2 w-2 rounded-full bg-slate-800 ring-1 ring-slate-600" />
+                    </div>
+                    <div className={`flex items-center justify-between px-6 pb-2 pt-4 text-[11px] font-bold ${templatePreviewMode === "kakao" ? "bg-[#F7E600] text-[#3A1D1D]" : "bg-slate-50 text-slate-700"}`}>
+                      <span>9:41</span>
+                      <span className="flex items-center gap-1">
+                        <span className="h-2.5 w-3.5 rounded-sm border border-current" />
+                        <span className="h-2 w-3 rounded-sm bg-current" />
+                      </span>
+                    </div>
+                    <div className={`border-b border-black/5 px-5 py-3 text-center text-xs font-bold ${templatePreviewMode === "kakao" ? "bg-[#F7E600] text-[#3A1D1D]" : "bg-white text-slate-800"}`}>
+                      {templatePreviewMode === "message" ? "메시지" : templatePreviewMode === "kakao" ? "카카오톡" : "Mail"}
+                    </div>
+                    <div className={`h-0 min-h-0 flex-1 overflow-y-auto overscroll-contain p-3.5 pb-10 ${templatePreviewMode === "message" ? "bg-white" : templatePreviewMode === "kakao" ? "bg-[#BACEDE]" : "bg-slate-50"}`}>
+                      {templatePreviewMode === "email" ? (
+                        <div className="min-h-full bg-white text-slate-900">
+                          <div className="mb-3 flex items-center gap-2 border-b border-border pb-3">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">M</div>
+                            <div className="text-sm font-bold">Gmail</div>
+                          </div>
+                          <div className="mb-3 text-base font-bold leading-snug">{detailModal.name}</div>
+                          <div className="mb-4 flex items-start gap-2">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">현</div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="truncate text-xs font-bold">현대퓨처넷</div>
+                                <div className="text-[10px] text-muted-foreground">오전 9:41</div>
+                              </div>
+                              <div className="mt-0.5 text-[11px] text-muted-foreground">to me</div>
+                            </div>
+                          </div>
+                          <div className="whitespace-pre-wrap rounded-xl border border-border bg-white p-3 text-xs leading-relaxed text-foreground shadow-sm">{detailModal.content}</div>
+                          <div className="mt-4 flex gap-2">
+                            <button className="rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground">답장</button>
+                            <button className="rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold text-muted-foreground">전달</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="mb-2 text-[11px] text-muted-foreground">{templatePreviewMode === "message" ? "010-0000-0000" : "현대퓨처넷"}</div>
+                          <div className={`max-w-[185px] whitespace-pre-wrap p-3 text-sm leading-relaxed shadow-sm ${templatePreviewMode === "message" ? "ml-auto rounded-2xl bg-primary text-white" : "rounded-2xl rounded-tl-sm bg-[#FFF8C5]"}`}>{detailModal.content}</div>
+                          {templatePreviewMode === "kakao" && (
+                            <div className="mt-2 max-w-[185px] rounded-xl bg-white p-2 text-center text-[11px] font-bold text-[#3A1D1D] shadow-sm">자세히 보기</div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    <div className="absolute bottom-2.5 left-1/2 h-1.5 w-28 -translate-x-1/2 rounded-full bg-slate-900/85" />
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
         )}
@@ -1440,12 +1816,16 @@ function HistoryPage() {
   const [channelFilter, setChannelFilter] = useState("전체 채널");
   const [affiliateFilter, setAffiliateFilter] = useState("전체 계열사");
   const [selectedRecord, setSelectedRecord] = useState<SendRecord | null>(null);
+  const [page, setPage] = useState(1);
   const filtered = HISTORY.filter(r =>
     (filter === "전체" || r.status === filter) &&
     (channelFilter === "전체 채널" || r.channel === channelFilter) &&
     (affiliateFilter === "전체 계열사" || r.affiliate === affiliateFilter) &&
     (r.template.includes(search) || r.channel.includes(search) || r.affiliate.includes(search))
   );
+  const pageSize = 8;
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)));
+  const pagedRecords = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const channelOptions = ["전체 채널", ...Array.from(new Set(HISTORY.map(r => r.channel)))];
   const affiliateOptions = ["전체 계열사", ...Array.from(new Set(HISTORY.map(r => r.affiliate)))];
   return (
@@ -1478,7 +1858,7 @@ function HistoryPage() {
               <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
             ))}
           </tr></thead>
-          <tbody>{filtered.map(r => {
+          <tbody>{pagedRecords.map(r => {
             const rate = ((r.success / r.count) * 100).toFixed(1);
             return (
               <tr key={r.id} onClick={() => setSelectedRecord(r)} className={`border-b border-border transition-colors cursor-pointer ${selectedRecord?.id === r.id ? "bg-accent" : "hover:bg-blue-50/70"}`}>
@@ -1502,6 +1882,7 @@ function HistoryPage() {
             );
           })}</tbody>
         </table>
+        <Pagination page={currentPage} total={filtered.length} pageSize={pageSize} onPage={setPage} />
       </div>
       <Modal open={!!selectedRecord} onClose={() => setSelectedRecord(null)} title="전송 기록 상세" wide>
         {selectedRecord && (
@@ -1520,7 +1901,7 @@ function HistoryPage() {
                 ["성공", `${selectedRecord.success.toLocaleString()}건`],
                 ["실패", `${selectedRecord.fail.toLocaleString()}건`],
                 ["총 소요 비용", formatWon(selectedRecord.cost)],
-                ["절감액", "보류"],
+                ["절감액", formatWon(selectedRecord.savedCost)],
                 ["계열사", selectedRecord.affiliate],
                 ["최종 도달률", `${(((selectedRecord.success + selectedRecord.failoverSteps.slice(1).reduce((sum, step) => sum + step.success, 0)) / selectedRecord.count) * 100).toFixed(1)}%`],
               ].map(([label, value]) => <div key={label} className="p-3 bg-muted rounded-lg"><div className="text-xs text-muted-foreground mb-1">{label}</div><div className="text-sm font-bold">{value}</div></div>)}
@@ -1555,7 +1936,7 @@ function HistoryPage() {
                   {[
                     ["성공", selectedRecord.success, `${((selectedRecord.success / selectedRecord.count) * 100).toFixed(1)}%`, "완료"],
                     ["수신거부", Math.round(selectedRecord.fail * 0.42), "실패 내 42%", "대상 제외"],
-                    ["번호 오류", Math.round(selectedRecord.fail * 0.31), "실패 내 31%", "회원 정보 확인"],
+                    ["번호 오류", Math.round(selectedRecord.fail * 0.31), "실패 내 31%", "고객 정보 확인"],
                     ["채널 실패", Math.round(selectedRecord.fail * 0.27), "실패 내 27%", "대체 발송 검토"],
                   ].map(row => <tr key={row[0]} className="border-b border-border hover:bg-blue-50/70 cursor-pointer transition-colors">
                     <td className="px-4 py-3 text-xs font-bold">{row[0]}</td>
@@ -1577,41 +1958,29 @@ function HistoryPage() {
 function MembersPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("전체");
-  const [memberTagSearch, setMemberTagSearch] = useState("");
-  const [memberTagGroupFilter, setMemberTagGroupFilter] = useState("전체");
-  const [memberTagFilter, setMemberTagFilter] = useState("전체");
-  const [newMemberTag, setNewMemberTag] = useState("");
   const [detailTagInput, setDetailTagInput] = useState("");
   const [customMemberTags, setCustomMemberTags] = useState<string[]>([]);
   const [memberTab, setMemberTab] = useState<"members" | "blocked">("members");
   const [detailMember, setDetailMember] = useState<Member | null>(null);
+  const [targetEditMode, setTargetEditMode] = useState(false);
   const [page, setPage] = useState(1);
   const [members, setMembers] = useState<Member[]>(() => createMemberRows());
   const visibleMembersForType = members.filter(member => ["일반", "신규", "휴면"].includes(member.type));
-  const blockedMembers = visibleMembersForType.filter(member => !member.smsConsent || !member.kakaoConsent).slice(0, 18);
+  const blockedMembers = visibleMembersForType.filter(member => !member.smsConsent || !member.kakaoConsent);
   const allMemberTags = useMemo(() => uniqueTags([...MEMBER_TAGS, ...members.flatMap(member => member.tags ?? []), ...customMemberTags]), [members, customMemberTags]);
-  const visibleMemberTags = allMemberTags.filter(tag =>
-    (memberTagGroupFilter === "전체" || tagGroupOf(tag) === memberTagGroupFilter) &&
-    (!memberTagSearch || tag.includes(memberTagSearch))
-  );
 
   const filtered = visibleMembersForType.filter(m =>
     memberTab === "members" &&
     (typeFilter === "전체" || m.type === typeFilter) &&
-    (memberTagFilter === "전체" || (m.tags ?? []).includes(memberTagFilter) || m.type === memberTagFilter) &&
     (m.name.includes(search) || m.phone.includes(search) || (m.tags ?? []).some(tag => tag.includes(search)))
   );
-  const memberPageSize = 8;
+  const memberPageSize = 10;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / memberPageSize)));
   const pagedMembers = filtered.slice((currentPage - 1) * memberPageSize, currentPage * memberPageSize);
+  const blockedCurrentPage = Math.min(page, Math.max(1, Math.ceil(blockedMembers.length / memberPageSize)));
+  const pagedBlockedMembers = blockedMembers.slice((blockedCurrentPage - 1) * memberPageSize, blockedCurrentPage * memberPageSize);
 
   const typeMap: Record<string, string> = { 일반: "blue", 신규: "green", 휴면: "default" };
-  const addTagToPool = () => {
-    const tag = newMemberTag.trim();
-    if (!tag) return;
-    setCustomMemberTags(prev => prev.includes(tag) ? prev : [...prev, tag]);
-    setNewMemberTag("");
-  };
   const updateMemberTags = (memberId: number, tags: string[]) => {
     const nextTags = uniqueTags(tags);
     setMembers(prev => prev.map(member => member.id === memberId ? { ...member, tags: nextTags } : member));
@@ -1629,15 +1998,41 @@ function MembersPage() {
     if (!detailMember) return;
     updateMemberTags(detailMember.id, (detailMember.tags ?? []).filter(item => item !== tag));
   };
+  const openMemberDetail = (member: Member) => {
+    setDetailMember(member);
+    setTargetEditMode(false);
+    setDetailTagInput("");
+  };
+  const closeMemberDetail = () => {
+    setDetailMember(null);
+    setTargetEditMode(false);
+    setDetailTagInput("");
+  };
+  const detailReceivedMessages = useMemo(() => {
+    if (!detailMember) return [];
+    return Array.from({ length: 100 }, (_, index) => {
+      const record = HISTORY[index % HISTORY.length];
+      const day = String(26 - (index % 20)).padStart(2, "0");
+      const hour = String(9 + (index % 10)).padStart(2, "0");
+      const minute = String((index * 7) % 60).padStart(2, "0");
+      return {
+        id: `${detailMember.id}-${index}`,
+        template: record.template,
+        channel: record.channel === "스마트 라우팅" ? (index % 2 === 0 ? "카카오 친구톡" : "SMS") : record.channel,
+        sentAt: `2026-06-${day} ${hour}:${minute}`,
+        status: index % 11 === 0 ? "실패" : "완료",
+      };
+    });
+  }, [detailMember?.id]);
 
   return (
-    <div className="p-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+    <div className="flex h-full min-h-0 flex-col p-6">
+      <div className="mb-5 grid shrink-0 grid-cols-2 gap-4 lg:grid-cols-4">
         {[
-          { label: "전체 회원", value: "307,811", color: "text-foreground" },
-          { label: "일반 회원", value: "198,341", color: "text-blue-600" },
-          { label: "신규 회원", value: "34,210", color: "text-emerald-600" },
-          { label: "휴면 회원", value: "23,420", color: "text-violet-600" },
+          { label: "전체 고객", value: "307,811", color: "text-foreground" },
+          { label: "일반 고객", value: "198,341", color: "text-blue-600" },
+          { label: "신규 고객", value: "34,210", color: "text-emerald-600" },
+          { label: "휴면 고객", value: "23,420", color: "text-violet-600" },
         ].map(s => (
           <div key={s.label} className="bg-card rounded-xl border border-border p-4">
             <div className="text-xs text-muted-foreground mb-1">{s.label}</div>
@@ -1645,187 +2040,190 @@ function MembersPage() {
           </div>
         ))}
       </div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <div className="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="inline-flex rounded-lg border border-border bg-card p-1">
-            <button onClick={() => setMemberTab("members")} className={`px-3 py-1.5 rounded-md text-xs font-bold ${memberTab === "members" ? "bg-primary text-white" : "text-muted-foreground"}`}>회원 목록</button>
-            <button onClick={() => setMemberTab("blocked")} className={`px-3 py-1.5 rounded-md text-xs font-bold ${memberTab === "blocked" ? "bg-primary text-white" : "text-muted-foreground"}`}>수신거부자 목록</button>
+            <button onClick={() => { setMemberTab("members"); setPage(1); }} className={`px-3 py-1.5 rounded-md text-xs font-bold ${memberTab === "members" ? "bg-primary text-white" : "text-muted-foreground"}`}>고객 목록</button>
+            <button onClick={() => { setMemberTab("blocked"); setPage(1); }} className={`px-3 py-1.5 rounded-md text-xs font-bold ${memberTab === "blocked" ? "bg-primary text-white" : "text-muted-foreground"}`}>수신 거부 목록</button>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="이름 또는 전화번호 검색" className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-56 focus:outline-none" />
+            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="고객명 또는 전화번호 검색" className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-56 focus:outline-none" />
           </div>
           {memberTab === "members" && ["전체", "일반", "신규", "휴면"].map(f => (
             <button key={f} onClick={() => { setTypeFilter(f); setPage(1); }} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${typeFilter === f ? "bg-primary text-white" : "bg-card border border-border text-muted-foreground"}`}>{f}</button>
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <Btn variant="outline" size="sm"><Download className="w-3.5 h-3.5" /> {memberTab === "members" ? "회원 파일 내보내기" : "수신거부 파일 내보내기"}</Btn>
+          <Btn variant="outline" size="sm"><Download className="w-3.5 h-3.5" /> {memberTab === "members" ? "고객 파일 내보내기" : "수신거부 파일 내보내기"}</Btn>
         </div>
       </div>
       {memberTab === "members" ? (
-      <>
-      <div className="mb-4 rounded-xl border border-border bg-card p-4">
-        <div className="mb-3 flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <h3 className="text-sm font-bold">회원 타겟 관리</h3>
-            <p className="mt-1 text-xs text-muted-foreground">회원이 보유한 모든 타겟을 검색, 그룹 필터, 회원 목록 필터, 신규 추가에 사용할 수 있습니다.</p>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <input value={memberTagSearch} onChange={e => setMemberTagSearch(e.target.value)} placeholder="회원 타겟 검색" className="w-full sm:w-56 pl-8 pr-4 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none" />
-            </div>
-            <select value={memberTagGroupFilter} onChange={e => setMemberTagGroupFilter(e.target.value)} className="rounded-lg border border-border bg-input-background px-3 py-2 text-sm text-muted-foreground">
-              {[...TAG_GROUPS, { id: "사용자", label: "사용자 타겟", tags: [] }].map(group => <option key={group.id} value={group.id}>{group.label}</option>)}
-            </select>
-            <div className="flex gap-2">
-              <input value={newMemberTag} onChange={e => setNewMemberTag(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addTagToPool(); }} placeholder="새 타겟 추가" className="min-w-0 flex-1 rounded-lg border border-border bg-input-background px-3 py-2 text-sm" />
-              <button onClick={addTagToPool} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white">추가</button>
-            </div>
-          </div>
+      <div className="bg-card flex min-h-0 flex-col overflow-hidden rounded-xl border border-border">
+        <div className="max-h-[560px] overflow-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="bg-muted border-b border-border">
+              {["고객명", "전화번호", "유형", "타겟", "SMS 동의", "카카오 동의", "RCS 동의", "가입일"].map(h => (
+                <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>{pagedMembers.map(m => (
+              <tr key={m.id} className="border-b border-border hover:bg-blue-50/70 transition-colors cursor-pointer" onClick={() => openMemberDetail(m)}>
+                <td className="px-4 py-2.5 text-xs font-bold text-foreground">{m.name}</td>
+                <td className="px-4 py-2.5 text-xs text-muted-foreground font-mono">{m.phone}</td>
+                <td className="px-4 py-2.5"><Badge text={m.type} variant={typeMap[m.type] || "default"} /></td>
+                <td className="px-4 py-2.5">
+                  <div className="flex flex-wrap gap-1 max-w-48">
+                    {(m.tags ?? []).slice(0, 3).map(tag => <span key={tag} className="px-1.5 py-0.5 rounded bg-muted text-[10px] text-muted-foreground">{tag}</span>)}
+                  </div>
+                </td>
+                <td className="px-4 py-2.5">{m.smsConsent ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-400" />}</td>
+                <td className="px-4 py-2.5">{m.kakaoConsent ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-400" />}</td>
+                <td className="px-4 py-2.5">{m.rcsConsent ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-400" />}</td>
+                <td className="px-4 py-2.5 text-xs text-muted-foreground">{m.joinedAt}</td>
+              </tr>
+            ))}</tbody>
+          </table>
         </div>
-        <div className="max-h-32 overflow-y-auto rounded-lg bg-muted p-3">
-          <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-            <span>타겟 {visibleMemberTags.length.toLocaleString()}개</span>
-            <button onClick={() => { setMemberTagFilter("전체"); setPage(1); }} className="font-bold text-primary">필터 초기화</button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => { setMemberTagFilter("전체"); setPage(1); }} className={`px-3 py-1.5 rounded-full border text-xs font-semibold ${memberTagFilter === "전체" ? "bg-primary text-white border-primary" : "bg-card border-border text-muted-foreground"}`}>전체</button>
-            {visibleMemberTags.map(tag => (
-              <button key={tag} onClick={() => { setMemberTagFilter(tag); setPage(1); }} className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${memberTagFilter === tag ? "bg-primary text-white border-primary" : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}>
-                <span className="mr-1 text-[10px] opacity-70">{tagGroupLabel(tag)}</span>{tag}
-              </button>
-            ))}
-            {visibleMemberTags.length === 0 && <div className="py-3 text-xs text-muted-foreground">검색 조건에 맞는 회원 타겟이 없습니다.</div>}
-          </div>
+        <div className="shrink-0">
+          <Pagination page={currentPage} total={filtered.length} pageSize={memberPageSize} onPage={setPage} />
         </div>
       </div>
-      <div className="bg-card rounded-xl border border-border overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead><tr className="bg-muted border-b border-border">
-            {["이름", "전화번호", "유형", "타겟", "SMS 동의", "카카오 동의", "RCS 동의", "가입일"].map(h => (
-              <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
-            ))}
-          </tr></thead>
-          <tbody>{pagedMembers.map(m => (
-            <tr key={m.id} className="border-b border-border hover:bg-blue-50/70 transition-colors cursor-pointer" onClick={() => setDetailMember(m)}>
-              <td className="px-4 py-3.5 text-xs font-bold text-foreground">{m.name}</td>
-              <td className="px-4 py-3.5 text-xs text-muted-foreground font-mono">{m.phone}</td>
-              <td className="px-4 py-3.5"><Badge text={m.type} variant={typeMap[m.type] || "default"} /></td>
-              <td className="px-4 py-3.5">
-                <div className="flex flex-wrap gap-1 max-w-48">
-                  {(m.tags ?? []).slice(0, 3).map(tag => <span key={tag} className="px-1.5 py-0.5 rounded bg-muted text-[10px] text-muted-foreground">{tag}</span>)}
-                </div>
-              </td>
-              <td className="px-4 py-3.5">{m.smsConsent ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-400" />}</td>
-              <td className="px-4 py-3.5">{m.kakaoConsent ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-400" />}</td>
-              <td className="px-4 py-3.5">{m.rcsConsent ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-400" />}</td>
-              <td className="px-4 py-3.5 text-xs text-muted-foreground">{m.joinedAt}</td>
-            </tr>
-          ))}</tbody>
-        </table>
-        <Pagination page={currentPage} total={filtered.length} pageSize={memberPageSize} onPage={setPage} />
-      </div>
-      </>
       ) : (
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <div className="px-5 py-3 border-b border-border bg-muted">
-          <h3 className="text-sm font-bold">080 ARS 및 수동 수신거부 동기화 목록</h3>
+      <div className="bg-card flex min-h-0 flex-col overflow-hidden rounded-xl border border-border">
+        <div className="max-h-[560px] overflow-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="bg-muted border-b border-border">
+              {["고객명", "전화번호", "거부 채널", "수신거부 일시"].map(h => <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>)}
+            </tr></thead>
+            <tbody>{pagedBlockedMembers.map(member => (
+              <tr key={member.id} onClick={() => openMemberDetail(member)} className="border-b border-border hover:bg-blue-50/70 cursor-pointer">
+                <td className="px-4 py-2.5 text-xs font-bold text-foreground">{member.name}</td>
+                <td className="px-4 py-2.5 text-xs font-mono text-muted-foreground">{member.phone}</td>
+                <td className="px-4 py-2.5"><Badge text={!member.smsConsent ? "SMS" : "카카오"} variant="red" /></td>
+                <td className="px-4 py-2.5 text-xs text-muted-foreground">2026-06-{String(10 + (member.id % 14)).padStart(2, "0")} 14:{String((member.id * 7) % 60).padStart(2, "0")}</td>
+              </tr>
+            ))}</tbody>
+          </table>
         </div>
-        <table className="w-full text-sm">
-          <thead><tr className="bg-muted border-b border-border">
-            {["회원명", "전화번호", "거부 채널", "수신거부 일시", "등록 사유", "동기화 상태"].map(h => <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">{h}</th>)}
-          </tr></thead>
-          <tbody>{blockedMembers.map(member => (
-            <tr key={member.id} onClick={() => setDetailMember(member)} className="border-b border-border hover:bg-blue-50/70 cursor-pointer">
-              <td className="px-4 py-3 text-xs font-bold">{member.name}</td>
-              <td className="px-4 py-3 text-xs font-mono text-muted-foreground">{member.phone}</td>
-              <td className="px-4 py-3"><Badge text={!member.smsConsent ? "SMS" : "카카오"} variant="red" /></td>
-              <td className="px-4 py-3 text-xs text-muted-foreground">2026-06-{String(10 + (member.id % 14)).padStart(2, "0")} 14:{String((member.id * 7) % 60).padStart(2, "0")}</td>
-              <td className="px-4 py-3 text-xs text-muted-foreground">080 수신거부 접수</td>
-              <td className="px-4 py-3"><Badge text="회원 동의 N 반영" variant="green" /></td>
-            </tr>
-          ))}</tbody>
-        </table>
+        <div className="shrink-0">
+          <Pagination page={blockedCurrentPage} total={blockedMembers.length} pageSize={memberPageSize} onPage={setPage} />
+        </div>
       </div>
       )}
 
-      <Modal open={!!detailMember} onClose={() => setDetailMember(null)} title="회원 상세 정보">
+      <Modal open={!!detailMember} onClose={closeMemberDetail} title="고객 상세 정보" wide>
         {detailMember && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 p-4 bg-muted rounded-xl">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-lg font-bold text-primary">{detailMember.name[0]}</div>
-              <div><div className="font-bold text-foreground">{detailMember.name}</div><div className="text-xs text-muted-foreground">{detailMember.phone}</div></div>
-              <Badge text={detailMember.type} variant={typeMap[detailMember.type] || "default"} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: "가입일", value: detailMember.joinedAt },
-                { label: "마지막 발송", value: detailMember.lastSend },
-              ].map(f => <div key={f.label} className="p-3 bg-muted rounded-lg"><div className="text-xs text-muted-foreground mb-1">{f.label}</div><div className="text-sm font-semibold">{f.value}</div></div>)}
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">보유 타겟</h4>
-              <div className="flex flex-wrap gap-2">
-                {(detailMember.tags ?? []).map(tag => (
-                  <button key={tag} onClick={() => removeTagFromDetailMember(tag)} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-semibold text-muted-foreground hover:bg-red-50 hover:text-red-600">
-                    {tag}<X className="w-3 h-3" />
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="rounded-xl border border-border bg-muted p-3">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">타겟 추가</h4>
-              <div className="flex gap-2 mb-3">
-                <input value={detailTagInput} onChange={e => setDetailTagInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addTagToDetailMember(); }} placeholder="회원에게 추가할 타겟" className="min-w-0 flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm" />
-                <button onClick={() => addTagToDetailMember()} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white">추가</button>
-              </div>
-              <div className="max-h-24 overflow-y-auto">
-                <div className="flex flex-wrap gap-1.5">
-                  {allMemberTags.filter(tag => !(detailMember.tags ?? []).includes(tag)).slice(0, 24).map(tag => (
-                    <button key={tag} onClick={() => addTagToDetailMember(tag)} className="rounded-full border border-border bg-card px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:border-primary/50 hover:text-foreground">
-                      <span className="mr-1 opacity-70">{tagGroupLabel(tag)}</span>{tag}
-                    </button>
-                  ))}
+          <div className="space-y-5">
+            <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">{detailMember.name[0]}</div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="font-bold text-foreground">{detailMember.name}</div>
+                    <Badge text={detailMember.type} variant={typeMap[detailMember.type] || "default"} />
+                  </div>
+                  <div className="mt-1 font-mono text-xs text-muted-foreground">{detailMember.phone}</div>
                 </div>
               </div>
+              <div className="grid min-w-[260px] grid-cols-2 gap-4 text-sm">
+                {[
+                  { label: "가입일", value: detailMember.joinedAt },
+                  { label: "마지막 발송", value: detailMember.lastSend },
+                ].map(f => <div key={f.label}><div className="mb-1 text-xs font-bold text-muted-foreground">{f.label}</div><div className="font-semibold text-foreground">{f.value}</div></div>)}
+              </div>
             </div>
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">수신 동의 현황</h4>
+            <div className="flex flex-wrap items-center gap-2 border-b border-border pb-4">
+              <span className="mr-1 text-xs font-bold text-muted-foreground">수신 동의</span>
               {[
-                { label: "SMS 수신 동의", key: "smsConsent" as const },
-                { label: "카카오 수신 동의", key: "kakaoConsent" as const },
-                { label: "RCS 수신 동의", key: "rcsConsent" as const },
+                { label: "SMS", key: "smsConsent" as const },
+                { label: "카카오", key: "kakaoConsent" as const },
+                { label: "RCS", key: "rcsConsent" as const },
               ].map(({ label, key }) => (
-                <div key={key} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <span className="text-xs font-semibold">{label}</span>
-                  <button
-                    onClick={() => {
-                      setMembers(prev => prev.map(m => m.id === detailMember.id ? { ...m, [key]: !m[key] } : m));
-                      setDetailMember(prev => prev ? { ...prev, [key]: !prev[key] } : null);
-                    }}
-                    className={`w-10 h-5 rounded-full transition-colors relative ${detailMember[key] ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
-                  >
-                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${detailMember[key] ? "translate-x-5" : "translate-x-0.5"}`} />
-                  </button>
-                </div>
+                <span key={key} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${detailMember[key] ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500"}`}>
+                  {detailMember[key] ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                  {label} {detailMember[key] ? "동의" : "거부"}
+                </span>
               ))}
             </div>
-            <div className="rounded-xl border border-border bg-muted p-3">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">받은 메시지 내역</h4>
-              <div className="space-y-2">
-                {HISTORY.slice(0, 4).map(record => (
-                  <div key={record.id} className="rounded-lg bg-card p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-bold">{record.template}</span>
-                      <Badge text={record.channel} variant="blue" />
-                    </div>
-                    <div className="mt-1 text-xs text-muted-foreground">{record.sentAt} · {record.status}</div>
-                  </div>
-                ))}
+            <section className="overflow-hidden rounded-lg border border-border">
+              <div className="flex items-center justify-between gap-3 border-b border-border bg-muted/50 px-4 py-3">
+                <div>
+                  <h4 className="text-xs font-bold text-muted-foreground">타겟</h4>
+                  <div className="mt-0.5 text-[11px] font-semibold text-muted-foreground">{(detailMember.tags ?? []).length}개 등록</div>
+                </div>
+                <button onClick={() => { setTargetEditMode(prev => !prev); setDetailTagInput(""); }} className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${targetEditMode ? "bg-primary text-white" : "border border-border bg-card text-muted-foreground hover:text-foreground"}`}>
+                  {targetEditMode ? "완료" : "수정"}
+                </button>
               </div>
-            </div>
+              <div className="p-4">
+                {!targetEditMode ? (
+                  <div className="flex max-h-28 flex-wrap gap-2 overflow-y-auto">
+                    {(detailMember.tags ?? []).map(tag => (
+                      <span key={tag} className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">{tag}</span>
+                    ))}
+                    {(detailMember.tags ?? []).length === 0 && <span className="text-xs font-semibold text-muted-foreground">등록된 타겟 없음</span>}
+                  </div>
+                ) : (
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.9fr)]">
+                    <div>
+                      <div className="mb-2 text-[11px] font-bold text-muted-foreground">현재 타겟</div>
+                      <div className="min-h-24 max-h-36 overflow-y-auto rounded-lg border border-border p-3">
+                        <div className="flex flex-wrap gap-2">
+                          {(detailMember.tags ?? []).map(tag => (
+                            <button key={tag} onClick={() => removeTagFromDetailMember(tag)} className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:bg-red-50 hover:text-red-600">
+                              {tag}<X className="h-3 w-3" />
+                            </button>
+                          ))}
+                          {(detailMember.tags ?? []).length === 0 && <span className="text-xs font-semibold text-muted-foreground">등록된 타겟 없음</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-2 text-[11px] font-bold text-muted-foreground">타겟 추가</div>
+                      <div className="mb-2 flex gap-2">
+                        <input value={detailTagInput} onChange={e => setDetailTagInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addTagToDetailMember(); }} placeholder="직접 입력" className="min-w-0 flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm" />
+                        <button onClick={() => addTagToDetailMember()} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white">추가</button>
+                      </div>
+                      <div className="max-h-28 overflow-y-auto rounded-lg bg-muted/60 p-3">
+                        <div className="flex flex-wrap gap-1.5">
+                          {allMemberTags.filter(tag => !(detailMember.tags ?? []).includes(tag)).slice(0, 30).map(tag => (
+                            <button key={tag} onClick={() => addTagToDetailMember(tag)} className="rounded-full border border-border bg-card px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:border-primary/50 hover:text-foreground">
+                              <span className="mr-1 opacity-70">{tagGroupLabel(tag)}</span>{tag}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+            <section className="overflow-hidden rounded-lg border border-border">
+              <div className="flex items-center justify-between gap-3 border-b border-border bg-muted/50 px-4 py-3">
+                <h4 className="text-xs font-bold text-muted-foreground">받은 메시지 내역</h4>
+                <span className="text-xs font-bold text-primary">{detailReceivedMessages.length}건</span>
+              </div>
+              <div className="max-h-[320px] overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 z-10 bg-card">
+                    <tr className="border-b border-border">
+                      {["발송일", "템플릿", "채널", "상태"].map(header => <th key={header} className="px-4 py-2.5 text-left text-xs font-bold text-muted-foreground">{header}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detailReceivedMessages.map(record => (
+                      <tr key={record.id} className="border-b border-border last:border-0">
+                        <td className="whitespace-nowrap px-4 py-2.5 text-xs text-muted-foreground">{record.sentAt}</td>
+                        <td className="px-4 py-2.5 text-xs font-semibold text-foreground">{record.template}</td>
+                        <td className="px-4 py-2.5"><Badge text={record.channel} variant="blue" /></td>
+                        <td className="px-4 py-2.5"><Badge text={record.status} variant={record.status === "완료" ? "green" : "red"} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </div>
         )}
       </Modal>
@@ -1834,11 +2232,38 @@ function MembersPage() {
 }
 
 // ─── Statistics Pages ─────────────────────────────────────────────────────────
+const downloadFile = (filename: string, content: string, type: string) => {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const downloadStatsExcel = () => {
+  const rows = [
+    ["구분", "항목", "값"],
+    ["발송 현황", "이번달 총 발송", "892451"],
+    ["발송 현황", "Fallback 전환", "5549"],
+    ["발송 현황", "Fallback 전환율", "1.9%"],
+    ["비용/라우팅", "실제 청구 비용", "18700000"],
+    ["비용/라우팅", "월별 절감액", "5500000"],
+    ["성과 분석", "평균 클릭률", "19.1%"],
+    ["성과 분석", "전환율", "5.8%"],
+  ];
+  const csv = rows.map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(",")).join("\n");
+  downloadFile("stats-report.csv", `\uFEFF${csv}`, "text/csv;charset=utf-8");
+};
+
 function StatsReportActions() {
   return (
     <div className="flex justify-end gap-2">
-      <Btn variant="outline" size="sm"><Download className="w-3.5 h-3.5" /> PDF 다운로드</Btn>
-      <Btn variant="outline" size="sm"><Download className="w-3.5 h-3.5" /> Excel 다운로드</Btn>
+      <Btn variant="outline" size="sm" onClick={() => window.print()}><Download className="w-3.5 h-3.5" /> PDF 다운로드</Btn>
+      <Btn variant="outline" size="sm" onClick={downloadStatsExcel}><Download className="w-3.5 h-3.5" /> Excel 다운로드</Btn>
     </div>
   );
 }
@@ -1846,20 +2271,22 @@ function StatsReportActions() {
 function StatsOverview() {
   const [fallbackPeriod, setFallbackPeriod] = useState("일간");
   return (
-    <div className="p-6 space-y-5">
-      <StatsReportActions />
-      <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
+      <div className="flex items-center justify-end">
+        <StatsReportActions />
+      </div>
+      <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
         <StatCard label="이번달 총 발송" value="892,451" sub="전월 대비 +12.4%" trend={{ val: "+12.4%", up: true }} icon={<Send className="w-4 h-4" />} color="blue" />
         <StatCard label="평균 성공률" value="98.4%" sub="실패 14,232건" trend={{ val: "+0.2%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
         <StatCard label="일평균 발송" value="29,748" sub="최고 284,391건" icon={<Activity className="w-4 h-4" />} color="violet" />
         <StatCard label="실제 청구 비용" value="₩18.7M" sub="전월 대비 +8.1%" trend={{ val: "+8.1%", up: false }} icon={<Target className="w-4 h-4" />} color="amber" />
-        <StatCard label="대체 발송 전환" value="5,549" sub="전환율 1.9%" trend={{ val: "+0.4%p", up: true }} icon={<RefreshCw className="w-4 h-4" />} color="green" />
+        <StatCard label="스마트 라우팅 절감" value="₩5.5M" sub="최대 비용 대비" icon={<RefreshCw className="w-4 h-4" />} color="green" />
       </div>
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h3 className="text-sm font-bold mb-4">실시간 발송 큐 상태</h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <div className="bg-card rounded-xl border border-border p-4">
+        <h3 className="text-sm font-bold mb-3">실시간 발송 큐 상태</h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
           {QUEUE_STATUS.map(item => (
-            <div key={item.label} className="rounded-lg bg-muted p-3">
+            <div key={item.label} className="rounded-lg bg-muted px-3 py-2">
               <div className="text-xs text-muted-foreground mb-1">{item.label}</div>
               <div className="text-lg font-bold">{item.count.toLocaleString()}건</div>
             </div>
@@ -1872,76 +2299,65 @@ function StatsOverview() {
           })}
         </div>
       </div>
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h3 className="text-sm font-bold mb-4">월별 채널별 발송 현황</h3>
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={monthlyData} barSize={10}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-            <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
-            <Tooltip formatter={(v: number) => [`${v.toLocaleString()}건`]} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Bar dataKey="kakao" name="카카오 친구톡" fill="#F7E600" radius={[3, 3, 0, 0]} />
-            <Bar dataKey="sms" name="SMS" fill="#1843FA" radius={[3, 3, 0, 0]} />
-            <Bar dataKey="lms" name="LMS" fill="#10B981" radius={[3, 3, 0, 0]} />
-            <Bar dataKey="rcs" name="RCS" fill="#8B5CF6" radius={[3, 3, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">일별 발송 & 성공 추이</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={dailyTrend}>
-              <defs>
-                <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#1843FA" stopOpacity={0.15} /><stop offset="95%" stopColor="#1843FA" stopOpacity={0} /></linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
-              <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
-              <Area type="monotone" dataKey="sends" stroke="#1843FA" fill="url(#g1)" strokeWidth={2} name="발송" />
-              <Area type="monotone" dataKey="success" stroke="#10B981" fill="none" strokeWidth={2} strokeDasharray="4 3" name="성공" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="bg-card rounded-xl border border-border p-5">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 className="text-sm font-bold">Fallback 전환 도넛</h3>
-            <select value={fallbackPeriod} onChange={event => setFallbackPeriod(event.target.value)} className="rounded-lg border border-border bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground">
-              {["일간", "주간", "월간"].map(option => <option key={option}>{option}</option>)}
-            </select>
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
+          <h3 className="text-sm font-bold mb-3">월별 채널별 발송 현황</h3>
+          <div className="min-h-0 flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={monthlyData} barSize={10}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
+                <Tooltip formatter={(v: number) => [`${v.toLocaleString()}건`]} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="kakao" name="카카오 친구톡" fill="#F7E600" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="sms" name="SMS" fill="#1843FA" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="lms" name="LMS" fill="#10B981" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="rcs" name="RCS" fill="#8B5CF6" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <RePieChart>
-              <Pie data={fallbackDonutData} cx="50%" cy="50%" innerRadius={52} outerRadius={78} dataKey="value" paddingAngle={3}>
-                {fallbackDonutData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
-              </Pie>
-              <Tooltip
-                content={({ active, payload }: any) => {
-                  if (!active || !payload?.length) return null;
-                  const item = payload[0].payload;
-                  return (
-                    <div className="rounded-lg border border-border bg-card p-3 text-xs shadow-lg">
-                      <div className="font-bold text-foreground">{item.name}</div>
-                      <div className="mt-1 text-muted-foreground">건수 {item.value.toLocaleString()}건 · 성공률 {item.rate ? `${item.rate}%` : "집계 제외"}</div>
-                      <div className="mt-1 text-muted-foreground">{item.channels}</div>
-                    </div>
-                  );
-                }}
-              />
-            </RePieChart>
-          </ResponsiveContainer>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {fallbackDonutData.map(item => (
-              <div key={item.name} className="rounded-lg bg-muted px-3 py-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold">
-                  <span className="h-2 w-2 rounded-full" style={{ background: item.color }} />
-                  {item.name}
-                </div>
-                <div className="mt-1 text-[11px] text-muted-foreground">{item.value.toLocaleString()}건 · {item.rate ? `${item.rate}%` : "실패"}</div>
-              </div>
-            ))}
+        </div>
+        <div className="grid min-h-0 grid-rows-2 gap-3">
+          <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
+            <h3 className="text-sm font-bold mb-3">일별 발송 & 성공 추이</h3>
+            <div className="min-h-0 flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={dailyTrend}>
+                  <defs>
+                    <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#1843FA" stopOpacity={0.15} /><stop offset="95%" stopColor="#1843FA" stopOpacity={0} /></linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
+                  <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
+                  <Area type="monotone" dataKey="sends" stroke="#1843FA" fill="url(#g1)" strokeWidth={2} name="발송" />
+                  <Area type="monotone" dataKey="success" stroke="#10B981" fill="none" strokeWidth={2} strokeDasharray="4 3" name="성공" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <h3 className="text-sm font-bold">Fallback 채널별 성공률</h3>
+              <select value={fallbackPeriod} onChange={event => setFallbackPeriod(event.target.value)} className="rounded-lg border border-border bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground">
+                {["일간", "주간", "월간"].map(option => <option key={option}>{option}</option>)}
+              </select>
+            </div>
+            <div className="min-h-0 flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={fallbackStageData} barSize={12}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+                  <XAxis dataKey="stage" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${v}%`} domain={[90, 100]} />
+                  <Tooltip formatter={(v: number) => [`${v}%`]} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="kakao" name="카카오" fill="#F7E600" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="sms" name="SMS" fill="#1843FA" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="lms" name="LMS" fill="#10B981" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       </div>
@@ -1951,7 +2367,7 @@ function StatsOverview() {
 
 function StatsChannel() {
   return (
-    <div className="p-6 space-y-5">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <select className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
           {["최근 7일", "최근 30일", "이번 달", "직접 지정"].map(option => <option key={option}>{option}</option>)}
@@ -1960,120 +2376,139 @@ function StatsChannel() {
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {channelPie.map((c, i) => (
-          <div key={i} className="bg-card rounded-xl border border-border p-4 text-center">
-            <div className="w-3 h-3 rounded-full mx-auto mb-2" style={{ background: c.color }} />
+          <div key={i} className="bg-card rounded-xl border border-border p-3 text-center">
+            <div className="w-3 h-3 rounded-full mx-auto mb-1.5" style={{ background: c.color }} />
             <div className="text-xs text-muted-foreground mb-1">{c.name}</div>
             <div className="text-lg font-bold">{c.value}%</div>
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">채널별 성공률/실패율 비교</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={channelCostData} layout="vertical" barSize={16}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" horizontal={false} />
-              <XAxis type="number" domain={[96, 100]} tick={{ fontSize: 10 }} tickFormatter={v => `${v}%`} />
-              <YAxis type="category" dataKey="channel" tick={{ fontSize: 10 }} width={90} />
-              <Tooltip formatter={(v: number) => [`${v}%`]} />
-              <Bar dataKey="successRate" name="성공률" fill="#1843FA" radius={[0, 3, 3, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">채널별 발송 비중 (도넛)</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <RePieChart>
-              <Pie data={channelPie} cx="50%" cy="50%" innerRadius={55} outerRadius={80} dataKey="value" paddingAngle={3} label={({ name, value }) => `${value}%`} labelLine={false}>
-                {channelPie.map((e, i) => <Cell key={i} fill={e.color} />)}
-              </Pie>
-              <Tooltip formatter={(v: number) => [`${v}%`]} />
-            </RePieChart>
-          </ResponsiveContainer>
-          <div className="flex flex-wrap justify-center gap-3 mt-2">
-            {channelPie.map((c, i) => (
-              <div key={i} className="flex items-center gap-1.5 text-xs"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: c.color }} /><span className="text-muted-foreground">{c.name}</span></div>
-            ))}
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="grid min-h-0 grid-rows-2 gap-3">
+          <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
+            <h3 className="text-sm font-bold mb-3">채널별 성공률/실패율 비교</h3>
+            <div className="min-h-0 flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={channelCostData} layout="vertical" barSize={14}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" horizontal={false} />
+                  <XAxis type="number" domain={[96, 100]} tick={{ fontSize: 10 }} tickFormatter={v => `${v}%`} />
+                  <YAxis type="category" dataKey="channel" tick={{ fontSize: 10 }} width={90} />
+                  <Tooltip formatter={(v: number) => [`${v}%`]} />
+                  <Bar dataKey="successRate" name="성공률" fill="#1843FA" radius={[0, 3, 3, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
+            <h3 className="text-sm font-bold mb-3">채널별 추이</h3>
+            <div className="min-h-0 flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
+                  <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Line type="monotone" dataKey="kakao" stroke="#F7E600" strokeWidth={2} dot={false} name="카카오 친구톡" />
+                  <Line type="monotone" dataKey="sms" stroke="#1843FA" strokeWidth={2} dot={false} name="SMS" />
+                  <Line type="monotone" dataKey="lms" stroke="#10B981" strokeWidth={2} dot={false} name="LMS" />
+                  <Line type="monotone" dataKey="rcs" stroke="#8B5CF6" strokeWidth={2} dot={false} name="RCS" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
-      </div>
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h3 className="text-sm font-bold mb-4">채널별 추이</h3>
-        <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-            <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
-            <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Line type="monotone" dataKey="kakao" stroke="#F7E600" strokeWidth={2} dot={false} name="카카오 친구톡" />
-            <Line type="monotone" dataKey="sms" stroke="#1843FA" strokeWidth={2} dot={false} name="SMS" />
-            <Line type="monotone" dataKey="lms" stroke="#10B981" strokeWidth={2} dot={false} name="LMS" />
-            <Line type="monotone" dataKey="rcs" stroke="#8B5CF6" strokeWidth={2} dot={false} name="RCS" />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="bg-card rounded-xl border border-border overflow-x-auto">
-        <div className="px-5 py-3 border-b border-border"><h3 className="text-sm font-bold">채널별 비용 및 평균 단가</h3></div>
-        <table className="w-full text-sm">
-          <thead><tr className="bg-muted border-b border-border">
-            {["채널", "발송량", "성공률", "실패율", "총 비용", "평균 단가"].map(h => <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>)}
-          </tr></thead>
-          <tbody>{channelCostData.map(row => (
-            <tr key={row.channel} className="border-b border-border hover:bg-muted/30">
-              <td className="px-4 py-3 text-xs font-bold">{row.channel}</td>
-              <td className="px-4 py-3 text-xs">{row.sends.toLocaleString()}건</td>
-              <td className="px-4 py-3 text-xs text-emerald-600 font-bold">{row.successRate}%</td>
-              <td className="px-4 py-3 text-xs text-red-500 font-bold">{row.failRate}%</td>
-              <td className="px-4 py-3 text-xs font-bold">{formatWon(row.cost)}</td>
-              <td className="px-4 py-3 text-xs">{row.unit}원</td>
-            </tr>
-          ))}</tbody>
-        </table>
+        <div className="grid min-h-0 grid-rows-[0.9fr_1.1fr] gap-3">
+          <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
+            <h3 className="text-sm font-bold mb-3">채널별 발송 비중</h3>
+            <div className="grid min-h-0 flex-1 grid-cols-[0.8fr_1fr] gap-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <RePieChart>
+                  <Pie data={channelPie} cx="50%" cy="50%" innerRadius={38} outerRadius={58} dataKey="value" paddingAngle={3} label={({ value }) => `${value}%`} labelLine={false}>
+                    {channelPie.map((e, i) => <Cell key={i} fill={e.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: number) => [`${v}%`]} />
+                </RePieChart>
+              </ResponsiveContainer>
+              <div className="grid content-center gap-1">
+                {channelPie.map((c, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-xs">
+                    <span className="w-2.5 h-2.5 rounded-sm" style={{ background: c.color }} />
+                    <span className="text-muted-foreground">{c.name}</span>
+                    <span className="ml-auto font-bold">{c.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-border"><h3 className="text-sm font-bold">채널별 비용 및 평균 단가</h3></div>
+            <table className="w-full text-sm">
+              <thead><tr className="bg-muted border-b border-border">
+                {["채널", "발송량", "성공률", "실패율", "총 비용", "평균 단가"].map(h => <th key={h} className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>)}
+              </tr></thead>
+              <tbody>{channelCostData.map(row => (
+                <tr key={row.channel} className="border-b border-border hover:bg-muted/30">
+                  <td className="px-3 py-2 text-xs font-bold">{row.channel}</td>
+                  <td className="px-3 py-2 text-xs">{row.sends.toLocaleString()}건</td>
+                  <td className="px-3 py-2 text-xs text-emerald-600 font-bold">{row.successRate}%</td>
+                  <td className="px-3 py-2 text-xs text-red-500 font-bold">{row.failRate}%</td>
+                  <td className="px-3 py-2 text-xs font-bold">{formatWon(row.cost)}</td>
+                  <td className="px-3 py-2 text-xs">{row.unit}원</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-
 function StatsRouting() {
   return (
-    <div className="p-6 space-y-5">
-      <StatsReportActions />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
+      <div className="flex items-center justify-end">
+        <StatsReportActions />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard label="실제 청구 비용" value="₩18.7M" sub="6월 누적" icon={<Target className="w-4 h-4" />} color="amber" />
         <StatCard label="최대 비용" value="₩24.2M" sub="동일 물량 기준" icon={<TrendingUp className="w-4 h-4" />} color="violet" />
         <StatCard label="월별 절감액" value="₩5.5M" sub="절감률 22.7%" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
-        <StatCard label="스마트 라우팅 절감" value="₩5.5M" sub="최대 비용 대비" icon={<RefreshCw className="w-4 h-4" />} color="blue" />
+        <StatCard label="대체 발송 전환" value="5,549" sub="전환율 1.9%" trend={{ val: "+0.4%p", up: true }} icon={<RefreshCw className="w-4 h-4" />} color="blue" />
       </div>
-      <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_0.7fr] gap-4">
-        <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">실제 비용 vs 최대 비용</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={routingSavingsData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
-              <Tooltip formatter={(v: number) => [formatWon(v)]} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Line type="monotone" dataKey="actual" name="실제 청구 비용" stroke="#1843FA" strokeWidth={2.5} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="baseline" name="최대 비용" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 3 }} />
-            </LineChart>
-          </ResponsiveContainer>
+      <div className="grid min-h-0 flex-1 grid-cols-1 xl:grid-cols-[1.3fr_0.7fr] gap-3">
+        <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
+          <h3 className="text-sm font-bold mb-3">비용 비교 현황</h3>
+          <div className="min-h-0 flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={routingSavingsData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
+                <Tooltip formatter={(v: number) => [formatWon(v)]} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Line type="monotone" dataKey="actual" name="실제 청구 비용" stroke="#1843FA" strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="baseline" name="최대 비용" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-        <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">월별 절감액 추이</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={routingSavingsData}>
-              <defs>
-                <linearGradient id="savingGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10B981" stopOpacity={0.25} /><stop offset="95%" stopColor="#10B981" stopOpacity={0} /></linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
-              <Tooltip formatter={(v: number) => [formatWon(v)]} />
-              <Area type="monotone" dataKey="saved" name="절감액" stroke="#10B981" fill="url(#savingGrad)" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
+        <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
+          <h3 className="text-sm font-bold mb-3">월별 절감액 추이</h3>
+          <div className="min-h-0 flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={routingSavingsData}>
+                <defs>
+                  <linearGradient id="savingGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10B981" stopOpacity={0.25} /><stop offset="95%" stopColor="#10B981" stopOpacity={0} /></linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
+                <Tooltip formatter={(v: number) => [formatWon(v)]} />
+                <Area type="monotone" dataKey="saved" name="절감액" stroke="#10B981" fill="url(#savingGrad)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
     </div>
@@ -2082,44 +2517,50 @@ function StatsRouting() {
 
 function StatsMember() {
   return (
-    <div className="p-6 space-y-5">
-      <StatsReportActions />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="전체 회원" value="307,811" sub="분석 가능 회원" icon={<Users className="w-4 h-4" />} color="amber" />
-        <StatCard label="일반 회원" value="198,341" sub="주요 발송 대상" icon={<Users className="w-4 h-4" />} color="blue" />
-        <StatCard label="신규 회원" value="34,210" sub="이번달 +1,284명" trend={{ val: "+3.9%", up: true }} icon={<TrendingUp className="w-4 h-4" />} color="green" />
-        <StatCard label="휴면 회원" value="23,420" sub="6개월 이상 미활동" trend={{ val: "-284명", up: true }} icon={<Clock className="w-4 h-4" />} color="violet" />
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
+      <div className="flex items-center justify-end">
+        <StatsReportActions />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">신규 회원 가입자 수</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={newMemberData} barSize={24}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v: number) => [`${v.toLocaleString()}명`]} />
-              <Bar dataKey="count" name="신규 가입자" fill="#10B981" radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard label="전체 고객" value="307,811" sub="분석 가능 고객" icon={<Users className="w-4 h-4" />} color="amber" />
+        <StatCard label="일반 고객" value="198,341" sub="주요 발송 대상" icon={<Users className="w-4 h-4" />} color="blue" />
+        <StatCard label="신규 고객" value="34,210" sub="이번달 +1,284명" trend={{ val: "+3.9%", up: true }} icon={<TrendingUp className="w-4 h-4" />} color="green" />
+        <StatCard label="휴면 고객" value="23,420" sub="6개월 이상 미활동" trend={{ val: "-284명", up: true }} icon={<Clock className="w-4 h-4" />} color="violet" />
+      </div>
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
+          <h3 className="text-sm font-bold mb-3">신규 고객 가입자 수</h3>
+          <div className="min-h-0 flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={newMemberData} barSize={24}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v: number) => [`${v.toLocaleString()}명`]} />
+                <Bar dataKey="count" name="신규 가입자" fill="#10B981" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-        <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">채널 동의 현황</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={[
-              { label: "SMS", 동의: 198441, 미동의: 109370 },
-              { label: "카카오", 동의: 241320, 미동의: 66491 },
-              { label: "RCS", 동의: 48210, 미동의: 259601 },
-            ]} barSize={28}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
-              <Tooltip formatter={(v: number) => [v.toLocaleString() + "명"]} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="동의" fill="#1843FA" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="미동의" fill="#E4E4E7" radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
+          <h3 className="text-sm font-bold mb-3">채널 동의 현황</h3>
+          <div className="min-h-0 flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={[
+                { label: "SMS", 동의: 198441, 미동의: 109370 },
+                { label: "카카오", 동의: 241320, 미동의: 66491 },
+                { label: "RCS", 동의: 48210, 미동의: 259601 },
+              ]} barSize={28}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
+                <Tooltip formatter={(v: number) => [v.toLocaleString() + "명"]} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="동의" fill="#1843FA" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="미동의" fill="#E4E4E7" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
     </div>
@@ -2129,42 +2570,48 @@ function StatsMember() {
 function StatsPerformance() {
   const [performanceChannel, setPerformanceChannel] = useState("카카오 친구톡");
   return (
-    <div className="p-6 space-y-5">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <select value={performanceChannel} onChange={event => setPerformanceChannel(event.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
           {["카카오 친구톡", "카카오 알림톡", "SMS", "LMS", "RCS"].map(option => <option key={option}>{option}</option>)}
         </select>
         <StatsReportActions />
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard label="선택 채널" value={performanceChannel} sub="채널별 데이터 표시" icon={<MessageSquare className="w-4 h-4" />} color="blue" />
         <StatCard label="평균 클릭률" value="19.1%" sub="업계 평균 8.2%" trend={{ val: "+0.8%p", up: true }} icon={<Target className="w-4 h-4" />} color="green" />
         <StatCard label="전환율" value="5.8%" sub="전월 대비 +0.6%p" trend={{ val: "+0.6%p", up: true }} icon={<TrendingUp className="w-4 h-4" />} color="violet" />
         <StatCard label="수신 거부율" value="0.12%" sub="업계 평균 0.41%" trend={{ val: "-0.02%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="amber" />
       </div>
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h3 className="text-sm font-bold mb-4">월별 성과 지표 추이</h3>
-        <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={performanceData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-            <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} />
-            <Tooltip formatter={(v: number) => [`${v}%`]} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Line type="monotone" dataKey="clickRate" stroke="#10B981" strokeWidth={2.5} dot={{ r: 4 }} name="클릭률" />
-            <Line type="monotone" dataKey="conversionRate" stroke="#F59E0B" strokeWidth={2.5} dot={{ r: 4 }} name="전환율" />
-          </LineChart>
-        </ResponsiveContainer>
+      <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-[1.1] flex-col">
+        <h3 className="text-sm font-bold mb-3">월별 성과 지표 추이</h3>
+        <div className="min-h-0 flex-1">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={performanceData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} />
+              <Tooltip formatter={(v: number) => [`${v}%`]} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Line type="monotone" dataKey="clickRate" stroke="#10B981" strokeWidth={2.5} dot={{ r: 4 }} name="클릭률" />
+              <Line type="monotone" dataKey="conversionRate" stroke="#F59E0B" strokeWidth={2.5} dot={{ r: 4 }} name="전환율" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">템플릿별 성과 Top 5</h3>
-          <div className="space-y-3">
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="bg-card rounded-xl border border-border p-4 overflow-hidden">
+          <h3 className="text-sm font-bold mb-3">템플릿별 성과 Top 5</h3>
+          <div className="space-y-2">
             {templatePerformanceTop.map((t, i) => (
               <div key={i} className="space-y-1.5">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <span className="text-xs font-semibold text-foreground">{t.name}</span>
-                  <span className="text-xs text-muted-foreground">클릭 {t.click}% · 구매전환 {t.conversion === null ? "미반영" : `${t.conversion}%`} · {t.source}</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">클릭 {t.click}%</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span>구매전환 {t.conversion === null ? "반영X" : `${t.conversion}%`}</span>
+                  {t.source === "AI 템플릿" && <Badge text="AI 템플릿" variant="blue" />}
                 </div>
                 <div className="flex gap-1">
                   <div className="flex-1 bg-muted rounded-full h-1.5"><div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${t.click}%` }} /></div>
@@ -2173,30 +2620,34 @@ function StatsPerformance() {
             ))}
           </div>
         </div>
-        <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold mb-4">요일별 클릭률</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={weekdayClickData} barSize={24}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-              <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} domain={[0, 25]} />
-              <Tooltip formatter={(v: number) => [`${v}%`]} />
-              <Bar dataKey="rate" name="클릭률" fill="#1843FA" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
+          <h3 className="text-sm font-bold mb-3">요일별 클릭률</h3>
+          <div className="min-h-0 flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={weekdayClickData} barSize={22}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+                <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} domain={[0, 25]} />
+                <Tooltip formatter={(v: number) => [`${v}%`]} />
+                <Bar dataKey="rate" name="클릭률" fill="#1843FA" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      </div>
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h3 className="text-sm font-bold mb-4">시간별 클릭률</h3>
-        <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={hourlyClickData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-            <XAxis dataKey="time" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} />
-            <Tooltip formatter={(v: number) => [`${v}%`]} />
-            <Line type="monotone" dataKey="rate" name="클릭률" stroke="#1843FA" strokeWidth={2.5} dot={{ r: 4 }} />
-          </LineChart>
-        </ResponsiveContainer>
+        <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
+          <h3 className="text-sm font-bold mb-3">시간별 클릭률</h3>
+          <div className="min-h-0 flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={hourlyClickData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+                <XAxis dataKey="time" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} />
+                <Tooltip formatter={(v: number) => [`${v}%`]} />
+                <Line type="monotone" dataKey="rate" name="클릭률" stroke="#1843FA" strokeWidth={2.5} dot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -2206,6 +2657,7 @@ function StatsPerformance() {
 function MainLayout({ currentPage, setCurrentPage, onLogout }: {
   currentPage: Page; setCurrentPage: (p: Page) => void; onLogout: () => void;
 }) {
+  const fitToViewport = currentPage === "dashboard" || currentPage === "send" || currentPage === "templates" || currentPage === "members" || currentPage.startsWith("stats");
   const renderPage = () => {
     switch (currentPage) {
       case "dashboard": return <DashboardPage setPage={setCurrentPage} />;
@@ -2225,7 +2677,7 @@ function MainLayout({ currentPage, setCurrentPage, onLogout }: {
       <Sidebar current={currentPage} setCurrent={setCurrentPage} onLogout={onLogout} />
       <div className="flex-1 flex flex-col min-w-0">
         <Header page={currentPage} />
-        <main className="flex-1 overflow-y-auto">{renderPage()}</main>
+        <main className={`flex-1 ${fitToViewport ? "overflow-hidden" : "overflow-y-auto"}`}>{renderPage()}</main>
       </div>
     </div>
   );
