@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - codex/message-spec-updates
   workflow_dispatch:
 
 permissions:
