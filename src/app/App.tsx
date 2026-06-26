@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, Edit2, Trash2, Download, Eye,
   ChevronRight, ChevronDown, AlertTriangle, X, Check, RefreshCw,
   Target, Activity, Tag, CalendarDays, Megaphone, PieChart,
-  ArrowUpRight, ArrowDownRight, MoreHorizontal, Info, Upload,
+  ArrowUpRight, ArrowDownRight, MoreHorizontal, Info,
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart as RePieChart,
@@ -21,7 +21,7 @@ type Page =
 
 interface Template {
   id: number; name: string; channel: string; content: string; category: string; usageCount: number; updatedAt: string; tags?: string[];
-  scope?: string; approvalStatus?: string; rejectReason?: string; openRate?: number; clickRate?: number; optOutRate?: number;
+  scope?: string; openRate?: number; clickRate?: number; optOutRate?: number;
 }
 interface Member {
   id: number; name: string; phone: string; type: string; smsConsent: boolean; kakaoConsent: boolean; rcsConsent: boolean; joinedAt: string; lastSend: string; tags?: string[];
@@ -33,12 +33,12 @@ interface SendRecord {
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 const TEMPLATES: Template[] = [
-  { id: 1, name: "6월 여름 할인 이벤트", channel: "카카오 친구톡", content: "[현대퓨처넷] 안녕하세요 #{이름}님! 6월 특별 여름 세일이 시작되었습니다.\n최대 30% 할인 혜택을 지금 바로 만나보세요.", category: "이벤트", usageCount: 128, updatedAt: "2026-06-20", scope: "현대백화점 전용", approvalStatus: "승인 완료", openRate: 54.3, clickRate: 21.8, optOutRate: 0.18 },
-  { id: 2, name: "생일 축하 메시지", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 생일을 진심으로 축하드립니다! 특별한 생일 쿠폰을 확인해보세요.", category: "혜택", usageCount: 2341, updatedAt: "2026-06-18", scope: "전사 공통", approvalStatus: "불필요", openRate: 78.4, clickRate: 34.2, optOutRate: 0.05 },
-  { id: 3, name: "신규 가입 환영", channel: "카카오 알림톡", content: "[현대퓨처넷] #{이름}님, 가입을 환영합니다! 신규 가입 혜택 5,000P가 적립되었습니다.", category: "안내", usageCount: 891, updatedAt: "2026-06-15", scope: "전사 공통", approvalStatus: "승인 완료", openRate: 68.1, clickRate: 25.4, optOutRate: 0.08 },
-  { id: 4, name: "포인트 소멸 안내", channel: "LMS", content: "[현대퓨처넷] 안내 드립니다. #{이름}님의 포인트 #{포인트}P가 2026년 6월 30일 소멸 예정입니다. 지금 바로 사용하세요!", category: "안내", usageCount: 445, updatedAt: "2026-06-10", scope: "현대홈쇼핑 전용", approvalStatus: "불필요", openRate: 62.8, clickRate: 18.1, optOutRate: 0.11 },
-  { id: 5, name: "우수회원 전용 혜택", channel: "카카오 친구톡", content: "[현대퓨처넷] #{이름}님께만 드리는 우수회원 전용 특가 상품을 안내해드립니다. 특별한 혜택을 놓치지 마세요!", category: "혜택", usageCount: 312, updatedAt: "2026-06-08", scope: "한섬 전용", approvalStatus: "반려", rejectReason: "혜택 문구가 과장 표현으로 분류됨", openRate: 71.2, clickRate: 28.9, optOutRate: 0.22 },
-  { id: 6, name: "배송 완료 안내", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 주문하신 상품이 배송 완료되었습니다. 주문번호: #{주문번호}", category: "안내", usageCount: 5821, updatedAt: "2026-06-01", scope: "전사 공통", approvalStatus: "불필요", openRate: 66.4, clickRate: 12.6, optOutRate: 0.03 },
+  { id: 1, name: "6월 여름 할인 이벤트", channel: "카카오 친구톡", content: "[현대퓨처넷] 안녕하세요 #{이름}님! 6월 특별 여름 세일이 시작되었습니다.\n최대 30% 할인 혜택을 지금 바로 만나보세요.", category: "이벤트", usageCount: 128, updatedAt: "2026-06-20", scope: "현대백화점 전용", openRate: 54.3, clickRate: 21.8, optOutRate: 0.18 },
+  { id: 2, name: "생일 축하 메시지", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 생일을 진심으로 축하드립니다! 특별한 생일 쿠폰을 확인해보세요.", category: "혜택", usageCount: 2341, updatedAt: "2026-06-18", scope: "전사 공통", openRate: 78.4, clickRate: 34.2, optOutRate: 0.05 },
+  { id: 3, name: "신규 가입 환영", channel: "카카오 알림톡", content: "[현대퓨처넷] #{이름}님, 가입을 환영합니다! 신규 가입 혜택 5,000P가 적립되었습니다.", category: "안내", usageCount: 891, updatedAt: "2026-06-15", scope: "전사 공통", openRate: 68.1, clickRate: 25.4, optOutRate: 0.08 },
+  { id: 4, name: "포인트 소멸 안내", channel: "LMS", content: "[현대퓨처넷] 안내 드립니다. #{이름}님의 포인트 #{포인트}P가 2026년 6월 30일 소멸 예정입니다. 지금 바로 사용하세요!", category: "안내", usageCount: 445, updatedAt: "2026-06-10", scope: "현대홈쇼핑 전용", openRate: 62.8, clickRate: 18.1, optOutRate: 0.11 },
+  { id: 5, name: "우수회원 전용 혜택", channel: "카카오 친구톡", content: "[현대퓨처넷] #{이름}님께만 드리는 우수회원 전용 특가 상품을 안내해드립니다. 특별한 혜택을 놓치지 마세요!", category: "혜택", usageCount: 312, updatedAt: "2026-06-08", scope: "한섬 전용", openRate: 71.2, clickRate: 28.9, optOutRate: 0.22 },
+  { id: 6, name: "배송 완료 안내", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 주문하신 상품이 배송 완료되었습니다. 주문번호: #{주문번호}", category: "안내", usageCount: 5821, updatedAt: "2026-06-01", scope: "전사 공통", openRate: 66.4, clickRate: 12.6, optOutRate: 0.03 },
 ];
 const TEMPLATE_TAGS = ["일반", "신규", "휴면", "생일", "포인트", "쿠폰", "최근구매", "장바구니", "앱사용자", "현대백화점", "현대홈쇼핑", "한섬", "리빙", "패션", "오프라인방문"];
 const MEMBER_TAGS = ["전체 회원", "일반", "신규", "휴면", "생일 대상자", "포인트 소멸 예정", "최근구매", "장바구니 이탈", "쿠폰 반응", "앱사용자", "카카오 동의", "SMS 동의", "RCS 동의", "LMS 동의", "현대백화점", "현대홈쇼핑", "한섬", "리빙 관심", "패션 관심", "오프라인 방문", "미동의 제외"];
@@ -202,6 +202,12 @@ const fallbackStageData = [
   { stage: "2차", kakao: 96.4, sms: 97.4, lms: 96.8 },
   { stage: "3차", kakao: 92.8, sms: 94.1, lms: 93.7 },
 ];
+const fallbackDonutData = [
+  { name: "1차 성공", value: 279112, rate: 98.9, color: "#1843FA", channels: "카카오 211,240 · SMS 48,120 · LMS 19,752" },
+  { name: "2차 성공", value: 5144, rate: 97.4, color: "#10B981", channels: "SMS 4,820 · LMS 324" },
+  { name: "3차 성공", value: 281, rate: 94.1, color: "#F59E0B", channels: "LMS 178 · RCS 103" },
+  { name: "최종 실패", value: 135, rate: 0, color: "#EF4444", channels: "수신거부 57 · 번호오류 42 · 채널실패 36" },
+];
 const weekdayClickData = [
   { day: "월", rate: 12.1 }, { day: "화", rate: 16.8 }, { day: "수", rate: 18.2 },
   { day: "목", rate: 17.3 }, { day: "금", rate: 15.9 }, { day: "토", rate: 11.4 }, { day: "일", rate: 10.1 },
@@ -252,9 +258,17 @@ function Badge({ text, variant = "default" }: { text: string; variant?: string }
     amber: "bg-amber-50 text-amber-700",
     red: "bg-red-50 text-red-700",
     violet: "bg-violet-50 text-violet-700",
-    vip: "bg-gradient-to-r from-amber-400 to-orange-400 text-white",
   };
   return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${v[variant] || v.default}`}>{text}</span>;
+}
+
+function SpecPin({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-1 text-[11px] font-semibold text-muted-foreground">
+      <Info className="h-3 w-3 text-primary" />
+      {children}
+    </span>
+  );
 }
 
 function Btn({ children, variant = "primary", size = "md", onClick, disabled = false, className = "" }: {
@@ -517,11 +531,11 @@ function DashboardPage({ setPage }: { setPage: (p: Page) => void }) {
   return (
     <div className="p-6 space-y-6">
       <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
-        <StatCard label="총 발송 건수" value="892,451" sub="6월 누적" trend={{ val: "+12.4%", up: true }} icon={<Send className="w-4 h-4" />} color="blue" />
-        <StatCard label="발송 성공률" value="98.7%" sub="실패 165건" trend={{ val: "+0.3%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
-        <StatCard label="활성 회원 수" value="284,391" sub="전체 307,811명" trend={{ val: "+1,284명", up: true }} icon={<Users className="w-4 h-4" />} color="violet" />
-        <StatCard label="실제 청구 비용" value="₩18.7M" sub="최대 비용 ₩24.2M" trend={{ val: "-22.7%", up: true }} icon={<BarChart3 className="w-4 h-4" />} color="amber" />
-        <StatCard label="스마트 라우팅 절감" value="₩5.5M" sub="최대 비용 대비" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
+        <StatCard label="오늘 발송 현황" value="12,847" sub="발송 중 2,500건" trend={{ val: "+8.2%", up: true }} icon={<Send className="w-4 h-4" />} color="blue" />
+        <StatCard label="발송 성공률/실패" value="98.7%" sub="실패 165건" trend={{ val: "+0.3%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
+        <StatCard label="활성 회원 현황" value="284,391" sub="전체 307,811명" trend={{ val: "+1,284명", up: true }} icon={<Users className="w-4 h-4" />} color="violet" />
+        <StatCard label="월 누적 발송 현황" value="892,451" sub="6월 누적" trend={{ val: "+12.4%", up: true }} icon={<BarChart3 className="w-4 h-4" />} color="amber" />
+        <StatCard label="스마트 라우팅 절감 현황" value="₩5.5M" sub="월 누적 절감" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
       </div>
 
       <div className="bg-card rounded-xl border border-border p-5">
@@ -551,23 +565,29 @@ function DashboardPage({ setPage }: { setPage: (p: Page) => void }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 bg-card rounded-xl border border-border p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-foreground">실제 비용 vs 최대 비용</h3>
-            <span className="text-xs text-muted-foreground">월별</span>
+            <h3 className="text-sm font-bold text-foreground">최근 발송 추이</h3>
+            <span className="text-xs text-muted-foreground">최근 7일</span>
           </div>
           <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={routingSavingsData}>
+            <AreaChart data={dailyTrend}>
+              <defs>
+                <linearGradient id="dashboardRecentGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#1843FA" stopOpacity={0.16} />
+                  <stop offset="95%" stopColor="#1843FA" stopOpacity={0} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
-              <Tooltip formatter={(v: number) => [formatWon(v)]} />
+              <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
+              <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Line type="monotone" dataKey="actual" stroke="#1843FA" strokeWidth={2.5} dot={{ r: 3 }} name="실제 비용" />
-              <Line type="monotone" dataKey="baseline" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 3 }} name="최대 비용" />
-            </LineChart>
+              <Area type="monotone" dataKey="sends" stroke="#1843FA" fill="url(#dashboardRecentGrad)" strokeWidth={2} name="발송" />
+              <Area type="monotone" dataKey="success" stroke="#10B981" fill="none" strokeWidth={2} strokeDasharray="4 3" name="성공" />
+            </AreaChart>
           </ResponsiveContainer>
         </div>
         <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="text-sm font-bold text-foreground mb-4">채널별 비중</h3>
+          <h3 className="text-sm font-bold text-foreground mb-4">채널별 발송 비중</h3>
           <ResponsiveContainer width="100%" height={160}>
             <RePieChart>
               <Pie data={channelPie} cx="50%" cy="50%" innerRadius={45} outerRadius={65} dataKey="value" paddingAngle={3}>
@@ -610,25 +630,22 @@ function DashboardPage({ setPage }: { setPage: (p: Page) => void }) {
         </div>
         <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-foreground">일별 발송 추이</h3>
-            <span className="text-xs text-muted-foreground">최근 7일</span>
+            <h3 className="text-sm font-bold text-foreground">주요 업무 바로가기</h3>
+            <SpecPin>대시보드는 보류 범위라 운영 바로가기만 유지</SpecPin>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={dailyTrend}>
-              <defs>
-                <linearGradient id="dashboardDailyGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#1843FA" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#1843FA" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
-              <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
-              <Area type="monotone" dataKey="sends" stroke="#1843FA" fill="url(#dashboardDailyGrad)" strokeWidth={2} name="발송" />
-              <Area type="monotone" dataKey="success" stroke="#10B981" fill="none" strokeWidth={2} strokeDasharray="4 3" name="성공" />
-            </AreaChart>
-          </ResponsiveContainer>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: "메시지 발송", page: "send" as Page, Icon: Send },
+              { label: "템플릿 관리", page: "templates" as Page, Icon: FileText },
+              { label: "전송 기록", page: "history" as Page, Icon: History },
+              { label: "회원 관리", page: "members" as Page, Icon: Users },
+            ].map(({ label, page, Icon }) => (
+              <button key={label} onClick={() => setPage(page)} className="flex items-center gap-3 rounded-lg border border-border bg-muted p-3 text-left transition-colors hover:bg-accent">
+                <Icon className="h-4 w-4 text-primary" />
+                <span className="text-xs font-bold text-foreground">{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -890,6 +907,30 @@ function SendMessagePageWizard() {
             <div className="px-3 py-8 text-center text-xs text-muted-foreground">수신 가능한 채널이 있는 회원만 표시됩니다.</div>
           )}
         </div>
+        <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="text-xs font-semibold text-muted-foreground">
+            검색 결과 {candidateMembers.length.toLocaleString()}명 · 체크 {checkedMembers.length.toLocaleString()}명
+          </div>
+          <div className="flex gap-2">
+            <Btn size="sm" variant="outline" onClick={addChecked} disabled={checkedMembers.length === 0}>포함 대상 추가</Btn>
+            <Btn size="sm" variant="outline" onClick={excludeChecked} disabled={checkedMembers.length === 0}>제외 대상 추가</Btn>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <div className="rounded-xl border border-border bg-card p-3 min-h-36">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="text-xs font-bold">회원 직접 추가</div>
+              <SpecPin>수동 추가 회원은 포함 대상으로 처리</SpecPin>
+            </div>
+            <div className="space-y-2">
+              <input value={manualName} onChange={event => setManualName(event.target.value)} placeholder="회원명" className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-xs focus:outline-none" />
+              <input value={manualPhone} onChange={event => setManualPhone(event.target.value)} placeholder="전화번호" className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-xs focus:outline-none" />
+              <Btn size="sm" className="w-full justify-center" onClick={addManualMember}>직접 추가</Btn>
+            </div>
+          </div>
+          <RecipientBox title="포함 대상" members={includedMembers} onRemove={(id) => setIncludedMembers(prev => prev.filter(member => member.id !== id))} />
+          <RecipientBox title="제외 대상" members={excludedMembers} onRemove={(id) => setExcludedMembers(prev => prev.filter(member => member.id !== id))} />
+        </div>
       </div>
     </div>
   );
@@ -929,7 +970,10 @@ function SendMessagePageWizard() {
               <h3 className="text-sm font-bold">스마트폰 미리보기</h3>
               <p className="text-xs text-muted-foreground mt-1">{selectedTemplate ? selectedTemplate.name : "직접 작성"}</p>
             </div>
-            <Badge text={`${messageMode} · ${unitCost}원/건`} variant={messageMode === "LMS" ? "amber" : "blue"} />
+            <div className="flex items-center gap-2">
+              <SpecPin>메시지 작성 상세 정책은 보류</SpecPin>
+              <Badge text={`${messageMode} · ${unitCost}원/건`} variant={messageMode === "LMS" ? "amber" : "blue"} />
+            </div>
           </div>
           <div className="mb-3 inline-flex rounded-lg border border-border bg-muted p-1">
             {[
@@ -1006,7 +1050,10 @@ function SendMessagePageWizard() {
             <h3 className="text-sm font-bold">채널 선택</h3>
             <p className="mt-1 text-xs text-muted-foreground">기본값은 최저비용 추천 조합이며, 우선순위는 1차부터 3차까지 지정합니다.</p>
           </div>
-          <Badge text="최저비용 추천 선택됨" variant="green" />
+          <div className="flex flex-wrap justify-end gap-2">
+            <SpecPin>채널 선택 정책은 보류</SpecPin>
+            <Badge text="최저비용 추천 선택됨" variant="green" />
+          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {CHANNELS.map(channel => (
@@ -1538,7 +1585,6 @@ function MembersPage() {
   const [customMemberTags, setCustomMemberTags] = useState<string[]>([]);
   const [memberTab, setMemberTab] = useState<"members" | "blocked">("members");
   const [detailMember, setDetailMember] = useState<Member | null>(null);
-  const [uploadModal, setUploadModal] = useState(false);
   const [page, setPage] = useState(1);
   const [members, setMembers] = useState<Member[]>(() => createMemberRows());
   const visibleMembersForType = members.filter(member => ["일반", "신규", "휴면"].includes(member.type));
@@ -1861,23 +1907,42 @@ function StatsOverview() {
         </div>
         <div className="bg-card rounded-xl border border-border p-5">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 className="text-sm font-bold">Fallback 전환 막대그래프</h3>
+            <h3 className="text-sm font-bold">Fallback 전환 도넛</h3>
             <select value={fallbackPeriod} onChange={event => setFallbackPeriod(event.target.value)} className="rounded-lg border border-border bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground">
               {["일간", "주간", "월간"].map(option => <option key={option}>{option}</option>)}
             </select>
           </div>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={fallbackStageData} barSize={18}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-              <XAxis dataKey="stage" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${v}%`} domain={[90, 100]} />
-              <Tooltip formatter={(v: number) => [`${v}%`]} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="kakao" name="카카오 성공률" fill="#F7E600" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="sms" name="SMS 성공률" fill="#1843FA" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="lms" name="LMS 성공률" fill="#10B981" radius={[3, 3, 0, 0]} />
-            </BarChart>
+            <RePieChart>
+              <Pie data={fallbackDonutData} cx="50%" cy="50%" innerRadius={52} outerRadius={78} dataKey="value" paddingAngle={3}>
+                {fallbackDonutData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+              </Pie>
+              <Tooltip
+                content={({ active, payload }: any) => {
+                  if (!active || !payload?.length) return null;
+                  const item = payload[0].payload;
+                  return (
+                    <div className="rounded-lg border border-border bg-card p-3 text-xs shadow-lg">
+                      <div className="font-bold text-foreground">{item.name}</div>
+                      <div className="mt-1 text-muted-foreground">건수 {item.value.toLocaleString()}건 · 성공률 {item.rate ? `${item.rate}%` : "집계 제외"}</div>
+                      <div className="mt-1 text-muted-foreground">{item.channels}</div>
+                    </div>
+                  );
+                }}
+              />
+            </RePieChart>
           </ResponsiveContainer>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {fallbackDonutData.map(item => (
+              <div key={item.name} className="rounded-lg bg-muted px-3 py-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold">
+                  <span className="h-2 w-2 rounded-full" style={{ background: item.color }} />
+                  {item.name}
+                </div>
+                <div className="mt-1 text-[11px] text-muted-foreground">{item.value.toLocaleString()}건 · {item.rate ? `${item.rate}%` : "실패"}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
