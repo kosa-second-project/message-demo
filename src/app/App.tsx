@@ -126,7 +126,7 @@ const HISTORY: SendRecord[] = [
   { id: 6, template: "배송 완료 안내", channel: "SMS", targetType: "배송 완료자", count: 2841, success: 2830, fail: 11, sentAt: "2026-06-18 16:00", status: "완료", cost: 28410, savedCost: 0, affiliate: "현대백화점", failoverSteps: [{ label: "1차 SMS", requested: 2841, success: 2830, fail: 11 }] },
 ];
 
-const formatWon = (value: number) => `₩${value.toLocaleString()}`;
+const formatWon = (value: number) => `${value.toLocaleString()}원`;
 const QUEUE_STATUS = [
   { label: "대기", count: 0, color: "bg-slate-400" },
   { label: "발송 중", count: 2500, color: "bg-blue-500" },
@@ -222,11 +222,18 @@ const weekdayClickData = [
   { day: "목", rate: 17.3 }, { day: "금", rate: 15.9 }, { day: "토", rate: 11.4 }, { day: "일", rate: 10.1 },
 ];
 const hourlyClickData = [
-  { time: "08시", rate: 8.4 }, { time: "10시", rate: 18.7 }, { time: "12시", rate: 14.2 },
-  { time: "14시", rate: 17.9 }, { time: "16시", rate: 21.3 }, { time: "18시", rate: 13.6 },
+  { time: "00시", rate: 2.1 }, { time: "01시", rate: 1.4 }, { time: "02시", rate: 0.9 },
+  { time: "03시", rate: 0.7 }, { time: "04시", rate: 0.8 }, { time: "05시", rate: 1.2 },
+  { time: "06시", rate: 2.6 }, { time: "07시", rate: 5.3 }, { time: "08시", rate: 8.4 },
+  { time: "09시", rate: 13.8 }, { time: "10시", rate: 18.7 }, { time: "11시", rate: 16.9 },
+  { time: "12시", rate: 14.2 }, { time: "13시", rate: 15.6 }, { time: "14시", rate: 17.9 },
+  { time: "15시", rate: 19.4 }, { time: "16시", rate: 21.3 }, { time: "17시", rate: 18.1 },
+  { time: "18시", rate: 13.6 }, { time: "19시", rate: 10.2 }, { time: "20시", rate: 8.7 },
+  { time: "21시", rate: 6.1 }, { time: "22시", rate: 4.3 }, { time: "23시", rate: 3.0 },
 ];
 const templatePerformanceTop = [
   { name: "생일 축하 메시지", click: 34.2, conversion: 7.1, source: "기본 템플릿" },
+  { name: "AI 생성 템플릿", click: 31.6, conversion: 6.8, source: "기본 템플릿" },
   { name: "우수고객 전용 혜택", click: 28.9, conversion: 6.4, source: "AI 템플릿" },
   { name: "신규 가입 환영", click: 25.4, conversion: null, source: "AI 템플릿" },
   { name: "6월 여름 할인 이벤트", click: 21.8, conversion: 5.2, source: "기본 템플릿" },
@@ -295,6 +302,56 @@ function Btn({ children, variant = "primary", size = "md", onClick, disabled = f
   return <button className={`${base} ${sz} ${vars[variant] || vars.primary} ${className}`} onClick={onClick} disabled={disabled}>{children}</button>;
 }
 
+type TemplateFormState = Pick<Template, "name" | "channel" | "content" | "category"> & { scope: string };
+
+function TemplateFormFields({ form, setForm, onCancel, onSave, saveDisabled = false }: {
+  form: TemplateFormState;
+  setForm: React.Dispatch<React.SetStateAction<TemplateFormState>>;
+  onCancel: () => void;
+  onSave: () => void;
+  saveDisabled?: boolean;
+}) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="mb-1 block text-xs font-semibold text-muted-foreground">템플릿명</label>
+        <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-muted-foreground">채널</label>
+          <select value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))} className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none">
+            {["SMS", "LMS", "카카오 알림톡", "카카오 친구톡", "RCS"].map(channel => <option key={channel}>{channel}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-muted-foreground">카테고리</label>
+          <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none">
+            {["이벤트", "혜택", "안내"].map(category => <option key={category}>{category}</option>)}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-semibold text-muted-foreground">공개 범위</label>
+        <select value={form.scope} onChange={e => setForm(f => ({ ...f, scope: e.target.value }))} className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none">
+          {["전사 공통", "현대백화점 전용", "현대홈쇼핑 전용", "한섬 전용"].map(scope => <option key={scope}>{scope}</option>)}
+        </select>
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-semibold text-muted-foreground">메시지 내용</label>
+        <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={4} className="w-full resize-none rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+        <div className="mt-1.5 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">{form.content.length}자</span>
+        </div>
+      </div>
+      <div className="flex justify-end gap-2">
+        <Btn variant="outline" onClick={onCancel}>취소</Btn>
+        <Btn disabled={saveDisabled || !form.name.trim() || !form.content.trim()} onClick={onSave}>저장</Btn>
+      </div>
+    </div>
+  );
+}
+
 function Modal({ open, onClose, title, children, wide = false }: {
   open: boolean; onClose: () => void; title: string; children: React.ReactNode; wide?: boolean;
 }) {
@@ -357,6 +414,168 @@ function AiReportDetail({ compact = false }: { compact?: boolean }) {
           <div className="text-xs font-semibold text-primary">{section.action}</div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function QueueStatusCard({ subtitle, onDetailClick }: { subtitle?: string; onDetailClick?: () => void }) {
+  const [hoveredQueue, setHoveredQueue] = useState<{ label: string; count: number; rate: number; x: number; y: number } | null>(null);
+  const queueTotal = QUEUE_STATUS.reduce((sum, current) => sum + current.count, 0);
+  const queueColors: Record<string, string> = {
+    "대기": "#94A3B8",
+    "발송 중": "#3B82F6",
+    "완료": "#10B981",
+    "실패": "#EF4444",
+  };
+  const showQueueTooltip = (item: typeof QUEUE_STATUS[number], event: React.MouseEvent<HTMLButtonElement>) => {
+    const rate = queueTotal === 0 ? 0 : (item.count / queueTotal) * 100;
+    const tooltipWidth = 176;
+    const tooltipHeight = 88;
+    const offset = 14;
+    const viewportPadding = 12;
+    setHoveredQueue({
+      label: item.label,
+      count: item.count,
+      rate,
+      x: Math.min(event.clientX + offset, window.innerWidth - tooltipWidth - viewportPadding),
+      y: Math.min(event.clientY + offset, window.innerHeight - tooltipHeight - viewportPadding),
+    });
+  };
+
+  return (
+    <div className="bg-card rounded-xl border border-border p-4">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between mb-3">
+        <div>
+          <h3 className="text-sm font-bold text-foreground">실시간 발송 큐 상태</h3>
+          {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+        </div>
+        {onDetailClick && (
+          <button onClick={onDetailClick} className="text-xs text-primary font-semibold hover:underline flex items-center gap-0.5">상세 분석 <ChevronRight className="w-3 h-3" /></button>
+        )}
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+        {QUEUE_STATUS.map(item => {
+          const rate = queueTotal === 0 ? 0 : (item.count / queueTotal) * 100;
+          return (
+            <div key={item.label} className="rounded-lg bg-muted px-3 py-2">
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: queueColors[item.label] }} />
+                  <span className="text-xs text-muted-foreground">{item.label}</span>
+                </div>
+                <span className="text-[11px] font-bold text-muted-foreground">{rate.toFixed(1)}%</span>
+              </div>
+              <div className="text-lg font-bold">{item.count.toLocaleString()}건</div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="relative">
+        {hoveredQueue && (
+          <div
+            className="pointer-events-none fixed z-50 w-44 rounded-lg border border-border bg-card p-3 text-xs shadow-lg"
+            style={{ left: hoveredQueue.x, top: hoveredQueue.y }}
+          >
+            <div className="font-bold text-foreground">{hoveredQueue.label}</div>
+            <div className="mt-1 text-muted-foreground">건수 {hoveredQueue.count.toLocaleString()}건</div>
+            <div className="text-muted-foreground">비중 {hoveredQueue.rate.toFixed(1)}%</div>
+          </div>
+        )}
+        <div className="flex h-4 overflow-hidden rounded-full bg-muted">
+          {QUEUE_STATUS.map(item => {
+            const rate = queueTotal === 0 ? 0 : (item.count / queueTotal) * 100;
+            return (
+              <button
+                key={item.label}
+                type="button"
+                className="h-full transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                style={{ width: `${Math.max(item.count === 0 ? 2 : 4, rate)}%`, backgroundColor: queueColors[item.label] }}
+                onMouseEnter={event => showQueueTooltip(item, event)}
+                onMouseMove={event => showQueueTooltip(item, event)}
+                onMouseLeave={() => setHoveredQueue(null)}
+                onFocus={() => setHoveredQueue({ label: item.label, count: item.count, rate, x: 16, y: 16 })}
+                onBlur={() => setHoveredQueue(null)}
+                aria-label={`${item.label}: ${item.count.toLocaleString()}건, ${rate.toFixed(1)}%`}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CostComparisonCard({ title = "비용 비교 현황", className = "", chartClassName = "h-[220px] min-h-0" }: { title?: string; className?: string; chartClassName?: string }) {
+  return (
+    <div className={`bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col ${className}`}>
+      <h3 className="text-sm font-bold mb-3">{title}</h3>
+      <div className={chartClassName}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={routingSavingsData} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+            <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+            <YAxis tick={{ fontSize: 11 }} width={84} tickFormatter={v => formatWon(Number(v))} />
+            <Tooltip formatter={(v: number) => [formatWon(v)]} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Line type="monotone" dataKey="actual" name="실제 청구 비용" stroke="#1843FA" strokeWidth={2.5} dot={{ r: 3 }} />
+            <Line type="monotone" dataKey="baseline" name="최대 비용" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 3 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function ChannelShareCard({ title = "채널별 발송 비중", className = "" }: { title?: string; className?: string }) {
+  return (
+    <div className={`bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col ${className}`}>
+      <h3 className="text-sm font-bold text-foreground mb-3">{title}</h3>
+      <div className="grid min-h-0 flex-1 grid-cols-[0.8fr_1fr] gap-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <RePieChart>
+            <Pie data={channelPie} cx="50%" cy="50%" innerRadius={38} outerRadius={58} dataKey="value" paddingAngle={3} label={({ value }) => `${value}%`} labelLine={false}>
+              {channelPie.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+            </Pie>
+            <Tooltip formatter={(v: number) => [`${v}%`]} />
+          </RePieChart>
+        </ResponsiveContainer>
+        <div className="grid content-center gap-1">
+          {channelPie.map((channel, index) => (
+            <div key={index} className="flex items-center gap-1.5 text-xs">
+              <span className="w-2.5 h-2.5 rounded-sm" style={{ background: channel.color }} />
+              <span className="text-muted-foreground">{channel.name}</span>
+              <span className="ml-auto font-bold">{channel.value}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DailySendTrendCard({ title = "일별 발송 & 성공 추이", gradientId = "dailySendsGrad", className = "" }: { title?: string; gradientId?: string; className?: string }) {
+  return (
+    <div className={`bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col ${className}`}>
+      <h3 className="text-sm font-bold mb-3">{title}</h3>
+      <div className="min-h-0 flex-1">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={dailyTrend}>
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#1843FA" stopOpacity={0.16} />
+                <stop offset="95%" stopColor="#1843FA" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
+            <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+            <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
+            <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Area type="monotone" dataKey="sends" stroke="#1843FA" fill={`url(#${gradientId})`} strokeWidth={2} name="발송" />
+            <Area type="monotone" dataKey="success" stroke="#10B981" fill="none" strokeWidth={2} strokeDasharray="4 3" name="성공" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
@@ -429,7 +648,7 @@ const NAV_ITEMS = [
 const STAT_ITEMS = [
   { page: "stats-overview" as Page, label: "발송 현황" },
   { page: "stats-channel" as Page, label: "채널 분석" },
-  { page: "stats-routing" as Page, label: "비용/라우팅 분석" },
+  { page: "stats-routing" as Page, label: "비용 분석" },
   { page: "stats-member" as Page, label: "고객 분석" },
   { page: "stats-performance" as Page, label: "성과 분석" },
 ];
@@ -502,7 +721,7 @@ function Sidebar({ current, setCurrent, onLogout }: { current: Page; setCurrent:
 const PAGE_TITLES: Record<Page, string> = {
   dashboard: "대시보드", send: "메시지 발송", templates: "템플릿 관리", history: "전송 기록",
   members: "고객 관리", "stats-overview": "통계 · 발송 현황", "stats-channel": "통계 · 채널 분석",
-  "stats-routing": "통계 · 비용/라우팅 분석", "stats-member": "통계 · 고객 분석", "stats-performance": "통계 · 성과 분석",
+  "stats-routing": "통계 · 비용 분석", "stats-member": "통계 · 고객 분석", "stats-performance": "통계 · 성과 분석",
 };
 function Header({ page }: { page: Page }) {
   return (
@@ -524,137 +743,21 @@ function Header({ page }: { page: Page }) {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 function DashboardPage({ setPage }: { setPage: (p: Page) => void }) {
-  const [hoveredQueue, setHoveredQueue] = useState<{ label: string; count: number; rate: number; x: number; y: number } | null>(null);
-  const queueTotal = QUEUE_STATUS.reduce((sum, current) => sum + current.count, 0);
-  const queueColors: Record<string, string> = {
-    "대기": "#94A3B8",
-    "발송 중": "#3B82F6",
-    "완료": "#10B981",
-    "실패": "#EF4444",
-  };
-  const showQueueTooltip = (item: typeof QUEUE_STATUS[number], event: React.MouseEvent<HTMLButtonElement>) => {
-    const rate = queueTotal === 0 ? 0 : (item.count / queueTotal) * 100;
-    const tooltipWidth = 176;
-    const tooltipHeight = 88;
-    const offset = 14;
-    const viewportPadding = 12;
-    setHoveredQueue({
-      label: item.label,
-      count: item.count,
-      rate,
-      x: Math.min(event.clientX + offset, window.innerWidth - tooltipWidth - viewportPadding),
-      y: Math.min(event.clientY + offset, window.innerHeight - tooltipHeight - viewportPadding),
-    });
-  };
-
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
       <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
         <StatCard label="총 발송 건수" value="892,451" icon={<Send className="w-4 h-4" />} color="blue" />
         <StatCard label="발송 성공률/실패 현황" value="98.7% / 165건" icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
         <StatCard label="활성 고객 수 (일반, 신규)" value="198,341" icon={<Users className="w-4 h-4" />} color="violet" />
-        <StatCard label="실제 청구 비용" value="₩18,700,000" icon={<BarChart3 className="w-4 h-4" />} color="amber" />
-        <StatCard label="스마트 라우팅 절감 현황" value="₩5,500,000" icon={<Zap className="w-4 h-4" />} color="green" />
+        <StatCard label="실제 청구 비용" value={formatWon(18700000)} icon={<BarChart3 className="w-4 h-4" />} color="amber" />
+        <StatCard label="스마트 라우팅 절감 현황" value={formatWon(5500000)} icon={<Zap className="w-4 h-4" />} color="green" />
       </div>
 
-      <div className="bg-card rounded-xl border border-border p-4">
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-bold text-foreground">실시간 발송 큐 상태</h3>
-            <p className="text-xs text-muted-foreground mt-1">대량 발송 엔진의 현재 처리 흐름입니다.</p>
-          </div>
-          <button onClick={() => setPage("stats-routing")} className="text-xs text-primary font-semibold hover:underline flex items-center gap-0.5">상세 분석 <ChevronRight className="w-3 h-3" /></button>
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
-          {QUEUE_STATUS.map(item => {
-            const rate = queueTotal === 0 ? 0 : (item.count / queueTotal) * 100;
-            return (
-              <div key={item.label} className="rounded-lg bg-muted px-3 py-2">
-                <div className="mb-1 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: queueColors[item.label] }} />
-                    <span className="text-xs text-muted-foreground">{item.label}</span>
-                  </div>
-                  <span className="text-[11px] font-bold text-muted-foreground">{rate.toFixed(1)}%</span>
-                </div>
-                <div className="text-lg font-bold">{item.count.toLocaleString()}건</div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="relative">
-          {hoveredQueue && (
-            <div
-              className="pointer-events-none fixed z-50 w-44 rounded-lg border border-border bg-card p-3 text-xs shadow-lg"
-              style={{ left: hoveredQueue.x, top: hoveredQueue.y }}
-            >
-              <div className="font-bold text-foreground">{hoveredQueue.label}</div>
-              <div className="mt-1 text-muted-foreground">건수 {hoveredQueue.count.toLocaleString()}건</div>
-              <div className="text-muted-foreground">비중 {hoveredQueue.rate.toFixed(1)}%</div>
-            </div>
-          )}
-          <div className="flex h-4 overflow-hidden rounded-full bg-muted">
-            {QUEUE_STATUS.map(item => {
-              const rate = queueTotal === 0 ? 0 : (item.count / queueTotal) * 100;
-              return (
-                <button
-                  key={item.label}
-                  type="button"
-                  className="h-full transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  style={{ width: `${Math.max(item.count === 0 ? 2 : 4, rate)}%`, backgroundColor: queueColors[item.label] }}
-                  onMouseEnter={event => showQueueTooltip(item, event)}
-                  onMouseMove={event => showQueueTooltip(item, event)}
-                  onMouseLeave={() => setHoveredQueue(null)}
-                  onFocus={() => setHoveredQueue({ label: item.label, count: item.count, rate, x: 16, y: 16 })}
-                  onBlur={() => setHoveredQueue(null)}
-                  aria-label={`${item.label}: ${item.count.toLocaleString()}건, ${rate.toFixed(1)}%`}
-                />
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      <QueueStatusCard subtitle="대량 발송 엔진의 현재 처리 흐름입니다." onDetailClick={() => setPage("stats-routing")} />
 
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-3 gap-3">
-        <div className="lg:col-span-2 bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-foreground">비용 비교 현황</h3>
-          </div>
-          <div className="min-h-0 flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={routingSavingsData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
-                <Tooltip formatter={(v: number) => [formatWon(v)]} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line type="monotone" dataKey="actual" name="실제 비용" stroke="#1843FA" strokeWidth={2.5} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="baseline" name="최대 비용" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
-          <h3 className="text-sm font-bold text-foreground mb-3">채널별 발송 비중</h3>
-          <div className="min-h-0 flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <RePieChart>
-                <Pie data={channelPie} cx="50%" cy="50%" innerRadius={38} outerRadius={56} dataKey="value" paddingAngle={3}>
-                  {channelPie.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                </Pie>
-                <Tooltip formatter={(v: number) => [`${v}%`]} />
-              </RePieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-2 space-y-1">
-            {channelPie.map((c, i) => (
-              <div key={i} className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: c.color }} /><span className="text-muted-foreground">{c.name}</span></div>
-                <span className="font-semibold">{c.value}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <CostComparisonCard className="lg:col-span-2" chartClassName="min-h-0 flex-1" />
+        <ChannelShareCard />
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-2 gap-3">
@@ -678,30 +781,7 @@ function DashboardPage({ setPage }: { setPage: (p: Page) => void }) {
             ))}
           </div>
         </div>
-        <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-foreground">일별 발송 추이</h3>
-          </div>
-          <div className="min-h-0 flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={dailyTrend}>
-                <defs>
-                  <linearGradient id="dashboardDailySendsGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#1843FA" stopOpacity={0.16} />
-                    <stop offset="95%" stopColor="#1843FA" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
-                <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Area type="monotone" dataKey="sends" stroke="#1843FA" fill="url(#dashboardDailySendsGrad)" strokeWidth={2} name="발송" />
-                <Area type="monotone" dataKey="success" stroke="#10B981" fill="none" strokeWidth={2} strokeDasharray="4 3" name="성공" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        <DailySendTrendCard title="일별 발송 추이" gradientId="dashboardDailySendsGrad" />
       </div>
     </div>
   );
@@ -745,7 +825,7 @@ function SendMessagePageWizard() {
   const [templateChannelFilter, setTemplateChannelFilter] = useState("전체");
   const [selectedTemplateId, setSelectedTemplateId] = useState<number>(templates[0]?.id ?? 0);
   const [messageDraft, setMessageDraft] = useState(templates[0]?.content ?? "");
-  const [previewMode, setPreviewMode] = useState<"message" | "kakao" | "email">("kakao");
+  const [previewMode, setPreviewMode] = useState<"message" | "kakao" | "email">("message");
   const [selectedChannel, setSelectedChannel] = useState("kakao-noti");
   const [channelSettingsOpen, setChannelSettingsOpen] = useState(true);
   const [channelPriority, setChannelPriority] = useState(["kakao-noti"]);
@@ -769,7 +849,7 @@ function SendMessagePageWizard() {
   const [aiResult, setAiResult] = useState(false);
   const [aiReportOpen, setAiReportOpen] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
-  const [saveTemplateForm, setSaveTemplateForm] = useState({ name: "", category: "마케팅", channels: ["카카오 알림톡"] });
+  const [saveTemplateForm, setSaveTemplateForm] = useState<TemplateFormState>({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통" });
   const [aiJobs, setAiJobs] = useState([
     { name: "오타·맞춤법", model: "small-ko-proof", status: "대기", result: "-" },
     { name: "광고 표기", model: "small-policy-ad", status: "대기", result: "-" },
@@ -918,18 +998,12 @@ function SendMessagePageWizard() {
   const openSaveTemplate = () => {
     setSaveTemplateForm({
       name: selectedTemplate ? `${selectedTemplate.name} 복사본` : "새 메시지 템플릿",
-      category: selectedTemplate?.category ?? "마케팅",
-      channels: selectedChannelMeta?.label ? [selectedChannelMeta.label] : ["카카오 알림톡"],
+      channel: selectedChannelMeta?.label ?? "SMS",
+      content: messageDraft,
+      category: selectedTemplate?.category ?? "이벤트",
+      scope: selectedTemplate?.scope ?? "전사 공통",
     });
     setSaveTemplateOpen(true);
-  };
-  const toggleSaveTemplateChannel = (channel: string) => {
-    setSaveTemplateForm(prev => {
-      const channels = prev.channels.includes(channel)
-        ? prev.channels.filter(item => item !== channel)
-        : [...prev.channels, channel];
-      return { ...prev, channels };
-    });
   };
   const runAiPlan = () => {
     setAiLoading(true);
@@ -1480,48 +1554,13 @@ function SendMessagePageWizard() {
       <Modal open={aiReportOpen} onClose={() => setAiReportOpen(false)} title="AI 검사 리포트" wide>
         <AiReportDetail />
       </Modal>
-      <Modal open={saveTemplateOpen} onClose={() => setSaveTemplateOpen(false)} title="템플릿 저장">
-        <div className="space-y-4">
-          <label className="block text-sm font-semibold">
-            템플릿명
-            <input value={saveTemplateForm.name} onChange={event => setSaveTemplateForm(prev => ({ ...prev, name: event.target.value }))} className="mt-2 w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
-          </label>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <label className="block text-sm font-semibold">
-              카테고리
-              <select value={saveTemplateForm.category} onChange={event => setSaveTemplateForm(prev => ({ ...prev, category: event.target.value }))} className="mt-2 w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
-                {["마케팅", "안내", "혜택", "이벤트", "배송", "고객"].map(category => <option key={category}>{category}</option>)}
-              </select>
-            </label>
-            <div className="block text-sm font-semibold">
-              채널
-              <div className="mt-2 flex flex-wrap gap-2">
-                {CHANNELS.filter(channel => channel.id !== "rcs").map(channel => (
-                  <button key={channel.id} onClick={() => toggleSaveTemplateChannel(channel.label)} className={`rounded-lg border px-3 py-2 text-xs font-bold ${saveTemplateForm.channels.includes(channel.label) ? "border-primary bg-accent text-primary" : "border-border bg-card text-muted-foreground"}`}>
-                    {channel.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-xl border border-border bg-muted p-3">
-              <div className="mb-2 text-xs font-bold text-muted-foreground">저장될 메시지</div>
-              <pre className="max-h-48 overflow-auto whitespace-pre-wrap text-xs leading-relaxed text-foreground">{messageDraft}</pre>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-3">
-              <div className="mb-2 text-xs font-bold text-muted-foreground">미리보기</div>
-              <div className="rounded-2xl bg-slate-50 p-3">
-                <div className="mb-2 text-[11px] font-bold text-muted-foreground">현대퓨처넷</div>
-                <div className="rounded-2xl rounded-tl-sm bg-white p-3 text-xs leading-relaxed shadow-sm whitespace-pre-wrap">{previewMessage}</div>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Btn variant="outline" onClick={() => setSaveTemplateOpen(false)}>취소</Btn>
-            <Btn disabled={saveTemplateForm.channels.length === 0 || !saveTemplateForm.name.trim()} onClick={() => { setSaveTemplateOpen(false); alert("템플릿이 저장되었습니다."); }}>저장</Btn>
-          </div>
-        </div>
+      <Modal open={saveTemplateOpen} onClose={() => setSaveTemplateOpen(false)} title="템플릿 저장" wide>
+        <TemplateFormFields
+          form={saveTemplateForm}
+          setForm={setSaveTemplateForm}
+          onCancel={() => setSaveTemplateOpen(false)}
+          onSave={() => { setSaveTemplateOpen(false); alert("템플릿이 저장되었습니다."); }}
+        />
       </Modal>
     </div>
   );
@@ -1558,7 +1597,7 @@ function TemplatesPage() {
   const [templatePreviewMode, setTemplatePreviewMode] = useState<"message" | "kakao" | "email">("kakao");
   const [addModal, setAddModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [form, setForm] = useState({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통" });
+  const [form, setForm] = useState<TemplateFormState>({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통" });
 
   const filtered = useMemo(() => templates.filter(t => {
     const tags = getTemplateTags(t);
@@ -1589,39 +1628,6 @@ function TemplatesPage() {
   };
 
   const openEdit = (t: Template) => { setEditModal(t); setForm({ name: t.name, channel: t.channel, content: t.content, category: t.category, scope: t.scope ?? "전사 공통" }); };
-
-  const FormFields = () => (
-    <div className="space-y-3">
-      <div><label className="text-xs font-semibold text-muted-foreground block mb-1">템플릿명</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" /></div>
-      <div className="grid grid-cols-2 gap-3">
-        <div><label className="text-xs font-semibold text-muted-foreground block mb-1">채널</label>
-          <select value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none">
-            {["SMS", "LMS", "카카오 알림톡", "카카오 친구톡", "RCS"].map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-        <div><label className="text-xs font-semibold text-muted-foreground block mb-1">카테고리</label>
-          <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none">
-            {["이벤트", "혜택", "안내"].map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-      </div>
-      <div><label className="text-xs font-semibold text-muted-foreground block mb-1">공개 범위</label>
-        <select value={form.scope} onChange={e => setForm(f => ({ ...f, scope: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none">
-          {["전사 공통", "현대백화점 전용", "현대홈쇼핑 전용", "한섬 전용"].map(c => <option key={c}>{c}</option>)}
-        </select>
-      </div>
-      <div><label className="text-xs font-semibold text-muted-foreground block mb-1">메시지 내용</label>
-        <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={4} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" />
-        <div className="flex items-center justify-between mt-1.5">
-          <span className="text-xs text-muted-foreground">{form.content.length}자</span>
-        </div>
-      </div>
-      <div className="flex justify-end gap-2">
-        <Btn variant="outline" onClick={() => { setEditModal(null); setAddModal(false); }}>취소</Btn>
-        <Btn onClick={saveTemplate}>저장</Btn>
-      </div>
-    </div>
-  );
 
   return (
     <div className="p-6 space-y-4">
@@ -1795,8 +1801,12 @@ function TemplatesPage() {
           </div>
         )}
       </Modal>
-      <Modal open={!!editModal} onClose={() => setEditModal(null)} title="템플릿 수정" wide><FormFields /></Modal>
-      <Modal open={addModal} onClose={() => setAddModal(false)} title="새 템플릿 추가" wide><FormFields /></Modal>
+      <Modal open={!!editModal} onClose={() => setEditModal(null)} title="템플릿 수정" wide>
+        <TemplateFormFields form={form} setForm={setForm} onCancel={() => { setEditModal(null); setAddModal(false); }} onSave={saveTemplate} />
+      </Modal>
+      <Modal open={addModal} onClose={() => setAddModal(false)} title="새 템플릿 추가" wide>
+        <TemplateFormFields form={form} setForm={setForm} onCancel={() => { setEditModal(null); setAddModal(false); }} onSave={saveTemplate} />
+      </Modal>
       <Modal open={deleteId !== null} onClose={() => setDeleteId(null)} title="템플릿 삭제">
         <p className="text-sm text-muted-foreground mb-4">이 템플릿을 삭제하시겠습니까? 삭제 후 복구할 수 없습니다.</p>
         <div className="flex justify-end gap-2">
@@ -1814,20 +1824,17 @@ function HistoryPage() {
   const [filter, setFilter] = useState("전체");
   const [periodFilter, setPeriodFilter] = useState("30일");
   const [channelFilter, setChannelFilter] = useState("전체 채널");
-  const [affiliateFilter, setAffiliateFilter] = useState("전체 계열사");
   const [selectedRecord, setSelectedRecord] = useState<SendRecord | null>(null);
   const [page, setPage] = useState(1);
   const filtered = HISTORY.filter(r =>
     (filter === "전체" || r.status === filter) &&
     (channelFilter === "전체 채널" || r.channel === channelFilter) &&
-    (affiliateFilter === "전체 계열사" || r.affiliate === affiliateFilter) &&
     (r.template.includes(search) || r.channel.includes(search) || r.affiliate.includes(search))
   );
-  const pageSize = 8;
+  const pageSize = 10;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)));
   const pagedRecords = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const channelOptions = ["전체 채널", ...Array.from(new Set(HISTORY.map(r => r.channel)))];
-  const affiliateOptions = ["전체 계열사", ...Array.from(new Set(HISTORY.map(r => r.affiliate)))];
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
@@ -1845,22 +1852,17 @@ function HistoryPage() {
           <select value={channelFilter} onChange={e => setChannelFilter(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground">
             {channelOptions.map(option => <option key={option}>{option}</option>)}
           </select>
-          <select value={affiliateFilter} onChange={e => setAffiliateFilter(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-            {affiliateOptions.map(option => <option key={option}>{option}</option>)}
-          </select>
         </div>
         <Btn variant="outline" size="sm"><Download className="w-3.5 h-3.5" /> Excel 내보내기</Btn>
       </div>
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         <table className="w-full text-sm">
           <thead><tr className="bg-muted border-b border-border">
-            {["발송일시", "계열사", "템플릿", "채널", "대상", "발송", "성공", "실패", "비용 절감", "1차 성공률", "상태"].map(h => (
+            {["발송일시", "계열사", "템플릿", "채널", "대상", "발송", "성공", "실패", "성공률", "비용 절감", "상태"].map(h => (
               <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
             ))}
           </tr></thead>
-          <tbody>{pagedRecords.map(r => {
-            const rate = ((r.success / r.count) * 100).toFixed(1);
-            return (
+          <tbody>{pagedRecords.map(r => (
               <tr key={r.id} onClick={() => setSelectedRecord(r)} className={`border-b border-border transition-colors cursor-pointer ${selectedRecord?.id === r.id ? "bg-accent" : "hover:bg-blue-50/70"}`}>
                 <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">{r.sentAt}</td>
                 <td className="px-4 py-3.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">{r.affiliate}</td>
@@ -1870,17 +1872,11 @@ function HistoryPage() {
                 <td className="px-4 py-3.5 text-xs font-bold">{r.count.toLocaleString()}</td>
                 <td className="px-4 py-3.5 text-xs font-bold text-emerald-600">{r.success.toLocaleString()}</td>
                 <td className="px-4 py-3.5 text-xs font-bold text-red-500">{r.fail.toLocaleString()}</td>
+                <td className="px-4 py-3.5 text-xs font-bold text-foreground">{((r.success / r.count) * 100).toFixed(1)}%</td>
                 <td className="px-4 py-3.5 text-xs font-bold text-emerald-600 whitespace-nowrap">{formatWon(r.savedCost)}</td>
-                <td className="px-4 py-3.5">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-muted rounded-full h-1.5 w-16"><div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${rate}%` }} /></div>
-                    <span className="text-xs font-semibold">{rate}%</span>
-                  </div>
-                </td>
                 <td className="px-4 py-3.5"><Badge text={r.status} variant={r.status === "완료" ? "green" : r.status === "진행중" ? "amber" : "red"} /></td>
               </tr>
-            );
-          })}</tbody>
+            ))}</tbody>
         </table>
         <Pagination page={currentPage} total={filtered.length} pageSize={pageSize} onPage={setPage} />
       </div>
@@ -1959,7 +1955,6 @@ function MembersPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("전체");
   const [detailTagInput, setDetailTagInput] = useState("");
-  const [customMemberTags, setCustomMemberTags] = useState<string[]>([]);
   const [memberTab, setMemberTab] = useState<"members" | "blocked">("members");
   const [detailMember, setDetailMember] = useState<Member | null>(null);
   const [targetEditMode, setTargetEditMode] = useState(false);
@@ -1967,7 +1962,7 @@ function MembersPage() {
   const [members, setMembers] = useState<Member[]>(() => createMemberRows());
   const visibleMembersForType = members.filter(member => ["일반", "신규", "휴면"].includes(member.type));
   const blockedMembers = visibleMembersForType.filter(member => !member.smsConsent || !member.kakaoConsent);
-  const allMemberTags = useMemo(() => uniqueTags([...MEMBER_TAGS, ...members.flatMap(member => member.tags ?? []), ...customMemberTags]), [members, customMemberTags]);
+  const allMemberTags = useMemo(() => uniqueTags(MEMBER_TAGS), []);
 
   const filtered = visibleMembersForType.filter(m =>
     memberTab === "members" &&
@@ -1989,9 +1984,8 @@ function MembersPage() {
   const addTagToDetailMember = (tagValue = detailTagInput) => {
     if (!detailMember) return;
     const tag = tagValue.trim();
-    if (!tag) return;
+    if (!tag || !allMemberTags.includes(tag)) return;
     updateMemberTags(detailMember.id, [...(detailMember.tags ?? []), tag]);
-    setCustomMemberTags(prev => prev.includes(tag) ? prev : [...prev, tag]);
     setDetailTagInput("");
   };
   const removeTagFromDetailMember = (tag: string) => {
@@ -2024,6 +2018,10 @@ function MembersPage() {
       };
     });
   }, [detailMember?.id]);
+  const availableDetailTags = allMemberTags
+    .filter(tag => !(detailMember?.tags ?? []).includes(tag))
+    .filter(tag => !detailTagInput.trim() || tag.includes(detailTagInput.trim()) || tagGroupLabel(tag).includes(detailTagInput.trim()))
+    .slice(0, 30);
 
   return (
     <div className="flex h-full min-h-0 flex-col p-6">
@@ -2181,17 +2179,15 @@ function MembersPage() {
                     </div>
                     <div>
                       <div className="mb-2 text-[11px] font-bold text-muted-foreground">타겟 추가</div>
-                      <div className="mb-2 flex gap-2">
-                        <input value={detailTagInput} onChange={e => setDetailTagInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addTagToDetailMember(); }} placeholder="직접 입력" className="min-w-0 flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm" />
-                        <button onClick={() => addTagToDetailMember()} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white">추가</button>
-                      </div>
+                      <input value={detailTagInput} onChange={e => setDetailTagInput(e.target.value)} placeholder="태그 검색" className="mb-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" />
                       <div className="max-h-28 overflow-y-auto rounded-lg bg-muted/60 p-3">
                         <div className="flex flex-wrap gap-1.5">
-                          {allMemberTags.filter(tag => !(detailMember.tags ?? []).includes(tag)).slice(0, 30).map(tag => (
+                          {availableDetailTags.map(tag => (
                             <button key={tag} onClick={() => addTagToDetailMember(tag)} className="rounded-full border border-border bg-card px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:border-primary/50 hover:text-foreground">
                               <span className="mr-1 opacity-70">{tagGroupLabel(tag)}</span>{tag}
                             </button>
                           ))}
+                          {availableDetailTags.length === 0 && <span className="text-xs font-semibold text-muted-foreground">검색 가능한 고정 태그가 없습니다.</span>}
                         </div>
                       </div>
                     </div>
@@ -2250,8 +2246,8 @@ const downloadStatsExcel = () => {
     ["발송 현황", "이번달 총 발송", "892451"],
     ["발송 현황", "Fallback 전환", "5549"],
     ["발송 현황", "Fallback 전환율", "1.9%"],
-    ["비용/라우팅", "실제 청구 비용", "18700000"],
-    ["비용/라우팅", "월별 절감액", "5500000"],
+    ["비용 분석", "실제 청구 비용", formatWon(18700000)],
+    ["비용 분석", "월별 절감액", formatWon(5500000)],
     ["성과 분석", "평균 클릭률", "19.1%"],
     ["성과 분석", "전환율", "5.8%"],
   ];
@@ -2279,26 +2275,10 @@ function StatsOverview() {
         <StatCard label="이번달 총 발송" value="892,451" sub="전월 대비 +12.4%" trend={{ val: "+12.4%", up: true }} icon={<Send className="w-4 h-4" />} color="blue" />
         <StatCard label="평균 성공률" value="98.4%" sub="실패 14,232건" trend={{ val: "+0.2%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
         <StatCard label="일평균 발송" value="29,748" sub="최고 284,391건" icon={<Activity className="w-4 h-4" />} color="violet" />
-        <StatCard label="실제 청구 비용" value="₩18.7M" sub="전월 대비 +8.1%" trend={{ val: "+8.1%", up: false }} icon={<Target className="w-4 h-4" />} color="amber" />
-        <StatCard label="스마트 라우팅 절감" value="₩5.5M" sub="최대 비용 대비" icon={<RefreshCw className="w-4 h-4" />} color="green" />
+        <StatCard label="실제 청구 비용" value={formatWon(18700000)} sub="전월 대비 +8.1%" trend={{ val: "+8.1%", up: false }} icon={<Target className="w-4 h-4" />} color="amber" />
+        <StatCard label="스마트 라우팅 절감" value={formatWon(5500000)} sub="최대 비용 대비" icon={<RefreshCw className="w-4 h-4" />} color="green" />
       </div>
-      <div className="bg-card rounded-xl border border-border p-4">
-        <h3 className="text-sm font-bold mb-3">실시간 발송 큐 상태</h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
-          {QUEUE_STATUS.map(item => (
-            <div key={item.label} className="rounded-lg bg-muted px-3 py-2">
-              <div className="text-xs text-muted-foreground mb-1">{item.label}</div>
-              <div className="text-lg font-bold">{item.count.toLocaleString()}건</div>
-            </div>
-          ))}
-        </div>
-        <div className="h-2 rounded-full bg-muted overflow-hidden flex">
-          {QUEUE_STATUS.map(item => {
-            const total = QUEUE_STATUS.reduce((sum, current) => sum + current.count, 0);
-            return <div key={item.label} className={`${item.color} h-full`} style={{ width: `${Math.max(2, (item.count / total) * 100)}%` }} />;
-          })}
-        </div>
-      </div>
+      <QueueStatusCard />
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-2 gap-3">
         <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
           <h3 className="text-sm font-bold mb-3">월별 채널별 발송 현황</h3>
@@ -2319,24 +2299,7 @@ function StatsOverview() {
           </div>
         </div>
         <div className="grid min-h-0 grid-rows-2 gap-3">
-          <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
-            <h3 className="text-sm font-bold mb-3">일별 발송 & 성공 추이</h3>
-            <div className="min-h-0 flex-1">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={dailyTrend}>
-                  <defs>
-                    <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#1843FA" stopOpacity={0.15} /><stop offset="95%" stopColor="#1843FA" stopOpacity={0} /></linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
-                  <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
-                  <Area type="monotone" dataKey="sends" stroke="#1843FA" fill="url(#g1)" strokeWidth={2} name="발송" />
-                  <Area type="monotone" dataKey="success" stroke="#10B981" fill="none" strokeWidth={2} strokeDasharray="4 3" name="성공" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <DailySendTrendCard title="일별 발송 & 성공 추이" gradientId="statsDailySendsGrad" />
           <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
             <div className="mb-2 flex items-center justify-between gap-3">
               <h3 className="text-sm font-bold">Fallback 채널별 성공률</h3>
@@ -2366,6 +2329,18 @@ function StatsOverview() {
 }
 
 function StatsChannel() {
+  const totalChannelSends = channelCostData.reduce((sum, channel) => sum + channel.sends, 0);
+  const totalChannelCost = channelCostData.reduce((sum, channel) => sum + channel.cost, 0);
+  const weightedSuccessRate = channelCostData.reduce((sum, channel) => sum + channel.successRate * channel.sends, 0) / totalChannelSends;
+  const averageUnitCost = totalChannelCost / totalChannelSends;
+  const channelSummaryMetrics = [
+    { label: "총 발송", value: `${totalChannelSends.toLocaleString()}건`, sub: "전체 채널 합산" },
+    { label: "평균 성공률", value: `${weightedSuccessRate.toFixed(1)}%`, sub: "발송량 가중 평균" },
+    { label: "총 비용", value: formatWon(totalChannelCost), sub: "채널 발송 비용" },
+    { label: "평균 단가", value: `${averageUnitCost.toFixed(1)}원`, sub: "건당 평균 비용" },
+    { label: "활성 채널", value: `${channelCostData.length}개`, sub: "운영 중인 채널" },
+  ];
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -2375,11 +2350,11 @@ function StatsChannel() {
         <StatsReportActions />
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        {channelPie.map((c, i) => (
-          <div key={i} className="bg-card rounded-xl border border-border p-3 text-center">
-            <div className="w-3 h-3 rounded-full mx-auto mb-1.5" style={{ background: c.color }} />
-            <div className="text-xs text-muted-foreground mb-1">{c.name}</div>
-            <div className="text-lg font-bold">{c.value}%</div>
+        {channelSummaryMetrics.map(metric => (
+          <div key={metric.label} className="bg-card rounded-xl border border-border p-3">
+            <div className="text-xs text-muted-foreground mb-1">{metric.label}</div>
+            <div className="text-lg font-bold text-foreground">{metric.value}</div>
+            <div className="mt-1 text-[11px] text-muted-foreground">{metric.sub}</div>
           </div>
         ))}
       </div>
@@ -2419,28 +2394,7 @@ function StatsChannel() {
           </div>
         </div>
         <div className="grid min-h-0 grid-rows-[0.9fr_1.1fr] gap-3">
-          <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
-            <h3 className="text-sm font-bold mb-3">채널별 발송 비중</h3>
-            <div className="grid min-h-0 flex-1 grid-cols-[0.8fr_1fr] gap-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <RePieChart>
-                  <Pie data={channelPie} cx="50%" cy="50%" innerRadius={38} outerRadius={58} dataKey="value" paddingAngle={3} label={({ value }) => `${value}%`} labelLine={false}>
-                    {channelPie.map((e, i) => <Cell key={i} fill={e.color} />)}
-                  </Pie>
-                  <Tooltip formatter={(v: number) => [`${v}%`]} />
-                </RePieChart>
-              </ResponsiveContainer>
-              <div className="grid content-center gap-1">
-                {channelPie.map((c, i) => (
-                  <div key={i} className="flex items-center gap-1.5 text-xs">
-                    <span className="w-2.5 h-2.5 rounded-sm" style={{ background: c.color }} />
-                    <span className="text-muted-foreground">{c.name}</span>
-                    <span className="ml-auto font-bold">{c.value}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <ChannelShareCard />
           <div className="bg-card rounded-xl border border-border overflow-hidden">
             <div className="px-4 py-2.5 border-b border-border"><h3 className="text-sm font-bold">채널별 비용 및 평균 단가</h3></div>
             <table className="w-full text-sm">
@@ -2471,40 +2425,26 @@ function StatsRouting() {
         <StatsReportActions />
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="실제 청구 비용" value="₩18.7M" sub="6월 누적" icon={<Target className="w-4 h-4" />} color="amber" />
-        <StatCard label="최대 비용" value="₩24.2M" sub="동일 물량 기준" icon={<TrendingUp className="w-4 h-4" />} color="violet" />
-        <StatCard label="월별 절감액" value="₩5.5M" sub="절감률 22.7%" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
+        <StatCard label="실제 청구 비용" value={formatWon(18700000)} sub="6월 누적" icon={<Target className="w-4 h-4" />} color="amber" />
+        <StatCard label="최대 비용" value={formatWon(24200000)} sub="동일 물량 기준" icon={<TrendingUp className="w-4 h-4" />} color="violet" />
+        <StatCard label="월별 절감액" value={formatWon(5500000)} sub="절감률 22.7%" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
         <StatCard label="대체 발송 전환" value="5,549" sub="전환율 1.9%" trend={{ val: "+0.4%p", up: true }} icon={<RefreshCw className="w-4 h-4" />} color="blue" />
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-1 xl:grid-cols-[1.3fr_0.7fr] gap-3">
-        <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
-          <h3 className="text-sm font-bold mb-3">비용 비교 현황</h3>
-          <div className="min-h-0 flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={routingSavingsData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
-                <Tooltip formatter={(v: number) => [formatWon(v)]} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line type="monotone" dataKey="actual" name="실제 청구 비용" stroke="#1843FA" strokeWidth={2.5} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="baseline" name="최대 비용" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+      <div className="grid shrink-0 grid-cols-1 lg:grid-cols-2 gap-3">
+        <CostComparisonCard />
         <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
           <h3 className="text-sm font-bold mb-3">월별 절감액 추이</h3>
-          <div className="min-h-0 flex-1">
+          <div className="h-[220px] min-h-0">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={routingSavingsData}>
+              <AreaChart data={routingSavingsData} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
                 <defs>
                   <linearGradient id="savingGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10B981" stopOpacity={0.25} /><stop offset="95%" stopColor="#10B981" stopOpacity={0} /></linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₩${(v / 1000000).toFixed(0)}M`} />
+                <YAxis tick={{ fontSize: 11 }} width={84} tickFormatter={v => formatWon(Number(v))} />
                 <Tooltip formatter={(v: number) => [formatWon(v)]} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
                 <Area type="monotone" dataKey="saved" name="절감액" stroke="#10B981" fill="url(#savingGrad)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
@@ -2516,6 +2456,16 @@ function StatsRouting() {
 }
 
 function StatsMember() {
+  const consentChannelData = [
+    { label: "메시지", agreed: 198441, total: 307811, color: "bg-blue-500" },
+    { label: "카카오톡", agreed: 241320, total: 307811, color: "bg-amber-400" },
+    { label: "이메일", agreed: 204816, total: 307811, color: "bg-emerald-500" },
+  ].map(channel => ({
+    ...channel,
+    rate: Number(((channel.agreed / channel.total) * 100).toFixed(1)),
+    declined: channel.total - channel.agreed,
+  }));
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
       <div className="flex items-center justify-end">
@@ -2527,12 +2477,12 @@ function StatsMember() {
         <StatCard label="신규 고객" value="34,210" sub="이번달 +1,284명" trend={{ val: "+3.9%", up: true }} icon={<TrendingUp className="w-4 h-4" />} color="green" />
         <StatCard label="휴면 고객" value="23,420" sub="6개월 이상 미활동" trend={{ val: "-284명", up: true }} icon={<Clock className="w-4 h-4" />} color="violet" />
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid shrink-0 grid-cols-1 lg:grid-cols-2 gap-3">
         <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
           <h3 className="text-sm font-bold mb-3">신규 고객 가입자 수</h3>
-          <div className="min-h-0 flex-1">
+          <div className="h-[220px] min-h-0">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={newMemberData} barSize={24}>
+              <BarChart data={newMemberData} barSize={24} margin={{ top: 8, right: 8, left: 0, bottom: -8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
@@ -2543,23 +2493,25 @@ function StatsMember() {
           </div>
         </div>
         <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
-          <h3 className="text-sm font-bold mb-3">채널 동의 현황</h3>
-          <div className="min-h-0 flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={[
-                { label: "SMS", 동의: 198441, 미동의: 109370 },
-                { label: "카카오", 동의: 241320, 미동의: 66491 },
-                { label: "RCS", 동의: 48210, 미동의: 259601 },
-              ]} barSize={28}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
-                <Tooltip formatter={(v: number) => [v.toLocaleString() + "명"]} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="동의" fill="#1843FA" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="미동의" fill="#E4E4E7" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <h3 className="mb-3 text-sm font-bold">채널 동의 현황</h3>
+          <div className="grid flex-1 content-center gap-3">
+            {consentChannelData.map(channel => (
+              <div key={channel.label} className="rounded-lg border border-border bg-muted/40 p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <div className="text-sm font-bold text-foreground">{channel.label}</div>
+                  <div className="text-right">
+                    <div className="text-sm font-bold text-foreground">{channel.rate}%</div>
+                  </div>
+                </div>
+                <div className="h-2 rounded-full bg-card">
+                  <div className={`h-2 rounded-full ${channel.color}`} style={{ width: `${channel.rate}%` }} />
+                </div>
+                <div className="mt-2 flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
+                  <span>동의 {channel.agreed.toLocaleString()}명</span>
+                  <span>미동의 {channel.declined.toLocaleString()}명</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -2569,6 +2521,10 @@ function StatsMember() {
 
 function StatsPerformance() {
   const [performanceChannel, setPerformanceChannel] = useState("카카오 친구톡");
+  const rankedTemplatePerformanceTop = [...templatePerformanceTop]
+    .sort((a, b) => b.click - a.click || (b.conversion ?? -1) - (a.conversion ?? -1))
+    .slice(0, 5);
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -2601,20 +2557,21 @@ function StatsPerformance() {
       </div>
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="bg-card rounded-xl border border-border p-4 overflow-hidden">
-          <h3 className="text-sm font-bold mb-3">템플릿별 성과 Top 5</h3>
-          <div className="space-y-2">
-            {templatePerformanceTop.map((t, i) => (
-              <div key={i} className="space-y-1.5">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs font-semibold text-foreground">{t.name}</span>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">클릭 {t.click}%</span>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-bold">템플릿별 성과 Top 5</h3>
+            <span className="text-[11px] font-semibold text-muted-foreground">클릭률 순 · 동률 시 구매전환율 순</span>
+          </div>
+          <div className="space-y-1">
+            {rankedTemplatePerformanceTop.map((t, i) => (
+              <div key={t.name} className="grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-1">
+                <span className="text-right text-xs font-bold text-primary">{i + 1}</span>
+                <div className="min-w-0">
+                  <div className="truncate text-xs font-bold text-foreground">{t.name}</div>
+                  <div className="mt-0.5 truncate text-[10px] text-muted-foreground">구매전환율 {t.conversion === null ? "미반영" : `${t.conversion}%`}</div>
                 </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <span>구매전환 {t.conversion === null ? "반영X" : `${t.conversion}%`}</span>
-                  {t.source === "AI 템플릿" && <Badge text="AI 템플릿" variant="blue" />}
-                </div>
-                <div className="flex gap-1">
-                  <div className="flex-1 bg-muted rounded-full h-1.5"><div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${t.click}%` }} /></div>
+                <div className="text-right">
+                  <div className="text-xs font-bold text-foreground">{t.click}%</div>
+                  <div className="text-[10px] text-muted-foreground">클릭률</div>
                 </div>
               </div>
             ))}
@@ -2640,7 +2597,7 @@ function StatsPerformance() {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={hourlyClickData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-                <XAxis dataKey="time" tick={{ fontSize: 11 }} />
+                <XAxis dataKey="time" interval={2} tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} />
                 <Tooltip formatter={(v: number) => [`${v}%`]} />
                 <Line type="monotone" dataKey="rate" name="클릭률" stroke="#1843FA" strokeWidth={2.5} dot={{ r: 4 }} />
