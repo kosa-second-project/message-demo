@@ -18,27 +18,28 @@ import {
 type Page =
   | "dashboard" | "send" | "templates" | "history" | "members"
   | "stats-overview" | "stats-channel" | "stats-routing" | "stats-member" | "stats-performance";
+type MessagePurpose = "advertising" | "informational";
 
 interface Template {
   id: number; name: string; channel: string; content: string; category: string; usageCount: number; updatedAt: string; tags?: string[];
-  scope?: string; openRate?: number; clickRate?: number; optOutRate?: number;
+  scope?: string; openRate?: number; clickRate?: number; optOutRate?: number; messagePurpose: MessagePurpose;
 }
 interface Member {
   id: number; name: string; phone: string; type: string; smsConsent: boolean; kakaoConsent: boolean; emailConsent: boolean; rcsConsent: boolean; joinedAt: string; lastSend: string; tags?: string[];
 }
 interface SendRecord {
   id: number; template: string; channel: string; targetType: string; count: number; success: number; fail: number; sentAt: string; status: string;
-  cost: number; savedCost: number; affiliate: string; failoverSteps: { label: string; requested: number; success: number; fail: number }[];
+  cost: number; savedCost: number; affiliate: string; messagePurpose: MessagePurpose; failoverSteps: { label: string; requested: number; success: number; fail: number }[];
 }
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 const TEMPLATES: Template[] = [
-  { id: 1, name: "6월 여름 할인 이벤트", channel: "카카오 친구톡", content: "[현대퓨처넷] 안녕하세요 #{이름}님! 6월 특별 여름 세일이 시작되었습니다.\n최대 30% 할인 혜택을 지금 바로 만나보세요.", category: "이벤트", usageCount: 128, updatedAt: "2026-06-20", scope: "현대백화점 전용", openRate: 54.3, clickRate: 21.8, optOutRate: 0.18 },
-  { id: 2, name: "생일 축하 메시지", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 생일을 진심으로 축하드립니다! 특별한 생일 쿠폰을 확인해보세요.", category: "혜택", usageCount: 2341, updatedAt: "2026-06-18", scope: "전사 공통", openRate: 78.4, clickRate: 34.2, optOutRate: 0.05 },
-  { id: 3, name: "신규 가입 환영", channel: "카카오 알림톡", content: "[현대퓨처넷] #{이름}님, 가입을 환영합니다! 신규 가입 혜택 5,000P가 적립되었습니다.", category: "안내", usageCount: 891, updatedAt: "2026-06-15", scope: "전사 공통", openRate: 68.1, clickRate: 25.4, optOutRate: 0.08 },
-  { id: 4, name: "포인트 소멸 안내", channel: "LMS", content: "[현대퓨처넷] 안내 드립니다. #{이름}님의 포인트 #{포인트}P가 2026년 6월 30일 소멸 예정입니다. 지금 바로 사용하세요!", category: "안내", usageCount: 445, updatedAt: "2026-06-10", scope: "현대홈쇼핑 전용", openRate: 62.8, clickRate: 18.1, optOutRate: 0.11 },
-  { id: 5, name: "우수고객 전용 혜택", channel: "카카오 친구톡", content: "[현대퓨처넷] #{이름}님께만 드리는 우수고객 전용 특가 상품을 안내해드립니다. 특별한 혜택을 놓치지 마세요!", category: "혜택", usageCount: 312, updatedAt: "2026-06-08", scope: "한섬 전용", openRate: 71.2, clickRate: 28.9, optOutRate: 0.22 },
-  { id: 6, name: "배송 완료 안내", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 주문하신 상품이 배송 완료되었습니다. 주문번호: #{주문번호}", category: "안내", usageCount: 5821, updatedAt: "2026-06-01", scope: "전사 공통", openRate: 66.4, clickRate: 12.6, optOutRate: 0.03 },
+  { id: 1, name: "6월 여름 할인 이벤트", channel: "카카오 친구톡", content: "[현대퓨처넷] 안녕하세요 #{이름}님! 6월 특별 여름 세일이 시작되었습니다.\n최대 30% 할인 혜택을 지금 바로 만나보세요.", category: "이벤트", usageCount: 128, updatedAt: "2026-06-20", scope: "현대백화점 전용", openRate: 54.3, clickRate: 21.8, optOutRate: 0.18, messagePurpose: "advertising" },
+  { id: 2, name: "생일 축하 메시지", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 생일을 진심으로 축하드립니다! 특별한 생일 쿠폰을 확인해보세요.", category: "혜택", usageCount: 2341, updatedAt: "2026-06-18", scope: "전사 공통", openRate: 78.4, clickRate: 34.2, optOutRate: 0.05, messagePurpose: "advertising" },
+  { id: 3, name: "신규 가입 환영", channel: "카카오 알림톡", content: "[현대퓨처넷] #{이름}님, 가입을 환영합니다! 신규 가입 혜택 5,000P가 적립되었습니다.", category: "안내", usageCount: 891, updatedAt: "2026-06-15", scope: "전사 공통", openRate: 68.1, clickRate: 25.4, optOutRate: 0.08, messagePurpose: "informational" },
+  { id: 4, name: "포인트 소멸 안내", channel: "LMS", content: "[현대퓨처넷] 안내 드립니다. #{이름}님의 포인트 #{포인트}P가 2026년 6월 30일 소멸 예정입니다. 지금 바로 사용하세요!", category: "안내", usageCount: 445, updatedAt: "2026-06-10", scope: "현대홈쇼핑 전용", openRate: 62.8, clickRate: 18.1, optOutRate: 0.11, messagePurpose: "informational" },
+  { id: 5, name: "우수고객 전용 혜택", channel: "카카오 친구톡", content: "[현대퓨처넷] #{이름}님께만 드리는 우수고객 전용 특가 상품을 안내해드립니다. 특별한 혜택을 놓치지 마세요!", category: "혜택", usageCount: 312, updatedAt: "2026-06-08", scope: "한섬 전용", openRate: 71.2, clickRate: 28.9, optOutRate: 0.22, messagePurpose: "advertising" },
+  { id: 6, name: "배송 완료 안내", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 주문하신 상품이 배송 완료되었습니다. 주문번호: #{주문번호}", category: "안내", usageCount: 5821, updatedAt: "2026-06-01", scope: "전사 공통", openRate: 66.4, clickRate: 12.6, optOutRate: 0.03, messagePurpose: "informational" },
 ];
 const TEMPLATE_TAGS = ["일반", "신규", "휴면", "생일", "포인트", "쿠폰", "최근구매", "장바구니", "앱사용자", "현대백화점", "현대홈쇼핑", "한섬", "리빙", "패션", "오프라인방문"];
 const MEMBER_TAGS = [
@@ -118,12 +119,12 @@ const createMemberRows = () => Array.from({ length: 96 }, (_, index) => {
   };
 });
 const HISTORY: SendRecord[] = [
-  { id: 1, template: "6월 여름 할인 이벤트", channel: "스마트 라우팅", targetType: "전체 고객", count: 284391, success: 279112, fail: 5279, sentAt: "2026-06-22 14:00", status: "완료", cost: 3128400, savedCost: 1245600, affiliate: "현대백화점", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 284391, success: 279112, fail: 5279 }, { label: "2차 SMS 대체", requested: 5279, success: 5144, fail: 135 }] },
-  { id: 2, template: "포인트 소멸 안내", channel: "LMS", targetType: "일반·휴면", count: 92841, success: 91220, fail: 1621, sentAt: "2026-06-21 09:30", status: "완료", cost: 2785230, savedCost: 0, affiliate: "현대홈쇼핑", failoverSteps: [{ label: "1차 LMS", requested: 92841, success: 91220, fail: 1621 }] },
-  { id: 3, template: "생일 축하 메시지", channel: "SMS", targetType: "생일 대상자", count: 1284, success: 1270, fail: 14, sentAt: "2026-06-20 08:00", status: "완료", cost: 12840, savedCost: 0, affiliate: "전사 공통", failoverSteps: [{ label: "1차 SMS", requested: 1284, success: 1270, fail: 14 }] },
-  { id: 4, template: "우수고객 전용 혜택", channel: "스마트 라우팅", targetType: "일반", count: 18420, success: 18198, fail: 222, sentAt: "2026-06-19 11:00", status: "완료", cost: 198720, savedCost: 82680, affiliate: "한섬", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 18420, success: 18198, fail: 222 }, { label: "2차 SMS 대체", requested: 222, success: 219, fail: 3 }] },
-  { id: 5, template: "신규 가입 환영", channel: "카카오 알림톡", targetType: "신규 가입자", count: 341, success: 338, fail: 3, sentAt: "2026-06-19 실시간", status: "진행중", cost: 2046, savedCost: 1364, affiliate: "전사 공통", failoverSteps: [{ label: "1차 카카오 알림톡", requested: 341, success: 338, fail: 3 }] },
-  { id: 6, template: "배송 완료 안내", channel: "SMS", targetType: "배송 완료자", count: 2841, success: 2830, fail: 11, sentAt: "2026-06-18 16:00", status: "완료", cost: 28410, savedCost: 0, affiliate: "현대백화점", failoverSteps: [{ label: "1차 SMS", requested: 2841, success: 2830, fail: 11 }] },
+  { id: 1, template: "6월 여름 할인 이벤트", channel: "스마트 라우팅", targetType: "전체 고객", count: 284391, success: 279112, fail: 5279, sentAt: "2026-06-22 14:00", status: "완료", cost: 3128400, savedCost: 1245600, affiliate: "현대백화점", messagePurpose: "advertising", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 284391, success: 279112, fail: 5279 }, { label: "2차 SMS 대체", requested: 5279, success: 5144, fail: 135 }] },
+  { id: 2, template: "포인트 소멸 안내", channel: "LMS", targetType: "일반·휴면", count: 92841, success: 91220, fail: 1621, sentAt: "2026-06-21 09:30", status: "완료", cost: 2785230, savedCost: 0, affiliate: "현대홈쇼핑", messagePurpose: "informational", failoverSteps: [{ label: "1차 LMS", requested: 92841, success: 91220, fail: 1621 }] },
+  { id: 3, template: "생일 축하 메시지", channel: "SMS", targetType: "생일 대상자", count: 1284, success: 1270, fail: 14, sentAt: "2026-06-20 08:00", status: "완료", cost: 12840, savedCost: 0, affiliate: "전사 공통", messagePurpose: "advertising", failoverSteps: [{ label: "1차 SMS", requested: 1284, success: 1270, fail: 14 }] },
+  { id: 4, template: "우수고객 전용 혜택", channel: "스마트 라우팅", targetType: "일반", count: 18420, success: 18198, fail: 222, sentAt: "2026-06-19 11:00", status: "완료", cost: 198720, savedCost: 82680, affiliate: "한섬", messagePurpose: "advertising", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 18420, success: 18198, fail: 222 }, { label: "2차 SMS 대체", requested: 222, success: 219, fail: 3 }] },
+  { id: 5, template: "신규 가입 환영", channel: "카카오 알림톡", targetType: "신규 가입자", count: 341, success: 338, fail: 3, sentAt: "2026-06-19 실시간", status: "진행중", cost: 2046, savedCost: 1364, affiliate: "전사 공통", messagePurpose: "informational", failoverSteps: [{ label: "1차 카카오 알림톡", requested: 341, success: 338, fail: 3 }] },
+  { id: 6, template: "배송 완료 안내", channel: "SMS", targetType: "배송 완료자", count: 2841, success: 2830, fail: 11, sentAt: "2026-06-18 16:00", status: "완료", cost: 28410, savedCost: 0, affiliate: "현대백화점", messagePurpose: "informational", failoverSteps: [{ label: "1차 SMS", requested: 2841, success: 2830, fail: 11 }] },
 ];
 
 const formatWon = (value: number) => `${value.toLocaleString()}원`;
@@ -302,7 +303,7 @@ function Btn({ children, variant = "primary", size = "md", onClick, disabled = f
   return <button className={`${base} ${sz} ${vars[variant] || vars.primary} ${className}`} onClick={onClick} disabled={disabled}>{children}</button>;
 }
 
-type TemplateFormState = Pick<Template, "name" | "channel" | "content" | "category"> & { scope: string };
+type TemplateFormState = Pick<Template, "name" | "channel" | "content" | "category" | "messagePurpose"> & { scope: string };
 
 function TemplateFormFields({ form, setForm, onCancel, onSave, saveDisabled = false }: {
   form: TemplateFormState;
@@ -329,6 +330,21 @@ function TemplateFormFields({ form, setForm, onCancel, onSave, saveDisabled = fa
           <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none">
             {["이벤트", "혜택", "안내"].map(category => <option key={category}>{category}</option>)}
           </select>
+        </div>
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-semibold text-muted-foreground">광고여부</label>
+        <div className="grid grid-cols-2 gap-2">
+          {MESSAGE_PURPOSES.map(purpose => {
+            const Icon = purpose.icon;
+            const selected = form.messagePurpose === purpose.id;
+            return (
+              <button key={purpose.id} type="button" onClick={() => setForm(f => ({ ...f, messagePurpose: purpose.id }))} className={`flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 text-xs font-bold transition-colors ${selected ? "border-primary bg-accent text-primary" : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}>
+                <Icon className="h-3.5 w-3.5" />
+                {purpose.label}
+              </button>
+            );
+          })}
         </div>
       </div>
       <div>
@@ -806,6 +822,11 @@ const PERSONAL_FIELDS = [
   ["배송예정일", "#{배송예정일}"],
   ["추천상품", "#{추천상품}"],
 ];
+const MESSAGE_PURPOSES: { id: MessagePurpose; label: string; icon: typeof Megaphone; color: "blue" | "green" }[] = [
+  { id: "advertising", label: "광고성", icon: Megaphone, color: "blue" },
+  { id: "informational", label: "정보성", icon: Info, color: "green" },
+];
+const getMessagePurposeMeta = (purpose: MessagePurpose) => MESSAGE_PURPOSES.find(item => item.id === purpose) ?? MESSAGE_PURPOSES[0];
 function SendMessagePageWizard() {
   const members = useMemo(() => createMemberRows(), []);
   const templates = useMemo(() => createTemplateRows(), []);
@@ -825,6 +846,7 @@ function SendMessagePageWizard() {
   const [templateChannelFilter, setTemplateChannelFilter] = useState("전체");
   const [selectedTemplateId, setSelectedTemplateId] = useState<number>(templates[0]?.id ?? 0);
   const [messageDraft, setMessageDraft] = useState(templates[0]?.content ?? "");
+  const [messagePurpose, setMessagePurpose] = useState<MessagePurpose>("advertising");
   const [previewMode, setPreviewMode] = useState<"message" | "kakao" | "email">("message");
   const [selectedChannel, setSelectedChannel] = useState("kakao-noti");
   const [channelSettingsOpen, setChannelSettingsOpen] = useState(true);
@@ -849,7 +871,7 @@ function SendMessagePageWizard() {
   const [aiResult, setAiResult] = useState(false);
   const [aiReportOpen, setAiReportOpen] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
-  const [saveTemplateForm, setSaveTemplateForm] = useState<TemplateFormState>({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통" });
+  const [saveTemplateForm, setSaveTemplateForm] = useState<TemplateFormState>({ name: "", channel: "SMS", content: "", category: "이벤트", messagePurpose: "advertising", scope: "전사 공통" });
   const [aiJobs, setAiJobs] = useState([
     { name: "오타·맞춤법", model: "small-ko-proof", status: "대기", result: "-" },
     { name: "광고 표기", model: "small-policy-ad", status: "대기", result: "-" },
@@ -860,6 +882,8 @@ function SendMessagePageWizard() {
   ]);
 
   const selectedTemplate = templates.find(template => template.id === selectedTemplateId);
+  const selectedMessagePurpose = MESSAGE_PURPOSES.find(purpose => purpose.id === messagePurpose) ?? MESSAGE_PURPOSES[0];
+  const SelectedMessagePurposeIcon = selectedMessagePurpose.icon;
   const visibleTags = (tagSearch ? MEMBER_TAGS.filter(tag => tag.includes(tagSearch)) : MEMBER_TAGS).slice(0, 36);
   const relatedTags = MEMBER_TAGS
     .filter(tag => !selectedTags.includes(tag) && (tagSearch ? [...tagSearch].some(ch => tag.includes(ch)) : selectedTags.some(selected => tag.includes(selected) || selected.includes(tag))))
@@ -1001,6 +1025,7 @@ function SendMessagePageWizard() {
       channel: selectedChannelMeta?.label ?? "SMS",
       content: messageDraft,
       category: selectedTemplate?.category ?? "이벤트",
+      messagePurpose,
       scope: selectedTemplate?.scope ?? "전사 공통",
     });
     setSaveTemplateOpen(true);
@@ -1019,6 +1044,7 @@ function SendMessagePageWizard() {
         message,
       });
       setSelectedTags(["일반", "최근구매", "카카오 동의"]);
+      setMessagePurpose("advertising");
       setSelectedChannel("kakao-friend");
       setSelectedTemplateId(template.id);
       setMessageDraft(message);
@@ -1033,7 +1059,7 @@ function SendMessagePageWizard() {
     setAiJobs(jobs => jobs.map(job => ({ ...job, status: "실행중", result: "queued" })));
     aiJobs.forEach((job, index) => {
       window.setTimeout(() => {
-        setAiJobs(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, status: "완료", result: ["정상", "주의 1건", "위험 없음", "마스킹 필요 없음", messageDraft.length > 90 ? "LMS/RCS 권장" : "SMS 가능", "빈도 정상"][index] } : item));
+        setAiJobs(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, status: "완료", result: ["정상", messagePurpose === "advertising" ? "광고성 표기 확인" : "정보성 기준 확인", "위험 없음", "마스킹 필요 없음", messageDraft.length > 90 ? "LMS/RCS 권장" : "SMS 가능", "빈도 정상"][index] } : item));
         if (index === aiJobs.length - 1) setAiResult(true);
       }, 500 + index * 280);
     });
@@ -1328,6 +1354,21 @@ function SendMessagePageWizard() {
             </div>
           )}
           <div className="mb-3">
+            <div className="mb-2 text-xs font-bold text-muted-foreground">광고여부</div>
+            <div className="grid grid-cols-2 gap-2">
+              {MESSAGE_PURPOSES.map(purpose => {
+                const Icon = purpose.icon;
+                const selected = messagePurpose === purpose.id;
+                return (
+                  <button key={purpose.id} onClick={() => setMessagePurpose(purpose.id)} className={`flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 text-xs font-bold transition-colors ${selected ? "border-primary bg-accent text-primary" : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}>
+                    <Icon className="h-3.5 w-3.5" />
+                    {purpose.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="mb-3">
             <div className="mb-2 text-xs font-bold text-muted-foreground">개인화 항목</div>
             <div className="flex flex-wrap gap-2">
             {PERSONAL_FIELDS.map(([label, value]) => (
@@ -1350,6 +1391,9 @@ function SendMessagePageWizard() {
                 <button key={value} onClick={() => setPreviewMode(value as "message" | "kakao" | "email")} className={`px-2.5 py-1.5 rounded-md text-xs font-bold ${previewMode === value ? "bg-primary text-white" : "text-muted-foreground"}`}>{label}</button>
               ))}
             </div>
+          </div>
+          <div className="mb-3 flex justify-end">
+            <Badge text={selectedMessagePurpose.label} variant={selectedMessagePurpose.color} />
           </div>
           <div className="relative mx-auto aspect-[1179/2556] w-[260px] shrink-0 overflow-hidden rounded-[2.8rem] bg-gradient-to-b from-slate-700 via-slate-950 to-black p-[6px] shadow-2xl ring-1 ring-slate-500/40">
             <div className="absolute -left-1 top-24 h-14 w-1 rounded-l bg-slate-800" />
@@ -1475,6 +1519,13 @@ function SendMessagePageWizard() {
               <div className="mt-2 text-xl font-bold">{estimatedTarget.toLocaleString()}명</div>
             </div>
             <div className="rounded-xl border border-border bg-muted p-4">
+              <div className="text-xs font-bold text-muted-foreground">광고여부</div>
+              <div className="mt-2 flex items-center gap-2 text-xl font-bold">
+                <SelectedMessagePurposeIcon className="h-4 w-4 text-primary" />
+                {selectedMessagePurpose.label}
+              </div>
+            </div>
+            <div className="rounded-xl border border-border bg-muted p-4">
               <div className="text-xs font-bold text-muted-foreground">채널</div>
               <div className="mt-2 space-y-1.5">
                 {selectedChannelLabels.length > 0 ? selectedChannelLabels.map((label, index) => (
@@ -1591,22 +1642,25 @@ function TemplatesPage() {
   const [targetFilters, setTargetFilters] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState("전체");
   const [channelFilter, setChannelFilter] = useState("전체");
+  const [purposeFilter, setPurposeFilter] = useState<"전체" | MessagePurpose>("전체");
   const [page, setPage] = useState(1);
   const [editModal, setEditModal] = useState<Template | null>(null);
   const [detailModal, setDetailModal] = useState<Template | null>(null);
   const [templatePreviewMode, setTemplatePreviewMode] = useState<"message" | "kakao" | "email">("kakao");
   const [addModal, setAddModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [form, setForm] = useState<TemplateFormState>({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통" });
+  const [form, setForm] = useState<TemplateFormState>({ name: "", channel: "SMS", content: "", category: "이벤트", messagePurpose: "advertising", scope: "전사 공통" });
 
   const filtered = useMemo(() => templates.filter(t => {
     const tags = getTemplateTags(t);
-    const keyword = !search || t.name.includes(search) || t.content.includes(search) || t.channel.includes(search) || t.category.includes(search) || tags.some(tag => tag.includes(search));
+    const purposeMeta = getMessagePurposeMeta(t.messagePurpose);
+    const keyword = !search || t.name.includes(search) || t.content.includes(search) || t.channel.includes(search) || t.category.includes(search) || purposeMeta.label.includes(search) || tags.some(tag => tag.includes(search));
     const targetMatch = targetFilters.length === 0 || targetFilters.every(tag => tags.includes(tag));
     const categoryMatch = categoryFilter === "전체" || t.category === categoryFilter;
     const channelMatch = channelFilter === "전체" || t.channel === channelFilter;
-    return keyword && targetMatch && categoryMatch && channelMatch;
-  }), [templates, search, targetFilters, categoryFilter, channelFilter]);
+    const purposeMatch = purposeFilter === "전체" || t.messagePurpose === purposeFilter;
+    return keyword && targetMatch && categoryMatch && channelMatch && purposeMatch;
+  }), [templates, search, targetFilters, categoryFilter, channelFilter, purposeFilter]);
   const pageSize = 10;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)));
   const pagedTemplates = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -1624,10 +1678,10 @@ function TemplatesPage() {
     } else {
       setTemplates(prev => [...prev, { id: Date.now(), ...form, usageCount: 0, updatedAt: new Date().toISOString().slice(0, 10) }]);
     }
-    setEditModal(null); setAddModal(false); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통" });
+    setEditModal(null); setAddModal(false); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", messagePurpose: "advertising", scope: "전사 공통" });
   };
 
-  const openEdit = (t: Template) => { setEditModal(t); setForm({ name: t.name, channel: t.channel, content: t.content, category: t.category, scope: t.scope ?? "전사 공통" }); };
+  const openEdit = (t: Template) => { setEditModal(t); setForm({ name: t.name, channel: t.channel, content: t.content, category: t.category, messagePurpose: t.messagePurpose, scope: t.scope ?? "전사 공통" }); };
 
   return (
     <div className="p-6 space-y-4">
@@ -1643,8 +1697,12 @@ function TemplatesPage() {
           <select value={channelFilter} onChange={event => { setChannelFilter(event.target.value); setPage(1); }} className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
             {channelFilterOptions.map(option => <option key={option}>{option}</option>)}
           </select>
+          <select value={purposeFilter} onChange={event => { setPurposeFilter(event.target.value as "전체" | MessagePurpose); setPage(1); }} className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
+            <option value="전체">전체 광고여부</option>
+            {MESSAGE_PURPOSES.map(purpose => <option key={purpose.id} value={purpose.id}>{purpose.label}</option>)}
+          </select>
         </div>
-        <Btn onClick={() => { setAddModal(true); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통" }); }}><Plus className="w-3.5 h-3.5" /> 템플릿 추가</Btn>
+        <Btn onClick={() => { setAddModal(true); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", messagePurpose: "advertising", scope: "전사 공통" }); }}><Plus className="w-3.5 h-3.5" /> 템플릿 추가</Btn>
       </div>
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
         {targetOptions.map(tag => (
@@ -1657,6 +1715,7 @@ function TemplatesPage() {
             <thead><tr className="bg-muted border-b border-border">
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">템플릿명</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">카테고리</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">광고여부</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">타겟</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">채널</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">사용 횟수</th>
@@ -1670,6 +1729,7 @@ function TemplatesPage() {
                   <div className="text-xs text-muted-foreground mt-0.5 truncate max-w-xs">{t.content.replace(/\n/g, " ")}</div>
                 </td>
                 <td className="px-4 py-3.5 hidden lg:table-cell"><Badge text={t.category} variant="default" /></td>
+                <td className="px-4 py-3.5"><Badge text={getMessagePurposeMeta(t.messagePurpose).label} variant={getMessagePurposeMeta(t.messagePurpose).color} /></td>
                 <td className="px-4 py-3.5 hidden xl:table-cell">
                   <div className="flex flex-wrap gap-1 max-w-56">
                     {getTemplateTags(t).slice(0, 3).map(tag => <span key={tag} className="px-2 py-0.5 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">{tag}</span>)}
@@ -1706,6 +1766,10 @@ function TemplatesPage() {
                     <span className="text-xs font-bold text-muted-foreground">카테고리</span>
                     <span className="font-bold text-foreground">{detailModal.category}</span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-muted-foreground">광고여부</span>
+                    <Badge text={getMessagePurposeMeta(detailModal.messagePurpose).label} variant={getMessagePurposeMeta(detailModal.messagePurpose).color} />
+                  </div>
                   <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                     <span className="mr-0.5 text-xs font-bold text-muted-foreground">태그</span>
                     {getTemplateTags(detailModal).length > 0 ? getTemplateTags(detailModal).map(tag => <span key={tag} className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">{tag}</span>) : <span className="text-xs font-semibold text-muted-foreground">없음</span>}
@@ -1714,10 +1778,11 @@ function TemplatesPage() {
               </div>
               <Btn size="sm" variant="outline" onClick={() => { openEdit(detailModal); setDetailModal(null); }}><Edit2 className="w-3 h-3" /> 수정</Btn>
             </div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-b border-border pb-4 md:grid-cols-5">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-b border-border pb-4 md:grid-cols-6">
               {[
                 ["사용 횟수", `${detailModal.usageCount.toLocaleString()}회`],
                 ["최근 수정", detailModal.updatedAt],
+                ["광고여부", getMessagePurposeMeta(detailModal.messagePurpose).label],
                 ["문자 길이", `${detailModal.content.length}자`],
                 ["템플릿 클릭률", `${detailModal.clickRate ?? 0}%`],
                 ["수신거부율", `${detailModal.optOutRate ?? 0}%`],
@@ -1824,12 +1889,14 @@ function HistoryPage() {
   const [filter, setFilter] = useState("전체");
   const [periodFilter, setPeriodFilter] = useState("30일");
   const [channelFilter, setChannelFilter] = useState("전체 채널");
+  const [purposeFilter, setPurposeFilter] = useState<"전체 광고여부" | MessagePurpose>("전체 광고여부");
   const [selectedRecord, setSelectedRecord] = useState<SendRecord | null>(null);
   const [page, setPage] = useState(1);
   const filtered = HISTORY.filter(r =>
     (filter === "전체" || r.status === filter) &&
     (channelFilter === "전체 채널" || r.channel === channelFilter) &&
-    (r.template.includes(search) || r.channel.includes(search) || r.affiliate.includes(search))
+    (purposeFilter === "전체 광고여부" || r.messagePurpose === purposeFilter) &&
+    (r.template.includes(search) || r.channel.includes(search) || r.affiliate.includes(search) || getMessagePurposeMeta(r.messagePurpose).label.includes(search))
   );
   const pageSize = 10;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)));
@@ -1852,13 +1919,17 @@ function HistoryPage() {
           <select value={channelFilter} onChange={e => setChannelFilter(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground">
             {channelOptions.map(option => <option key={option}>{option}</option>)}
           </select>
+          <select value={purposeFilter} onChange={e => setPurposeFilter(e.target.value as "전체 광고여부" | MessagePurpose)} className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+            <option value="전체 광고여부">전체 광고여부</option>
+            {MESSAGE_PURPOSES.map(purpose => <option key={purpose.id} value={purpose.id}>{purpose.label}</option>)}
+          </select>
         </div>
         <Btn variant="outline" size="sm"><Download className="w-3.5 h-3.5" /> Excel 내보내기</Btn>
       </div>
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         <table className="w-full text-sm">
           <thead><tr className="bg-muted border-b border-border">
-            {["발송일시", "계열사", "템플릿", "채널", "대상", "발송", "성공", "실패", "성공률", "비용 절감", "상태"].map(h => (
+            {["발송일시", "계열사", "템플릿", "채널", "광고여부", "대상", "발송", "성공", "실패", "성공률", "비용 절감", "상태"].map(h => (
               <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
             ))}
           </tr></thead>
@@ -1868,6 +1939,7 @@ function HistoryPage() {
                 <td className="px-4 py-3.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">{r.affiliate}</td>
                 <td className="px-4 py-3.5 text-xs font-semibold text-foreground">{r.template}</td>
                 <td className="px-4 py-3.5"><Badge text={r.channel} variant="blue" /></td>
+                <td className="px-4 py-3.5"><Badge text={getMessagePurposeMeta(r.messagePurpose).label} variant={getMessagePurposeMeta(r.messagePurpose).color} /></td>
                 <td className="px-4 py-3.5 text-xs text-muted-foreground">{r.targetType}</td>
                 <td className="px-4 py-3.5 text-xs font-bold">{r.count.toLocaleString()}</td>
                 <td className="px-4 py-3.5 text-xs font-bold text-emerald-600">{r.success.toLocaleString()}</td>
@@ -1886,7 +1958,7 @@ function HistoryPage() {
             <div className="flex items-start justify-between gap-3 p-4 bg-muted rounded-xl">
               <div>
                 <div className="text-base font-bold text-foreground mb-1">{selectedRecord.template}</div>
-                <div className="flex items-center gap-2"><Badge text={selectedRecord.channel} variant="blue" /><Badge text={selectedRecord.status} variant={selectedRecord.status === "완료" ? "green" : selectedRecord.status === "진행중" ? "amber" : "red"} /></div>
+                <div className="flex items-center gap-2"><Badge text={selectedRecord.channel} variant="blue" /><Badge text={getMessagePurposeMeta(selectedRecord.messagePurpose).label} variant={getMessagePurposeMeta(selectedRecord.messagePurpose).color} /><Badge text={selectedRecord.status} variant={selectedRecord.status === "완료" ? "green" : selectedRecord.status === "진행중" ? "amber" : "red"} /></div>
               </div>
               <div className="text-xs text-muted-foreground">{selectedRecord.sentAt}</div>
             </div>
@@ -1894,6 +1966,7 @@ function HistoryPage() {
               {[
                 ["대상", selectedRecord.targetType],
                 ["총 발송", `${selectedRecord.count.toLocaleString()}건`],
+                ["광고여부", getMessagePurposeMeta(selectedRecord.messagePurpose).label],
                 ["성공", `${selectedRecord.success.toLocaleString()}건`],
                 ["실패", `${selectedRecord.fail.toLocaleString()}건`],
                 ["총 소요 비용", formatWon(selectedRecord.cost)],
