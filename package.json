@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite --host 0.0.0.0"
+    "dev": "vite --host 0.0.0.0",
+    "verify:runtime-symbols": "node scripts/verify-runtime-symbols.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

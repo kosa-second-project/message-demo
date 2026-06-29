@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronRight, Clock, Eye, Search, Send, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronRight, Clock, Eye, FileText, Search, Send, Sparkles, X } from 'lucide-react';
 import type { Member, MessagePurpose, Template } from '../types';
 import { MEMBER_TAGS, createMemberRows, createTemplateRows, formatWon, getTemplateTags, memberMatchesTargetTag, uniqueTags } from '../domain';
 import { CHANNELS, MESSAGE_PURPOSES, PERSONAL_FIELDS, getMessagePurposeMeta } from '../constants/messaging';

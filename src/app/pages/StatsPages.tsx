@@ -57,7 +57,7 @@ export function StatsOverview({ period, onPeriodChange }: { period: StatsPeriod;
   return (
     <div className="flex min-h-full flex-col gap-3 p-3 sm:p-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <StatsPeriodControl period={period} onChange={onPeriodChange} />
+        <StatsPeriodControl period={period} onChange={onPeriodChange} compact />
         <StatsReportActions period={period} />
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -135,7 +135,7 @@ export function StatsChannel({ period, onPeriodChange }: { period: StatsPeriod; 
   return (
     <div className="flex min-h-full flex-col gap-3 p-3 sm:p-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <StatsPeriodControl period={period} onChange={onPeriodChange} />
+        <StatsPeriodControl period={period} onChange={onPeriodChange} compact />
         <StatsReportActions period={period} />
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -233,7 +233,7 @@ export function StatsRouting({ period, onPeriodChange }: { period: StatsPeriod; 
   return (
     <div className="flex min-h-full flex-col gap-3 p-3 sm:p-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <StatsPeriodControl period={period} onChange={onPeriodChange} />
+        <StatsPeriodControl period={period} onChange={onPeriodChange} compact />
         <StatsReportActions period={period} />
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -272,11 +272,13 @@ export function StatsMember({ period, onPeriodChange }: { period: StatsPeriod; o
   const days = getStatsPeriodDays(period);
   const newMembers = newMemberSeriesData.reduce((sum, row) => sum + row.count, 0);
   const totalMembers = 306527 + newMembers;
+  const latestSnapshotMembers = 306527;
+  const dormantMembers = 23420;
   const grainLabel = getStatsGrainLabel(getStatsGrain(period));
   const consentChannelData = [
-    { label: "메시지", agreed: Math.round(totalMembers * 0.645), total: totalMembers, color: "bg-blue-500" },
-    { label: "카카오톡", agreed: Math.round(totalMembers * 0.784), total: totalMembers, color: "bg-amber-400" },
-    { label: "이메일", agreed: Math.round(totalMembers * 0.665), total: totalMembers, color: "bg-emerald-500" },
+    { label: "메시지", agreed: Math.round(latestSnapshotMembers * 0.645), total: latestSnapshotMembers, color: "bg-blue-500" },
+    { label: "카카오톡", agreed: Math.round(latestSnapshotMembers * 0.784), total: latestSnapshotMembers, color: "bg-amber-400" },
+    { label: "이메일", agreed: Math.round(latestSnapshotMembers * 0.665), total: latestSnapshotMembers, color: "bg-emerald-500" },
   ].map(channel => ({
     ...channel,
     rate: Number(((channel.agreed / channel.total) * 100).toFixed(1)),
@@ -286,14 +288,14 @@ export function StatsMember({ period, onPeriodChange }: { period: StatsPeriod; o
   return (
     <div className="flex min-h-full flex-col gap-3 p-3 sm:p-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <StatsPeriodControl period={period} onChange={onPeriodChange} />
+        <StatsPeriodControl period={period} onChange={onPeriodChange} compact />
         <StatsReportActions period={period} />
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="전체 고객" value={totalMembers.toLocaleString()} sub="분석 가능 고객" icon={<Users className="w-4 h-4" />} color="amber" />
         <StatCard label="일반 고객" value={Math.round(totalMembers * 0.644).toLocaleString()} sub="주요 발송 대상" icon={<Users className="w-4 h-4" />} color="blue" />
         <StatCard label="신규 고객" value={newMembers.toLocaleString()} sub={`${days}일 누적 가입`} trend={{ val: "+3.9%", up: true, label: "이전 기간 대비" }} icon={<TrendingUp className="w-4 h-4" />} color="green" />
-        <StatCard label="휴면 고객" value="23,420" sub="6개월 이상 미활동" trend={{ val: "-284명", up: true, label: "이전 기간 대비" }} icon={<Clock className="w-4 h-4" />} color="violet" />
+        <StatCard label="휴면 고객" value={dormantMembers.toLocaleString()} sub="최신 상태 · 6개월 이상 미활동" icon={<Clock className="w-4 h-4" />} color="violet" />
       </div>
       <div className="grid grid-cols-1 gap-3 lg:shrink-0 lg:grid-cols-2">
         <div className="bg-card rounded-xl border border-border p-3 sm:p-4 flex min-h-[260px] flex-col lg:min-h-0">
@@ -311,7 +313,10 @@ export function StatsMember({ period, onPeriodChange }: { period: StatsPeriod; o
           </div>
         </div>
         <div className="bg-card rounded-xl border border-border p-3 sm:p-4 flex min-h-[260px] flex-col lg:min-h-0">
-          <h3 className="mb-3 text-sm font-bold">채널 동의 현황</h3>
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+            <h3 className="text-sm font-bold">채널 동의 현황</h3>
+            <span className="rounded-lg bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">최신 상태 기준</span>
+          </div>
           <div className="grid flex-1 content-center gap-3">
             {consentChannelData.map(channel => (
               <div key={channel.label} className="rounded-lg border border-border bg-muted/40 p-3">
@@ -387,22 +392,28 @@ export function StatsPerformance({ period, onPeriodChange }: { period: StatsPeri
         </div>
       </div>
       <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-3">
-        <div className="bg-card rounded-xl border border-border p-4 overflow-hidden">
-          <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex min-h-[260px] flex-col overflow-hidden rounded-xl border border-border bg-card p-3 sm:p-4 lg:min-h-0">
+          <div className="mb-3">
             <h3 className="text-sm font-bold">템플릿별 성과 Top 5</h3>
-            <span className="text-[11px] font-semibold text-muted-foreground">클릭률 순 · 동률 시 구매전환율 순</span>
+            <p className="mt-1 text-[11px] font-semibold text-muted-foreground">클릭률 순 · 동률 시 구매전환율 순</p>
           </div>
-          <div className="space-y-1">
+          <div className="mb-2 grid grid-cols-[2rem_minmax(0,1fr)_3.5rem_4.5rem] items-center gap-2 px-2.5 text-[10px] font-bold text-muted-foreground">
+            <span className="text-center">순위</span>
+            <span>템플릿</span>
+            <span className="text-right">클릭률</span>
+            <span className="text-right">전환율</span>
+          </div>
+          <div className="grid flex-1 grid-rows-5 gap-1.5">
             {rankedTemplatePerformanceTop.map((t, i) => (
-              <div key={t.name} className="grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-1">
-                <span className="text-right text-xs font-bold text-primary">{i + 1}</span>
+              <div key={t.name} className="grid min-h-0 grid-cols-[2rem_minmax(0,1fr)_3.5rem_4.5rem] items-center gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{i + 1}</span>
                 <div className="min-w-0">
-                  <div className="truncate text-xs font-bold text-foreground">{t.name}</div>
-                  <div className="mt-0.5 truncate text-[10px] text-muted-foreground">구매전환율 {t.conversion === null ? "미반영" : `${t.conversion}%`}</div>
+                  <div className="truncate text-xs font-bold leading-tight text-foreground">{t.name}</div>
+                  <div className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">{t.source}</div>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs font-bold text-foreground">{t.click}%</div>
-                  <div className="text-[10px] text-muted-foreground">클릭률</div>
+                <div className="text-right text-xs font-bold text-foreground">{t.click}%</div>
+                <div className="text-right text-xs font-bold text-muted-foreground">
+                  {t.conversion === null ? "미반영" : `${t.conversion}%`}
                 </div>
               </div>
             ))}

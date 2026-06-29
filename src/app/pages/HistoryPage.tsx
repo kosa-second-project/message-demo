@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Download, RefreshCw, Search } from 'lucide-react';
 import type { MessagePurpose, SendRecord, StatsPeriod } from '../types';
-import { HISTORY, createStatsPeriod, formatWon, getOrderedStatsPeriod } from '../domain';
+import { HISTORY, TEMPLATES, createStatsPeriod, formatWon, getOrderedStatsPeriod } from '../domain';
 import { CHANNEL_LABELS, MESSAGE_PURPOSES, getMessagePurposeMeta } from '../constants/messaging';
 import { Badge, Btn, Modal, Pagination, StatsPeriodControl } from '../components/shared';
 
