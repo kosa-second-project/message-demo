@@ -4,7 +4,7 @@ import {
   Bell, Settings, LogOut, Plus, Search, Filter, CheckCircle2,
   XCircle, Clock, Sparkles, MessageSquare, Phone, Mail, Zap,
   TrendingUp, TrendingDown, Edit2, Trash2, Download, Eye,
-  ChevronRight, ChevronDown, AlertTriangle, X, Check, RefreshCw,
+  ChevronRight, ChevronDown, AlertTriangle, X, Check, RefreshCw, Menu,
   Target, Activity, Tag, CalendarDays, Megaphone, PieChart,
   ArrowUpRight, ArrowDownRight, MoreHorizontal, Info,
 } from "lucide-react";
@@ -911,12 +911,22 @@ const STAT_ITEMS = [
   { page: "stats-performance" as Page, label: "성과 분석" },
 ];
 
-function Sidebar({ current, setCurrent, onLogout }: { current: Page; setCurrent: (p: Page) => void; onLogout: () => void }) {
+function Sidebar({ current, setCurrent, onLogout, onNavigate, className = "" }: {
+  current: Page;
+  setCurrent: (p: Page) => void;
+  onLogout: () => void;
+  onNavigate?: () => void;
+  className?: string;
+}) {
   const [statsOpen, setStatsOpen] = useState(current.startsWith("stats"));
   const isStats = current.startsWith("stats");
+  const goToPage = (page: Page) => {
+    setCurrent(page);
+    onNavigate?.();
+  };
 
   return (
-    <aside className="w-56 bg-sidebar border-r border-sidebar-border flex flex-col h-full shrink-0">
+    <aside className={`w-64 lg:w-56 bg-sidebar border-r border-sidebar-border flex flex-col h-full shrink-0 ${className}`}>
       <div className="px-5 py-5 border-b border-sidebar-border">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shrink-0">
@@ -932,7 +942,7 @@ function Sidebar({ current, setCurrent, onLogout }: { current: Page; setCurrent:
         {NAV_ITEMS.map(({ page, icon: Icon, label }) => (
           <button
             key={page}
-            onClick={() => setCurrent(page)}
+            onClick={() => goToPage(page)}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${current === page ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
           >
             <Icon className="w-4 h-4 shrink-0" />
@@ -953,7 +963,7 @@ function Sidebar({ current, setCurrent, onLogout }: { current: Page; setCurrent:
               {STAT_ITEMS.map(({ page, label }) => (
                 <button
                   key={page}
-                  onClick={() => { setCurrent(page); setStatsOpen(true); }}
+                  onClick={() => { setCurrent(page); setStatsOpen(true); onNavigate?.(); }}
                   className={`w-full text-left px-2 py-2 rounded-lg text-xs font-medium transition-colors ${current === page ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"}`}
                 >
                   {label}
@@ -967,7 +977,7 @@ function Sidebar({ current, setCurrent, onLogout }: { current: Page; setCurrent:
         <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
           <Settings className="w-4 h-4" /> 설정
         </button>
-        <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors">
+        <button onClick={() => { onNavigate?.(); onLogout(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors">
           <LogOut className="w-4 h-4" /> 로그아웃
         </button>
       </div>
@@ -981,10 +991,15 @@ const PAGE_TITLES: Record<Page, string> = {
   members: "고객 관리", "stats-overview": "통계 · 발송 현황", "stats-channel": "통계 · 채널 분석",
   "stats-routing": "통계 · 비용 분석", "stats-member": "통계 · 고객 분석", "stats-performance": "통계 · 성과 분석",
 };
-function Header({ page }: { page: Page }) {
+function Header({ page, onMenuClick }: { page: Page; onMenuClick?: () => void }) {
   return (
-    <header className="h-14 bg-card border-b border-border flex items-center justify-between px-6 shrink-0">
-      <h1 className="text-base font-bold text-foreground">{PAGE_TITLES[page]}</h1>
+    <header className="h-14 bg-card border-b border-border flex items-center justify-between px-3 sm:px-6 shrink-0">
+      <div className="flex min-w-0 items-center gap-2">
+        <button aria-label="메뉴 열기" onClick={onMenuClick} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground lg:hidden">
+          <Menu className="h-4 w-4" />
+        </button>
+        <h1 className="truncate text-sm font-bold text-foreground sm:text-base">{PAGE_TITLES[page]}</h1>
+      </div>
       <div className="flex items-center gap-3">
         <button className="relative p-2 rounded-lg hover:bg-muted text-muted-foreground">
           <Bell className="w-4 h-4" />
@@ -992,7 +1007,7 @@ function Header({ page }: { page: Page }) {
         </button>
         <div className="flex items-center gap-2 pl-3 border-l border-border">
           <div className="w-7 h-7 bg-primary/10 rounded-full flex items-center justify-center text-xs font-bold text-primary">김</div>
-          <span className="text-xs font-semibold text-foreground">김민준</span>
+          <span className="hidden text-xs font-semibold text-foreground sm:inline">김민준</span>
         </div>
       </div>
     </header>
@@ -1436,8 +1451,8 @@ function SendMessagePageWizard() {
 
       <div className="h-full min-h-0">
         <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
-          <div className="flex items-center gap-2 border-b border-border bg-muted p-3">
-            <div className="relative flex-1">
+          <div className="flex flex-col gap-2 border-b border-border bg-muted p-3 sm:flex-row sm:items-center">
+            <div className="relative min-w-0 flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <input value={memberSearch} onChange={event => setMemberSearch(event.target.value)} placeholder="고객명, 번호, 타겟 검색" className="w-full pl-8 pr-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none" />
             </div>
@@ -1472,7 +1487,8 @@ function SendMessagePageWizard() {
               </div>
             )}
           </div>
-          <div className="grid grid-cols-[36px_0.8fr_1fr_0.45fr_2.2fr_0.45fr_0.45fr_0.45fr] gap-3 border-b border-border bg-muted/60 px-3 py-2 text-xs font-bold text-muted-foreground">
+          <div className="overflow-x-auto border-b border-border">
+            <div className="grid min-w-[760px] grid-cols-[36px_0.8fr_1fr_0.45fr_2.2fr_0.45fr_0.45fr_0.45fr] gap-3 bg-muted/60 px-3 py-2 text-xs font-bold text-muted-foreground">
             <button type="button" onClick={toggleVisibleMembers} className={`flex h-5 w-5 items-center justify-center rounded border transition-colors ${allVisibleMembersChecked ? "border-primary bg-primary text-white" : "border-border bg-card text-transparent hover:border-primary"}`}>
               <Check className="h-3.5 w-3.5" />
             </button>
@@ -1483,12 +1499,13 @@ function SendMessagePageWizard() {
             <span>문자</span>
             <span>카카오</span>
             <span>이메일</span>
+            </div>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-auto">
             {visibleMembers.map(member => {
               const checked = checkedMembers.includes(member.id);
               return (
-                <label key={member.id} className="grid grid-cols-[36px_0.8fr_1fr_0.45fr_2.2fr_0.45fr_0.45fr_0.45fr] gap-3 px-3 py-2.5 border-b border-border last:border-0 hover:bg-blue-50/60 cursor-pointer transition-colors">
+                <label key={member.id} className="grid min-w-[760px] grid-cols-[36px_0.8fr_1fr_0.45fr_2.2fr_0.45fr_0.45fr_0.45fr] gap-3 px-3 py-2.5 border-b border-border last:border-0 hover:bg-blue-50/60 cursor-pointer transition-colors">
                   <span className={`relative flex h-5 w-5 items-center justify-center rounded border transition-colors ${checked ? "border-primary bg-primary text-white" : "border-border bg-card text-transparent"}`}>
                     <Check className="h-3.5 w-3.5" />
                     <input className="sr-only" type="checkbox" checked={checked} onChange={() => toggleMemberCheck(member.id)} />
@@ -1590,8 +1607,8 @@ function SendMessagePageWizard() {
   const renderMessage = () => (
     <div className="flex min-h-full flex-col gap-4">
       {renderChannelSettings()}
-      <div className="grid h-[640px] shrink-0 grid-cols-1 gap-4 xl:grid-cols-[380px_minmax(0,1fr)_340px]">
-        <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
+      <div className="grid grid-cols-1 gap-4 xl:h-[640px] xl:shrink-0 xl:grid-cols-[380px_minmax(0,1fr)_340px]">
+        <div className="flex min-h-[520px] flex-col overflow-hidden rounded-xl border border-border bg-card xl:min-h-0">
           <div className="min-h-[236px] p-5 border-b border-border">
             <div className="mb-3 flex min-h-[36px] items-center">
               <h3 className="text-sm font-bold">템플릿 검색</h3>
@@ -1639,17 +1656,17 @@ function SendMessagePageWizard() {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col rounded-xl border border-border bg-card p-5">
+        <div className="flex min-h-[520px] flex-col rounded-xl border border-border bg-card p-4 sm:p-5 xl:min-h-0">
           <div className="mb-4 flex min-h-[36px] flex-wrap items-center justify-between gap-3">
             <h3 className="text-sm font-bold">메시지 작성</h3>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-            <button title="템플릿 저장" onClick={openSaveTemplate} className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 text-xs font-bold text-foreground shadow-sm transition-colors hover:bg-accent">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+            <button title="템플릿 저장" onClick={openSaveTemplate} className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3.5 text-xs font-bold text-foreground shadow-sm transition-colors hover:bg-accent sm:flex-none">
               <FileText className="w-3.5 h-3.5" /> 템플릿 저장
             </button>
-            <button title="AI 문구 추천" onClick={recommendMarketingCopy} className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-3.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-primary/90">
+            <button title="AI 문구 추천" onClick={recommendMarketingCopy} className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-primary/90 sm:flex-none">
               <Sparkles className="w-3.5 h-3.5" /> AI 문구 추천
             </button>
-            <button title="AI 검사" onClick={runAiCheck} disabled={!messageDraft || aiJobs.some(job => job.status === "실행중")} className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-500 px-3.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50">
+            <button title="AI 검사" onClick={runAiCheck} disabled={!messageDraft || aiJobs.some(job => job.status === "실행중")} className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-500 px-3.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none">
               <CheckCircle2 className="w-3.5 h-3.5" /> AI 검사
             </button>
             </div>
@@ -1701,11 +1718,11 @@ function SendMessagePageWizard() {
             ))}
             </div>
           </div>
-          <textarea value={messageDraft} onChange={event => { setMessageDraft(event.target.value); setSelectedTemplateId(0); }} className="min-h-0 flex-1 w-full px-3.5 py-2.5 rounded-lg border border-border bg-input-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <textarea value={messageDraft} onChange={event => { setMessageDraft(event.target.value); setSelectedTemplateId(0); }} className="min-h-[220px] flex-1 w-full px-3.5 py-2.5 rounded-lg border border-border bg-input-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 xl:min-h-0" />
         </div>
 
-        <div className="flex min-h-0 flex-col rounded-xl border border-border bg-card p-5">
-          <div className="mb-4 flex min-h-[36px] items-center justify-between gap-3">
+        <div className="flex min-h-0 flex-col rounded-xl border border-border bg-card p-4 sm:p-5">
+          <div className="mb-4 flex min-h-[36px] flex-wrap items-center justify-between gap-3">
             <h3 className="text-sm font-bold">미리보기</h3>
             <div className="inline-flex rounded-lg border border-border bg-muted p-1">
               {[
@@ -1720,7 +1737,7 @@ function SendMessagePageWizard() {
           <div className="mb-3 flex justify-end">
             <Badge text={selectedMessagePurpose.label} variant={selectedMessagePurpose.color} />
           </div>
-          <div className="relative mx-auto aspect-[1179/2556] w-[260px] shrink-0 overflow-hidden rounded-[2.8rem] bg-gradient-to-b from-slate-700 via-slate-950 to-black p-[6px] shadow-2xl ring-1 ring-slate-500/40">
+          <div className="relative mx-auto aspect-[1179/2556] w-full max-w-[260px] shrink-0 overflow-hidden rounded-[2.8rem] bg-gradient-to-b from-slate-700 via-slate-950 to-black p-[6px] shadow-2xl ring-1 ring-slate-500/40">
             <div className="absolute -left-1 top-24 h-14 w-1 rounded-l bg-slate-800" />
             <div className="absolute -right-1 top-32 h-20 w-1 rounded-r bg-slate-800" />
             <div className="relative flex h-full flex-col overflow-hidden rounded-[2.35rem] bg-white">
@@ -1793,9 +1810,9 @@ function SendMessagePageWizard() {
   const renderReview = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_1fr]">
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <h3 className="mb-3 text-sm font-bold">발송 방식</h3>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <button onClick={() => setSendType("now")} className={`cursor-pointer rounded-lg border px-3 py-3 text-left transition-colors ${sendType === "now" ? "border-primary bg-accent" : "border-border bg-card"}`}>
               <div className="flex items-center gap-2 text-xs font-bold">
                 <Clock className="h-4 w-4 text-primary" /> 즉시 발송
@@ -1810,7 +1827,7 @@ function SendMessagePageWizard() {
           {sendType === "later" && (
             <div className="mt-3 rounded-xl border border-border bg-muted p-3">
               <div className="mb-2 text-xs font-bold text-muted-foreground">예약 일시</div>
-              <div className="mb-3 grid grid-cols-3 gap-2">
+              <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {[
                   ["오늘 10:00", "2026-06-26", "10:00"],
                   ["오늘 14:00", "2026-06-26", "14:00"],
@@ -1821,7 +1838,7 @@ function SendMessagePageWizard() {
                   </button>
                 ))}
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <label className="text-xs font-bold text-muted-foreground">
                   날짜
                   <input type="date" value={scheduleDate} onChange={event => setScheduleDate(event.target.value)} className="mt-1.5 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground" />
@@ -1834,11 +1851,11 @@ function SendMessagePageWizard() {
             </div>
           )}
         </div>
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h3 className="text-sm font-bold">비용 계산</h3>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-border bg-muted p-4">
               <div className="text-xs font-bold text-muted-foreground">대상 인원</div>
               <div className="mt-2 text-xl font-bold">{estimatedTarget.toLocaleString()}명</div>
@@ -2009,12 +2026,12 @@ function TemplatesPage() {
   const openEdit = (t: Template) => { setEditModal(t); setForm({ name: t.name, channel: t.channel, content: t.content, category: t.category, messagePurpose: t.messagePurpose, scope: t.scope ?? "전사 공통" }); };
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
+    <div className="space-y-4 p-3 sm:p-6">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="템플릿명, 내용, 카테고리 검색..." className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-72 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="템플릿명, 내용, 카테고리 검색..." className="w-full rounded-lg border border-border bg-card py-2 pl-8 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 sm:w-72" />
           </div>
           <select value={categoryFilter} onChange={event => { setCategoryFilter(event.target.value); setPage(1); }} className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
             {categoryOptions.map(option => <option key={option}>{option}</option>)}
@@ -2036,7 +2053,7 @@ function TemplatesPage() {
       </div>
       <div className="bg-card overflow-hidden rounded-xl border border-border">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="min-w-[860px] w-full text-sm">
             <thead><tr className="bg-muted border-b border-border">
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">템플릿명</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">카테고리</th>
@@ -2235,13 +2252,13 @@ function HistoryPage() {
   const pagedRecords = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const channelOptions = ["전체 채널", ...CHANNEL_LABELS];
   return (
-    <div className="p-6">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-center gap-2 flex-wrap">
+    <div className="p-3 sm:p-6">
+      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <StatsPeriodControl period={period} onChange={updatePeriod} compact />
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="템플릿 또는 채널 검색" className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-52 focus:outline-none" />
+            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="템플릿 또는 채널 검색" className="w-full rounded-lg border border-border bg-card py-2 pl-8 pr-4 text-sm focus:outline-none sm:w-52" />
           </div>
           {["전체", "완료", "진행중", "실패"].map(f => (
             <button key={f} onClick={() => { setFilter(f); setPage(1); }} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${filter === f ? "bg-primary text-white" : "bg-card border border-border text-muted-foreground hover:text-foreground"}`}>{f}</button>
@@ -2257,7 +2274,8 @@ function HistoryPage() {
         <Btn variant="outline" size="sm"><Download className="w-3.5 h-3.5" /> Excel 내보내기</Btn>
       </div>
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="min-w-[1080px] w-full text-sm">
           <thead><tr className="bg-muted border-b border-border">
             {["발송일시", "계열사", "템플릿", "채널", "광고여부", "대상", "발송", "성공", "실패", "성공률", "비용 절감", "상태"].map(h => (
               <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
@@ -2280,6 +2298,7 @@ function HistoryPage() {
               </tr>
             ))}</tbody>
         </table>
+        </div>
         <Pagination page={currentPage} total={filtered.length} pageSize={pageSize} onPage={setPage} />
       </div>
       <Modal open={!!selectedRecord} onClose={() => setSelectedRecord(null)} title="전송 기록 상세" wide>
@@ -2292,7 +2311,7 @@ function HistoryPage() {
               </div>
               <div className="text-xs text-muted-foreground">{selectedRecord.sentAt}</div>
             </div>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 ["대상", selectedRecord.targetType],
                 ["총 발송", `${selectedRecord.count.toLocaleString()}건`],
@@ -2427,7 +2446,7 @@ function MembersPage() {
     .slice(0, 30);
 
   return (
-    <div className="flex h-full min-h-0 flex-col p-6">
+    <div className="flex h-full min-h-0 flex-col p-3 sm:p-6">
       <div className="mb-5 grid shrink-0 grid-cols-2 gap-4 lg:grid-cols-4">
         {[
           { label: "전체 고객", value: "307,811", color: "text-foreground" },
@@ -2441,15 +2460,15 @@ function MembersPage() {
           </div>
         ))}
       </div>
-      <div className="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="mb-4 flex shrink-0 flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <div className="inline-flex rounded-lg border border-border bg-card p-1">
             <button onClick={() => { setMemberTab("members"); setPage(1); }} className={`px-3 py-1.5 rounded-md text-xs font-bold ${memberTab === "members" ? "bg-primary text-white" : "text-muted-foreground"}`}>고객 목록</button>
             <button onClick={() => { setMemberTab("blocked"); setPage(1); }} className={`px-3 py-1.5 rounded-md text-xs font-bold ${memberTab === "blocked" ? "bg-primary text-white" : "text-muted-foreground"}`}>수신 거부 목록</button>
           </div>
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="고객명 또는 전화번호 검색" className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-56 focus:outline-none" />
+            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="고객명 또는 전화번호 검색" className="w-full rounded-lg border border-border bg-card py-2 pl-8 pr-4 text-sm focus:outline-none sm:w-56" />
           </div>
           {memberTab === "members" && ["전체", "일반", "신규", "휴면"].map(f => (
             <button key={f} onClick={() => { setTypeFilter(f); setPage(1); }} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${typeFilter === f ? "bg-primary text-white" : "bg-card border border-border text-muted-foreground"}`}>{f}</button>
@@ -2462,7 +2481,7 @@ function MembersPage() {
       {memberTab === "members" ? (
       <div className="bg-card flex min-h-0 flex-col overflow-hidden rounded-xl border border-border">
         <div className="max-h-[560px] overflow-auto">
-          <table className="w-full text-sm">
+          <table className="min-w-[780px] w-full text-sm">
             <thead><tr className="bg-muted border-b border-border">
               {["고객명", "전화번호", "유형", "타겟", "SMS 동의", "카카오 동의", "RCS 동의", "가입일"].map(h => (
                 <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
@@ -2493,7 +2512,7 @@ function MembersPage() {
       ) : (
       <div className="bg-card flex min-h-0 flex-col overflow-hidden rounded-xl border border-border">
         <div className="max-h-[560px] overflow-auto">
-          <table className="w-full text-sm">
+          <table className="min-w-[640px] w-full text-sm">
             <thead><tr className="bg-muted border-b border-border">
               {["고객명", "전화번호", "거부 채널", "수신거부 일시"].map(h => <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>)}
             </tr></thead>
@@ -3056,6 +3075,7 @@ function MainLayout({ currentPage, setCurrentPage, onLogout }: {
   currentPage: Page; setCurrentPage: (p: Page) => void; onLogout: () => void;
 }) {
   const [statsPeriods, setStatsPeriods] = useState<Record<StatsPage, StatsPeriod>>(() => createDefaultStatsPeriods());
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const updateStatsPeriod = (page: StatsPage) => (period: StatsPeriod) => {
     setStatsPeriods(prev => ({ ...prev, [page]: period }));
   };
@@ -3075,11 +3095,19 @@ function MainLayout({ currentPage, setCurrentPage, onLogout }: {
     }
   };
   return (
-    <div className="flex h-screen bg-background overflow-hidden" style={{ fontFamily: "'Pretendard Variable', 'Pretendard', 'Inter', sans-serif" }}>
-      <Sidebar current={currentPage} setCurrent={setCurrentPage} onLogout={onLogout} />
+    <div className="flex h-dvh bg-background overflow-hidden" style={{ fontFamily: "'Pretendard Variable', 'Pretendard', 'Inter', sans-serif" }}>
+      <Sidebar current={currentPage} setCurrent={setCurrentPage} onLogout={onLogout} className="hidden lg:flex" />
+      {mobileNavOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button className="absolute inset-0 bg-black/40" onClick={() => setMobileNavOpen(false)} aria-label="메뉴 닫기" />
+          <div className="relative h-full max-w-[82vw]">
+            <Sidebar current={currentPage} setCurrent={setCurrentPage} onLogout={onLogout} onNavigate={() => setMobileNavOpen(false)} className="shadow-2xl" />
+          </div>
+        </div>
+      )}
       <div className="flex-1 flex flex-col min-w-0">
-        <Header page={currentPage} />
-        <main className={`flex-1 ${fitToViewport ? "overflow-hidden" : "overflow-y-auto"}`}>{renderPage()}</main>
+        <Header page={currentPage} onMenuClick={() => setMobileNavOpen(true)} />
+        <main className={`flex-1 min-w-0 overflow-y-auto ${fitToViewport ? "lg:overflow-hidden" : ""}`}>{renderPage()}</main>
       </div>
     </div>
   );
