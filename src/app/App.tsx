@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+﻿import { useEffect, useState, useMemo } from "react";
 import {
   LayoutDashboard, Send, FileText, History, Users, BarChart3,
   Bell, Settings, LogOut, Plus, Search, Filter, CheckCircle2,
@@ -19,6 +19,9 @@ type Page =
   | "dashboard" | "send" | "templates" | "history" | "members"
   | "stats-overview" | "stats-channel" | "stats-routing" | "stats-member" | "stats-performance";
 type MessagePurpose = "advertising" | "informational";
+type StatsPage = Extract<Page, "stats-overview" | "stats-channel" | "stats-routing" | "stats-member" | "stats-performance">;
+type StatsPeriodPreset = "recent7" | "recent30" | "thisMonth" | "custom";
+type StatsGrain = "day" | "week" | "month";
 
 interface Template {
   id: number; name: string; channel: string; content: string; category: string; usageCount: number; updatedAt: string; tags?: string[];
@@ -30,6 +33,11 @@ interface Member {
 interface SendRecord {
   id: number; template: string; channel: string; targetType: string; count: number; success: number; fail: number; sentAt: string; status: string;
   cost: number; savedCost: number; affiliate: string; messagePurpose: MessagePurpose; failoverSteps: { label: string; requested: number; success: number; fail: number }[];
+}
+interface StatsPeriod {
+  preset: StatsPeriodPreset;
+  start: string;
+  end: string;
 }
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
@@ -62,6 +70,16 @@ const TAG_GROUPS = [
 const uniqueTags = (tags: string[]) => Array.from(new Set(tags.filter(Boolean))).sort((a, b) => a.localeCompare(b, "ko"));
 const tagGroupOf = (tag: string) => TAG_GROUPS.find(group => group.id !== "전체" && group.tags.includes(tag))?.id ?? "사용자";
 const tagGroupLabel = (tag: string) => TAG_GROUPS.find(group => group.id === tagGroupOf(tag))?.label ?? "사용자";
+const memberMatchesTargetTag = (member: Member, tag: string) => {
+  const memberTags = member.tags ?? [];
+  if (tag === "전체 고객") return true;
+  if (tag === "SMS 동의" || tag === "LMS 동의") return member.smsConsent;
+  if (tag === "카카오 동의") return member.kakaoConsent;
+  if (tag === "RCS 동의") return member.rcsConsent;
+  if (tag === "이메일 동의") return member.emailConsent;
+  if (tag === "미동의 제외") return member.smsConsent || member.kakaoConsent || member.emailConsent || member.rcsConsent;
+  return memberTags.includes(tag) || member.type === tag;
+};
 const AI_REPORT_SECTIONS = [
   { title: "맞춤법·오타", status: "통과", score: 96, detail: "띄어쓰기와 오탈자 위험이 낮습니다.", action: "수정 불필요" },
   { title: "광고 표기", status: "주의", score: 82, detail: "마케팅성 문구에는 수신거부 문구와 발신자 표기가 필요합니다.", action: "080 수신거부 문구 유지" },
@@ -119,10 +137,10 @@ const createMemberRows = () => Array.from({ length: 96 }, (_, index) => {
   };
 });
 const HISTORY: SendRecord[] = [
-  { id: 1, template: "6월 여름 할인 이벤트", channel: "스마트 라우팅", targetType: "전체 고객", count: 284391, success: 279112, fail: 5279, sentAt: "2026-06-22 14:00", status: "완료", cost: 3128400, savedCost: 1245600, affiliate: "현대백화점", messagePurpose: "advertising", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 284391, success: 279112, fail: 5279 }, { label: "2차 SMS 대체", requested: 5279, success: 5144, fail: 135 }] },
+  { id: 1, template: "6월 여름 할인 이벤트", channel: "카카오 친구톡", targetType: "전체 고객", count: 284391, success: 279112, fail: 5279, sentAt: "2026-06-22 14:00", status: "완료", cost: 3128400, savedCost: 1245600, affiliate: "현대백화점", messagePurpose: "advertising", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 284391, success: 279112, fail: 5279 }, { label: "2차 SMS 대체", requested: 5279, success: 5144, fail: 135 }] },
   { id: 2, template: "포인트 소멸 안내", channel: "LMS", targetType: "일반·휴면", count: 92841, success: 91220, fail: 1621, sentAt: "2026-06-21 09:30", status: "완료", cost: 2785230, savedCost: 0, affiliate: "현대홈쇼핑", messagePurpose: "informational", failoverSteps: [{ label: "1차 LMS", requested: 92841, success: 91220, fail: 1621 }] },
   { id: 3, template: "생일 축하 메시지", channel: "SMS", targetType: "생일 대상자", count: 1284, success: 1270, fail: 14, sentAt: "2026-06-20 08:00", status: "완료", cost: 12840, savedCost: 0, affiliate: "전사 공통", messagePurpose: "advertising", failoverSteps: [{ label: "1차 SMS", requested: 1284, success: 1270, fail: 14 }] },
-  { id: 4, template: "우수고객 전용 혜택", channel: "스마트 라우팅", targetType: "일반", count: 18420, success: 18198, fail: 222, sentAt: "2026-06-19 11:00", status: "완료", cost: 198720, savedCost: 82680, affiliate: "한섬", messagePurpose: "advertising", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 18420, success: 18198, fail: 222 }, { label: "2차 SMS 대체", requested: 222, success: 219, fail: 3 }] },
+  { id: 4, template: "우수고객 전용 혜택", channel: "카카오 친구톡", targetType: "일반", count: 18420, success: 18198, fail: 222, sentAt: "2026-06-19 11:00", status: "완료", cost: 198720, savedCost: 82680, affiliate: "한섬", messagePurpose: "advertising", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 18420, success: 18198, fail: 222 }, { label: "2차 SMS 대체", requested: 222, success: 219, fail: 3 }] },
   { id: 5, template: "신규 가입 환영", channel: "카카오 알림톡", targetType: "신규 가입자", count: 341, success: 338, fail: 3, sentAt: "2026-06-19 실시간", status: "진행중", cost: 2046, savedCost: 1364, affiliate: "전사 공통", messagePurpose: "informational", failoverSteps: [{ label: "1차 카카오 알림톡", requested: 341, success: 338, fail: 3 }] },
   { id: 6, template: "배송 완료 안내", channel: "SMS", targetType: "배송 완료자", count: 2841, success: 2830, fail: 11, sentAt: "2026-06-18 16:00", status: "완료", cost: 28410, savedCost: 0, affiliate: "현대백화점", messagePurpose: "informational", failoverSteps: [{ label: "1차 SMS", requested: 2841, success: 2830, fail: 11 }] },
 ];
@@ -241,9 +259,188 @@ const templatePerformanceTop = [
   { name: "포인트 소멸 안내", click: 18.1, conversion: null, source: "기본 템플릿" },
 ];
 
+const STATS_TODAY = "2026-06-29";
+const STATS_PAGE_DEFAULT_PRESETS: Record<StatsPage, StatsPeriodPreset> = {
+  "stats-overview": "recent7",
+  "stats-channel": "recent30",
+  "stats-routing": "thisMonth",
+  "stats-member": "recent30",
+  "stats-performance": "recent30",
+};
+
+const parseStatDate = (value: string) => {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+};
+const isValidStatDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(parseStatDate(value).getTime());
+const formatStatDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+const addStatDays = (value: string, days: number) => {
+  const date = parseStatDate(value);
+  date.setDate(date.getDate() + days);
+  return formatStatDate(date);
+};
+const createStatsPeriod = (preset: StatsPeriodPreset): StatsPeriod => {
+  if (preset === "recent7") return { preset, start: addStatDays(STATS_TODAY, -6), end: STATS_TODAY };
+  if (preset === "recent30") return { preset, start: addStatDays(STATS_TODAY, -29), end: STATS_TODAY };
+  if (preset === "thisMonth") return { preset, start: `${STATS_TODAY.slice(0, 8)}01`, end: STATS_TODAY };
+  return { preset, start: addStatDays(STATS_TODAY, -29), end: STATS_TODAY };
+};
+const createDefaultStatsPeriods = (): Record<StatsPage, StatsPeriod> => ({
+  "stats-overview": createStatsPeriod(STATS_PAGE_DEFAULT_PRESETS["stats-overview"]),
+  "stats-channel": createStatsPeriod(STATS_PAGE_DEFAULT_PRESETS["stats-channel"]),
+  "stats-routing": createStatsPeriod(STATS_PAGE_DEFAULT_PRESETS["stats-routing"]),
+  "stats-member": createStatsPeriod(STATS_PAGE_DEFAULT_PRESETS["stats-member"]),
+  "stats-performance": createStatsPeriod(STATS_PAGE_DEFAULT_PRESETS["stats-performance"]),
+});
+const getOrderedStatsPeriod = (period: StatsPeriod) => {
+  if (!isValidStatDate(period.start) || !isValidStatDate(period.end)) return createStatsPeriod("thisMonth");
+  const startDate = parseStatDate(period.start);
+  const endDate = parseStatDate(period.end);
+  return startDate <= endDate ? period : { ...period, start: period.end, end: period.start };
+};
+const getStatsPeriodDays = (period: StatsPeriod) => {
+  const ordered = getOrderedStatsPeriod(period);
+  return Math.max(1, Math.round((parseStatDate(ordered.end).getTime() - parseStatDate(ordered.start).getTime()) / 86400000) + 1);
+};
+const getStatsGrain = (period: StatsPeriod): StatsGrain => {
+  const days = getStatsPeriodDays(period);
+  if (days <= 31) return "day";
+  if (days <= 120) return "week";
+  return "month";
+};
+const getStatsGrainLabel = (grain: StatsGrain) => ({ day: "일별", week: "주별", month: "월별" }[grain]);
+const formatCompactDate = (date: Date) => `${date.getMonth() + 1}.${String(date.getDate()).padStart(2, "0")}`;
+const getStatsPeriodLabel = (period: StatsPeriod) => {
+  const ordered = getOrderedStatsPeriod(period);
+  const days = getStatsPeriodDays(ordered);
+  return `${ordered.start} ~ ${ordered.end} (${days}일)`;
+};
+const clampNumber = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const createStatsBuckets = (period: StatsPeriod) => {
+  const ordered = getOrderedStatsPeriod(period);
+  const grain = getStatsGrain(ordered);
+  const end = parseStatDate(ordered.end);
+  const buckets: { label: string; days: number; index: number }[] = [];
+  let cursor = parseStatDate(ordered.start);
+
+  while (cursor <= end) {
+    const start = new Date(cursor);
+    let bucketEnd = new Date(cursor);
+    if (grain === "day") {
+      bucketEnd = new Date(cursor);
+    } else if (grain === "week") {
+      bucketEnd.setDate(bucketEnd.getDate() + 6);
+    } else {
+      bucketEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+    }
+    if (bucketEnd > end) bucketEnd = new Date(end);
+    const days = Math.round((bucketEnd.getTime() - start.getTime()) / 86400000) + 1;
+    const label = grain === "day"
+      ? `${start.getMonth() + 1}/${start.getDate()}`
+      : grain === "week"
+        ? `${formatCompactDate(start)}-${formatCompactDate(bucketEnd)}`
+        : `${start.getMonth() + 1}월`;
+    buckets.push({ label, days, index: buckets.length });
+    cursor = new Date(bucketEnd);
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return { grain, buckets };
+};
+const buildSendTrendData = (period: StatsPeriod, seed = 1) => {
+  const { buckets } = createStatsBuckets(period);
+  return buckets.map(bucket => {
+    const daily = 43000 + ((bucket.index * 13817 + seed * 7919) % 72000);
+    const spike = bucket.index % 5 === 2 ? 1.45 : 1;
+    const sends = Math.round(daily * bucket.days * spike);
+    const successRate = 0.973 + ((bucket.index + seed) % 6) * 0.003;
+    return { label: bucket.label, sends, success: Math.round(sends * successRate) };
+  });
+};
+const buildChannelTrendData = (period: StatsPeriod, seed = 3) => {
+  const { buckets } = createStatsBuckets(period);
+  return buckets.map(bucket => {
+    const base = (26000 + ((bucket.index * 9631 + seed * 5443) % 42000)) * bucket.days;
+    return {
+      label: bucket.label,
+      kakao: Math.round(base * 1.72),
+      sms: Math.round(base * 0.92),
+      lms: Math.round(base * 0.34),
+      rcs: Math.round(base * 0.16),
+    };
+  });
+};
+const buildRoutingSeriesData = (period: StatsPeriod) => {
+  const { buckets } = createStatsBuckets(period);
+  return buckets.map(bucket => {
+    const actual = Math.round((470000 + ((bucket.index * 182000) % 360000)) * bucket.days);
+    const baseline = Math.round(actual * (1.22 + (bucket.index % 4) * 0.035));
+    return { label: bucket.label, actual, baseline, saved: baseline - actual };
+  });
+};
+const buildNewMemberSeriesData = (period: StatsPeriod) => {
+  const { buckets } = createStatsBuckets(period);
+  return buckets.map(bucket => ({
+    label: bucket.label,
+    count: Math.round((34 + ((bucket.index * 17) % 31)) * bucket.days),
+  }));
+};
+const buildPerformanceSeriesData = (period: StatsPeriod, channel: string) => {
+  const channelOffset = ["카카오 친구톡", "카카오 알림톡", "SMS", "LMS", "RCS"].indexOf(channel) * 0.8;
+  const { buckets } = createStatsBuckets(period);
+  return buckets.map(bucket => {
+    const clickRate = Number(clampNumber(14.8 + channelOffset + bucket.index * 0.45 + (bucket.days > 7 ? 1.4 : 0), 8, 36).toFixed(1));
+    return {
+      label: bucket.label,
+      clickRate,
+      conversionRate: Number(clampNumber(clickRate * 0.28 + (bucket.index % 3) * 0.2, 2, 11).toFixed(1)),
+    };
+  });
+};
+const buildChannelCostData = (period: StatsPeriod) => {
+  const scale = getStatsPeriodDays(period) / 30;
+  return channelCostData.map((channel, index) => {
+    const sends = Math.round(channel.sends * scale * (0.94 + index * 0.025));
+    const successRate = Number(clampNumber(channel.successRate + ((getStatsPeriodDays(period) + index) % 5 - 2) * 0.08, 96, 99.8).toFixed(1));
+    return {
+      ...channel,
+      sends,
+      successRate,
+      failRate: Number((100 - successRate).toFixed(1)),
+      cost: sends * channel.unit,
+    };
+  });
+};
+const buildChannelShareData = (rows: typeof channelCostData) => {
+  const colors: Record<string, string> = {
+    "카카오 친구톡": "#F7E600",
+    SMS: "#1843FA",
+    "카카오 알림톡": "#FF8F00",
+    LMS: "#10B981",
+    RCS: "#8B5CF6",
+  };
+  const total = rows.reduce((sum, row) => sum + row.sends, 0) || 1;
+  return rows.map(row => ({ name: row.channel, value: Math.round((row.sends / total) * 100), color: colors[row.channel] ?? "#64748B" }))
+    .sort((a, b) => b.value - a.value);
+};
+const buildFallbackStageData = (period: StatsPeriod) => {
+  const modifier = Math.min(1.2, getStatsPeriodDays(period) / 45);
+  return fallbackStageData.map((stage, index) => ({
+    ...stage,
+    kakao: Number(clampNumber(stage.kakao - index * 0.18 + modifier * 0.12, 90, 100).toFixed(1)),
+    sms: Number(clampNumber(stage.sms - index * 0.14 + modifier * 0.1, 90, 100).toFixed(1)),
+    lms: Number(clampNumber(stage.lms - index * 0.16 + modifier * 0.08, 90, 100).toFixed(1)),
+  }));
+};
+
 // ─── Shared Components ────────────────────────────────────────────────────────
 function StatCard({ label, value, sub, trend, icon, color = "blue" }: {
-  label: string; value: string; sub?: string; trend?: { val: string; up: boolean }; icon: React.ReactNode; color?: string;
+  label: string; value: string; sub?: string; trend?: { val: string; up: boolean; label?: string }; icon: React.ReactNode; color?: string;
 }) {
   const colorMap: Record<string, string> = {
     blue: "bg-blue-50 text-blue-600", green: "bg-emerald-50 text-emerald-600",
@@ -260,7 +457,7 @@ function StatCard({ label, value, sub, trend, icon, color = "blue" }: {
       {trend && (
         <div className={`flex items-center gap-1 mt-2 text-xs font-semibold ${trend.up ? "text-emerald-600" : "text-red-500"}`}>
           {trend.up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-          {trend.val} 전주 대비
+          {trend.val} {trend.label ?? "전주 대비"}
         </div>
       )}
     </div>
@@ -301,6 +498,35 @@ function Btn({ children, variant = "primary", size = "md", onClick, disabled = f
     success: "bg-emerald-500 text-white hover:bg-emerald-600",
   };
   return <button className={`${base} ${sz} ${vars[variant] || vars.primary} ${className}`} onClick={onClick} disabled={disabled}>{children}</button>;
+}
+
+function StatsPeriodControl({ period, onChange, compact = false }: {
+  period: StatsPeriod;
+  onChange: (period: StatsPeriod) => void;
+  compact?: boolean;
+}) {
+  const ordered = getOrderedStatsPeriod(period);
+  const grainLabel = getStatsGrainLabel(getStatsGrain(ordered));
+  const handleDateChange = (key: "start" | "end", value: string) => {
+    if (!isValidStatDate(value)) return;
+    onChange({ ...period, preset: "custom", [key]: value });
+  };
+
+  return (
+    <div className={`flex flex-wrap items-center gap-2 ${compact ? "" : "rounded-xl border border-border bg-card p-2"}`}>
+      <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+        <CalendarDays className="h-3.5 w-3.5 text-primary" />
+        기간
+      </div>
+      <input type="date" value={period.start} onChange={event => handleDateChange("start", event.target.value)} className="h-9 rounded-lg border border-border bg-input-background px-3 text-xs font-semibold text-foreground" />
+      <span className="text-xs font-semibold text-muted-foreground">~</span>
+      <input type="date" value={period.end} onChange={event => handleDateChange("end", event.target.value)} className="h-9 rounded-lg border border-border bg-input-background px-3 text-xs font-semibold text-foreground" />
+      <span className="rounded-lg bg-muted px-2.5 py-2 text-[11px] font-bold text-muted-foreground">
+        {grainLabel} 집계
+      </span>
+      <span className="text-[11px] font-semibold text-muted-foreground">{getStatsPeriodLabel(ordered)}</span>
+    </div>
+  );
 }
 
 type TemplateFormState = Pick<Template, "name" | "channel" | "content" | "category" | "messagePurpose"> & { scope: string };
@@ -521,15 +747,21 @@ function QueueStatusCard({ subtitle, onDetailClick }: { subtitle?: string; onDet
   );
 }
 
-function CostComparisonCard({ title = "비용 비교 현황", className = "", chartClassName = "h-[220px] min-h-0" }: { title?: string; className?: string; chartClassName?: string }) {
+function CostComparisonCard({ title = "비용 비교 현황", className = "", chartClassName = "h-[220px] min-h-0", data = routingSavingsData, xKey = "month" }: {
+  title?: string;
+  className?: string;
+  chartClassName?: string;
+  data?: { [key: string]: string | number; actual: number; baseline: number; saved?: number }[];
+  xKey?: string;
+}) {
   return (
     <div className={`bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col ${className}`}>
       <h3 className="text-sm font-bold mb-3">{title}</h3>
       <div className={chartClassName}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={routingSavingsData} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-            <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+            <XAxis dataKey={xKey} tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} width={84} tickFormatter={v => formatWon(Number(v))} />
             <Tooltip formatter={(v: number) => [formatWon(v)]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -542,21 +774,25 @@ function CostComparisonCard({ title = "비용 비교 현황", className = "", ch
   );
 }
 
-function ChannelShareCard({ title = "채널별 발송 비중", className = "" }: { title?: string; className?: string }) {
+function ChannelShareCard({ title = "채널별 발송 비중", className = "", data = channelPie }: {
+  title?: string;
+  className?: string;
+  data?: { name: string; value: number; color: string }[];
+}) {
   return (
     <div className={`bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col ${className}`}>
       <h3 className="text-sm font-bold text-foreground mb-3">{title}</h3>
       <div className="grid min-h-0 flex-1 grid-cols-[0.8fr_1fr] gap-2">
         <ResponsiveContainer width="100%" height="100%">
           <RePieChart>
-            <Pie data={channelPie} cx="50%" cy="50%" innerRadius={38} outerRadius={58} dataKey="value" paddingAngle={3} label={({ value }) => `${value}%`} labelLine={false}>
-              {channelPie.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+            <Pie data={data} cx="50%" cy="50%" innerRadius={38} outerRadius={58} dataKey="value" paddingAngle={3} label={({ value }) => `${value}%`} labelLine={false}>
+              {data.map((entry, index) => <Cell key={index} fill={entry.color} />)}
             </Pie>
             <Tooltip formatter={(v: number) => [`${v}%`]} />
           </RePieChart>
         </ResponsiveContainer>
         <div className="grid content-center gap-1">
-          {channelPie.map((channel, index) => (
+          {data.map((channel, index) => (
             <div key={index} className="flex items-center gap-1.5 text-xs">
               <span className="w-2.5 h-2.5 rounded-sm" style={{ background: channel.color }} />
               <span className="text-muted-foreground">{channel.name}</span>
@@ -569,13 +805,19 @@ function ChannelShareCard({ title = "채널별 발송 비중", className = "" }:
   );
 }
 
-function DailySendTrendCard({ title = "일별 발송 & 성공 추이", gradientId = "dailySendsGrad", className = "" }: { title?: string; gradientId?: string; className?: string }) {
+function DailySendTrendCard({ title = "발송 & 성공 추이", gradientId = "dailySendsGrad", className = "", data = dailyTrend, xKey = "date" }: {
+  title?: string;
+  gradientId?: string;
+  className?: string;
+  data?: { [key: string]: string | number; sends: number; success: number }[];
+  xKey?: string;
+}) {
   return (
     <div className={`bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col ${className}`}>
       <h3 className="text-sm font-bold mb-3">{title}</h3>
       <div className="min-h-0 flex-1">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={dailyTrend}>
+          <AreaChart data={data}>
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#1843FA" stopOpacity={0.16} />
@@ -583,7 +825,7 @@ function DailySendTrendCard({ title = "일별 발송 & 성공 추이", gradientI
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-            <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+            <XAxis dataKey={xKey} tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
             <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -811,6 +1053,7 @@ const CHANNELS = [
   { id: "kakao-friend", label: "카카오 친구톡", sub: "마케팅 메시지", icon: Megaphone },
   { id: "rcs", label: "RCS", sub: "리치 미디어 메시지", icon: Zap },
 ];
+const CHANNEL_LABELS = CHANNELS.map(channel => channel.label);
 const PERSONAL_FIELDS = [
   ["고객명", "#{이름}"],
   ["포인트", "#{포인트}"],
@@ -836,6 +1079,7 @@ function SendMessagePageWizard() {
   const [tagSearch, setTagSearch] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
   const [checkedMembers, setCheckedMembers] = useState<number[]>([]);
+  const [targetSyncNotice, setTargetSyncNotice] = useState("");
   const [includedMembers, setIncludedMembers] = useState<Member[]>([]);
   const [excludedMembers, setExcludedMembers] = useState<Member[]>([]);
   const [manualName, setManualName] = useState("");
@@ -888,17 +1132,20 @@ function SendMessagePageWizard() {
   const relatedTags = MEMBER_TAGS
     .filter(tag => !selectedTags.includes(tag) && (tagSearch ? [...tagSearch].some(ch => tag.includes(ch)) : selectedTags.some(selected => tag.includes(selected) || selected.includes(tag))))
     .slice(0, 12);
-  const candidateMembers = members.filter(member => {
-    const memberTags = member.tags ?? [];
+  const targetMatchedMembers = useMemo(() => members.filter(member => {
     const tagMatch = selectedTags.length === 0 || selectedTags.includes("전체 고객") || (
       targetMatchMode === "AND"
-        ? selectedTags.every(tag => memberTags.includes(tag) || member.type === tag)
-        : selectedTags.some(tag => memberTags.includes(tag) || member.type === tag)
+        ? selectedTags.every(tag => memberMatchesTargetTag(member, tag))
+        : selectedTags.some(tag => memberMatchesTargetTag(member, tag))
     );
-    const keyword = !memberSearch || member.name.includes(memberSearch) || member.phone.includes(memberSearch) || memberTags.some(tag => tag.includes(memberSearch));
     const hasReceivableChannel = member.smsConsent || member.kakaoConsent || member.emailConsent;
-    return tagMatch && keyword && hasReceivableChannel;
-  });
+    return tagMatch && hasReceivableChannel;
+  }), [members, selectedTags, targetMatchMode]);
+  const targetMatchedMemberIds = useMemo(() => new Set(targetMatchedMembers.map(member => member.id)), [targetMatchedMembers]);
+  const candidateMembers = useMemo(() => targetMatchedMembers.filter(member => {
+    const memberTags = member.tags ?? [];
+    return !memberSearch || member.name.includes(memberSearch) || member.phone.includes(memberSearch) || memberTags.some(tag => tag.includes(memberSearch));
+  }), [memberSearch, targetMatchedMembers]);
   const visibleMembers = candidateMembers.slice(0, 32);
   const filteredTemplates = templates.filter(template => {
     const tags = getTemplateTags(template);
@@ -913,8 +1160,9 @@ function SendMessagePageWizard() {
   const templateCategoryOptions = ["전체", ...Array.from(new Set(templates.map(template => template.category)))];
   const templateChannelOptions = ["전체", ...Array.from(new Set(templates.map(template => template.channel)))];
   const allVisibleMembersChecked = visibleMembers.length > 0 && visibleMembers.every(member => checkedMembers.includes(member.id));
-  const selectedRecipientCount = checkedMembers.length || candidateMembers.length;
-  const estimatedTarget = selectedTags.includes("전체 고객") ? 284391 : Math.max(selectedRecipientCount, candidateMembers.length * 1370);
+  const checkedMemberRows = members.filter(member => checkedMembers.includes(member.id));
+  const selectedRecipientCount = checkedMembers.length || targetMatchedMembers.length;
+  const estimatedTarget = selectedTags.includes("전체 고객") && checkedMembers.length === 0 ? 284391 : Math.max(selectedRecipientCount, targetMatchedMembers.length * 1370);
   const messageMode = messageDraft.length > 90 ? "LMS" : "SMS";
   const selectedChannelMeta = CHANNELS.find(channel => channel.id === selectedChannel);
   const channelUnitCost = (channelId: string) => channelId === "sms" ? 10 : channelId === "lms" ? 30 : channelId === "kakao-noti" ? 6 : channelId === "rcs" ? 14 : 8;
@@ -922,7 +1170,7 @@ function SendMessagePageWizard() {
   const estimatedCost = estimatedTarget * unitCost;
   const baselineCost = estimatedTarget * (messageMode === "LMS" ? 30 : 10);
   const estimatedSaving = Math.max(0, baselineCost - estimatedCost);
-  const channelAudienceBase = checkedMembers.length > 0 ? members.filter(member => checkedMembers.includes(member.id)) : candidateMembers;
+  const channelAudienceBase = checkedMembers.length > 0 ? checkedMemberRows : targetMatchedMembers;
   const channelAudienceRatio = (channelId: string) => {
     if (channelAudienceBase.length === 0) return 1;
     const reachableCount = channelAudienceBase.filter(member => {
@@ -965,12 +1213,37 @@ function SendMessagePageWizard() {
           : "";
   const canGoToStep = (value: number) => value === 1 || stepReady.slice(0, value - 1).every(Boolean);
 
+  useEffect(() => {
+    setCheckedMembers(prev => {
+      const next = prev.filter(id => targetMatchedMemberIds.has(id));
+      const removedCount = prev.length - next.length;
+      if (removedCount > 0) {
+        setTargetSyncNotice(`타겟 조건이 바뀌어 조건에서 벗어난 고객 ${removedCount.toLocaleString()}명을 선택 해제했습니다.`);
+        return next;
+      }
+      return prev;
+    });
+  }, [targetMatchedMemberIds]);
+
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag]);
-  const selectAllMembers = () => setSelectedTags(["전체 고객"]);
-  const selectAllSearchedMembers = () => setCheckedMembers(candidateMembers.map(member => member.id));
+  const selectAllMembers = () => {
+    setSelectedTags(["전체 고객"]);
+    setCheckedMembers([]);
+    setMemberSearch("");
+    setTargetSyncNotice("전체 고객 타겟으로 전환했습니다. 개별 고객 선택은 초기화되었습니다.");
+  };
+  const selectAllSearchedMembers = () => {
+    setCheckedMembers(candidateMembers.map(member => member.id));
+    setTargetSyncNotice("");
+  };
+  const clearSelectedMembers = () => {
+    setCheckedMembers([]);
+    setTargetSyncNotice("");
+  };
   const toggleVisibleMembers = () => {
     const visibleIds = visibleMembers.map(member => member.id);
     setCheckedMembers(prev => allVisibleMembersChecked ? prev.filter(id => !visibleIds.includes(id)) : Array.from(new Set([...prev, ...visibleIds])));
+    setTargetSyncNotice("");
   };
   const toggleTemplateTargetFilter = (tag: string) => {
     setTemplateTargetFilters(prev => prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag]);
@@ -994,7 +1267,10 @@ function SendMessagePageWizard() {
     ];
     setMarketingCopies(copies);
   };
-  const toggleMemberCheck = (id: number) => setCheckedMembers(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+  const toggleMemberCheck = (id: number) => {
+    setCheckedMembers(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+    setTargetSyncNotice("");
+  };
   const mergeMembers = (base: Member[], add: Member[]) => [...base, ...add.filter(member => !base.some(item => item.id === member.id))];
   const addChecked = () => {
     const checked = members.filter(member => checkedMembers.includes(member.id));
@@ -1101,8 +1377,25 @@ function SendMessagePageWizard() {
       <div className="rounded-xl border border-border bg-card p-4 flex min-h-0 flex-col">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold">타겟 선택</h3>
+          <button onClick={selectAllMembers} className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-bold text-muted-foreground hover:border-primary/50 hover:text-primary">
+            전체 고객
+          </button>
         </div>
         <div className="space-y-3 min-h-0 flex-1">
+          <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[11px] font-bold text-primary">현재 타겟</span>
+              <span className="text-[11px] font-bold text-muted-foreground">{targetMatchedMembers.length.toLocaleString()}명 후보</span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {selectedTags.map(tag => (
+                <button key={tag} onClick={() => toggleTag(tag)} className="rounded-full bg-primary px-2 py-1 text-[11px] font-bold text-white">
+                  {tag} ×
+                </button>
+              ))}
+              {selectedTags.length === 0 && <span className="text-xs font-semibold text-muted-foreground">타겟을 선택해 주세요.</span>}
+            </div>
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input value={tagSearch} onChange={event => setTagSearch(event.target.value)} placeholder="타겟 검색" className="w-full pl-8 pr-4 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
@@ -1148,6 +1441,36 @@ function SendMessagePageWizard() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <input value={memberSearch} onChange={event => setMemberSearch(event.target.value)} placeholder="고객명, 번호, 타겟 검색" className="w-full pl-8 pr-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none" />
             </div>
+            <button onClick={selectAllSearchedMembers} disabled={candidateMembers.length === 0} className="h-9 rounded-lg border border-border bg-card px-3 text-xs font-bold text-muted-foreground hover:border-primary/50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40">
+              검색 결과 선택
+            </button>
+            <button onClick={clearSelectedMembers} disabled={checkedMembers.length === 0} className="h-9 rounded-lg border border-border bg-card px-3 text-xs font-bold text-muted-foreground hover:border-red-300 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40">
+              선택 해제
+            </button>
+          </div>
+          <div className="border-b border-border bg-card px-3 py-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-lg bg-muted px-2.5 py-1.5 text-[11px] font-bold text-muted-foreground">
+                타겟 후보 {targetMatchedMembers.length.toLocaleString()}명
+              </span>
+              <span className="rounded-lg bg-blue-50 px-2.5 py-1.5 text-[11px] font-bold text-blue-700">
+                현재 표시 {candidateMembers.length.toLocaleString()}명
+              </span>
+              <span className="rounded-lg bg-primary/10 px-2.5 py-1.5 text-[11px] font-bold text-primary">
+                직접 선택 {checkedMembers.length.toLocaleString()}명
+              </span>
+              {checkedMemberRows.slice(0, 5).map(member => (
+                <span key={member.id} className="rounded-full border border-border bg-muted px-2 py-1 text-[11px] font-semibold text-muted-foreground">
+                  {member.name}
+                </span>
+              ))}
+              {checkedMemberRows.length > 5 && <span className="text-[11px] font-semibold text-muted-foreground">+{checkedMemberRows.length - 5}명</span>}
+            </div>
+            {targetSyncNotice && (
+              <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+                {targetSyncNotice}
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-[36px_0.8fr_1fr_0.45fr_2.2fr_0.45fr_0.45fr_0.45fr] gap-3 border-b border-border bg-muted/60 px-3 py-2 text-xs font-bold text-muted-foreground">
             <button type="button" onClick={toggleVisibleMembers} className={`flex h-5 w-5 items-center justify-center rounded border transition-colors ${allVisibleMembersChecked ? "border-primary bg-primary text-white" : "border-border bg-card text-transparent hover:border-primary"}`}>
@@ -1188,7 +1511,9 @@ function SendMessagePageWizard() {
           </div>
           <div className="flex h-12 shrink-0 items-center border-t border-primary/15 bg-primary/5 px-4">
             <span className="text-sm font-bold text-foreground">
-              {candidateMembers.length.toLocaleString()}명 중 {checkedMembers.length.toLocaleString()}명 선택
+              {checkedMembers.length > 0
+                ? `타겟 후보 ${targetMatchedMembers.length.toLocaleString()}명 중 ${checkedMembers.length.toLocaleString()}명 직접 선택`
+                : `직접 선택 없음 · 타겟 후보 ${targetMatchedMembers.length.toLocaleString()}명 전체 적용`}
             </span>
           </div>
         </div>
@@ -1887,12 +2212,19 @@ function TemplatesPage() {
 function HistoryPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("전체");
-  const [periodFilter, setPeriodFilter] = useState("30일");
+  const [period, setPeriod] = useState<StatsPeriod>(() => createStatsPeriod("recent30"));
   const [channelFilter, setChannelFilter] = useState("전체 채널");
   const [purposeFilter, setPurposeFilter] = useState<"전체 광고여부" | MessagePurpose>("전체 광고여부");
   const [selectedRecord, setSelectedRecord] = useState<SendRecord | null>(null);
   const [page, setPage] = useState(1);
+  const orderedPeriod = getOrderedStatsPeriod(period);
+  const updatePeriod = (nextPeriod: StatsPeriod) => {
+    setPeriod(nextPeriod);
+    setPage(1);
+  };
   const filtered = HISTORY.filter(r =>
+    r.sentAt.slice(0, 10) >= orderedPeriod.start &&
+    r.sentAt.slice(0, 10) <= orderedPeriod.end &&
     (filter === "전체" || r.status === filter) &&
     (channelFilter === "전체 채널" || r.channel === channelFilter) &&
     (purposeFilter === "전체 광고여부" || r.messagePurpose === purposeFilter) &&
@@ -1901,25 +2233,23 @@ function HistoryPage() {
   const pageSize = 10;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)));
   const pagedRecords = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const channelOptions = ["전체 채널", ...Array.from(new Set(HISTORY.map(r => r.channel)))];
+  const channelOptions = ["전체 채널", ...CHANNEL_LABELS];
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
+          <StatsPeriodControl period={period} onChange={updatePeriod} compact />
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="템플릿 또는 채널 검색" className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-52 focus:outline-none" />
+            <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="템플릿 또는 채널 검색" className="pl-8 pr-4 py-2 rounded-lg border border-border bg-card text-sm w-52 focus:outline-none" />
           </div>
           {["전체", "완료", "진행중", "실패"].map(f => (
-            <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${filter === f ? "bg-primary text-white" : "bg-card border border-border text-muted-foreground hover:text-foreground"}`}>{f}</button>
+            <button key={f} onClick={() => { setFilter(f); setPage(1); }} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${filter === f ? "bg-primary text-white" : "bg-card border border-border text-muted-foreground hover:text-foreground"}`}>{f}</button>
           ))}
-          <select value={periodFilter} onChange={e => setPeriodFilter(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-            {["오늘", "7일", "30일", "직접 지정"].map(option => <option key={option}>{option}</option>)}
-          </select>
-          <select value={channelFilter} onChange={e => setChannelFilter(e.target.value)} className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+          <select value={channelFilter} onChange={e => { setChannelFilter(e.target.value); setPage(1); }} className="h-9 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-muted-foreground">
             {channelOptions.map(option => <option key={option}>{option}</option>)}
           </select>
-          <select value={purposeFilter} onChange={e => setPurposeFilter(e.target.value as "전체 광고여부" | MessagePurpose)} className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+          <select value={purposeFilter} onChange={e => { setPurposeFilter(e.target.value as "전체 광고여부" | MessagePurpose); setPage(1); }} className="h-9 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-muted-foreground">
             <option value="전체 광고여부">전체 광고여부</option>
             {MESSAGE_PURPOSES.map(purpose => <option key={purpose.id} value={purpose.id}>{purpose.label}</option>)}
           </select>
@@ -2313,14 +2643,15 @@ const downloadFile = (filename: string, content: string, type: string) => {
   URL.revokeObjectURL(url);
 };
 
-const downloadStatsExcel = () => {
+const downloadStatsExcel = (periodLabel = "기본 기간") => {
   const rows = [
     ["구분", "항목", "값"],
-    ["발송 현황", "이번달 총 발송", "892451"],
+    ["공통", "분석 기간", periodLabel],
+    ["발송 현황", "기간 총 발송", "892451"],
     ["발송 현황", "Fallback 전환", "5549"],
     ["발송 현황", "Fallback 전환율", "1.9%"],
     ["비용 분석", "실제 청구 비용", formatWon(18700000)],
-    ["비용 분석", "월별 절감액", formatWon(5500000)],
+    ["비용 분석", "기간 절감액", formatWon(5500000)],
     ["성과 분석", "평균 클릭률", "19.1%"],
     ["성과 분석", "전환율", "5.8%"],
   ];
@@ -2328,38 +2659,49 @@ const downloadStatsExcel = () => {
   downloadFile("stats-report.csv", `\uFEFF${csv}`, "text/csv;charset=utf-8");
 };
 
-function StatsReportActions() {
+function StatsReportActions({ period }: { period?: StatsPeriod }) {
+  const periodLabel = period ? getStatsPeriodLabel(period) : "기본 기간";
   return (
     <div className="flex justify-end gap-2">
       <Btn variant="outline" size="sm" onClick={() => window.print()}><Download className="w-3.5 h-3.5" /> PDF 다운로드</Btn>
-      <Btn variant="outline" size="sm" onClick={downloadStatsExcel}><Download className="w-3.5 h-3.5" /> Excel 다운로드</Btn>
+      <Btn variant="outline" size="sm" onClick={() => downloadStatsExcel(periodLabel)}><Download className="w-3.5 h-3.5" /> Excel 다운로드</Btn>
     </div>
   );
 }
 
-function StatsOverview() {
-  const [fallbackPeriod, setFallbackPeriod] = useState("일간");
+function StatsOverview({ period, onPeriodChange }: { period: StatsPeriod; onPeriodChange: (period: StatsPeriod) => void }) {
+  const sendTrendData = useMemo(() => buildSendTrendData(period, 2), [period]);
+  const channelTrendData = useMemo(() => buildChannelTrendData(period, 4), [period]);
+  const fallbackData = useMemo(() => buildFallbackStageData(period), [period]);
+  const routingData = useMemo(() => buildRoutingSeriesData(period), [period]);
+  const totalSends = sendTrendData.reduce((sum, row) => sum + row.sends, 0);
+  const totalSuccess = sendTrendData.reduce((sum, row) => sum + row.success, 0);
+  const totalCost = routingData.reduce((sum, row) => sum + row.actual, 0);
+  const totalSaved = routingData.reduce((sum, row) => sum + row.saved, 0);
+  const days = getStatsPeriodDays(period);
+  const grainLabel = getStatsGrainLabel(getStatsGrain(period));
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
-      <div className="flex items-center justify-end">
-        <StatsReportActions />
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <StatsPeriodControl period={period} onChange={onPeriodChange} />
+        <StatsReportActions period={period} />
       </div>
       <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
-        <StatCard label="이번달 총 발송" value="892,451" sub="전월 대비 +12.4%" trend={{ val: "+12.4%", up: true }} icon={<Send className="w-4 h-4" />} color="blue" />
-        <StatCard label="평균 성공률" value="98.4%" sub="실패 14,232건" trend={{ val: "+0.2%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
-        <StatCard label="일평균 발송" value="29,748" sub="최고 284,391건" icon={<Activity className="w-4 h-4" />} color="violet" />
-        <StatCard label="실제 청구 비용" value={formatWon(18700000)} sub="전월 대비 +8.1%" trend={{ val: "+8.1%", up: false }} icon={<Target className="w-4 h-4" />} color="amber" />
-        <StatCard label="스마트 라우팅 절감" value={formatWon(5500000)} sub="최대 비용 대비" icon={<RefreshCw className="w-4 h-4" />} color="green" />
+        <StatCard label="총 발송" value={totalSends.toLocaleString()} sub={getStatsPeriodLabel(period)} trend={{ val: "+12.4%", up: true, label: "이전 기간 대비" }} icon={<Send className="w-4 h-4" />} color="blue" />
+        <StatCard label="평균 성공률" value={`${((totalSuccess / totalSends) * 100).toFixed(1)}%`} sub={`실패 ${(totalSends - totalSuccess).toLocaleString()}건`} trend={{ val: "+0.2%p", up: true, label: "이전 기간 대비" }} icon={<CheckCircle2 className="w-4 h-4" />} color="green" />
+        <StatCard label="기간 평균 발송" value={Math.round(totalSends / days).toLocaleString()} sub="일 평균 기준" icon={<Activity className="w-4 h-4" />} color="violet" />
+        <StatCard label="실제 청구 비용" value={formatWon(totalCost)} sub="선택 기간 누적" trend={{ val: "+8.1%", up: false, label: "이전 기간 대비" }} icon={<Target className="w-4 h-4" />} color="amber" />
+        <StatCard label="스마트 라우팅 절감" value={formatWon(totalSaved)} sub="최대 비용 대비" icon={<RefreshCw className="w-4 h-4" />} color="green" />
       </div>
       <QueueStatusCard />
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-2 gap-3">
         <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
-          <h3 className="text-sm font-bold mb-3">월별 채널별 발송 현황</h3>
+          <h3 className="text-sm font-bold mb-3">{grainLabel} 채널별 발송 현황</h3>
           <div className="min-h-0 flex-1">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData} barSize={10}>
+              <BarChart data={channelTrendData} barSize={10}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
                 <Tooltip formatter={(v: number) => [`${v.toLocaleString()}건`]} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -2372,17 +2714,15 @@ function StatsOverview() {
           </div>
         </div>
         <div className="grid min-h-0 grid-rows-2 gap-3">
-          <DailySendTrendCard title="일별 발송 & 성공 추이" gradientId="statsDailySendsGrad" />
+          <DailySendTrendCard title={`${grainLabel} 발송 & 성공 추이`} gradientId="statsDailySendsGrad" data={sendTrendData} xKey="label" />
           <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
             <div className="mb-2 flex items-center justify-between gap-3">
               <h3 className="text-sm font-bold">Fallback 채널별 성공률</h3>
-              <select value={fallbackPeriod} onChange={event => setFallbackPeriod(event.target.value)} className="rounded-lg border border-border bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground">
-                {["일간", "주간", "월간"].map(option => <option key={option}>{option}</option>)}
-              </select>
+              <span className="rounded-lg bg-muted px-2.5 py-1.5 text-xs font-bold text-muted-foreground">{grainLabel}</span>
             </div>
             <div className="min-h-0 flex-1">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={fallbackStageData} barSize={12}>
+                <BarChart data={fallbackData} barSize={12}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
                   <XAxis dataKey="stage" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${v}%`} domain={[90, 100]} />
@@ -2401,26 +2741,28 @@ function StatsOverview() {
   );
 }
 
-function StatsChannel() {
-  const totalChannelSends = channelCostData.reduce((sum, channel) => sum + channel.sends, 0);
-  const totalChannelCost = channelCostData.reduce((sum, channel) => sum + channel.cost, 0);
-  const weightedSuccessRate = channelCostData.reduce((sum, channel) => sum + channel.successRate * channel.sends, 0) / totalChannelSends;
+function StatsChannel({ period, onPeriodChange }: { period: StatsPeriod; onPeriodChange: (period: StatsPeriod) => void }) {
+  const periodChannelCostData = useMemo(() => buildChannelCostData(period), [period]);
+  const channelTrendData = useMemo(() => buildChannelTrendData(period, 8), [period]);
+  const channelShareData = useMemo(() => buildChannelShareData(periodChannelCostData), [periodChannelCostData]);
+  const totalChannelSends = periodChannelCostData.reduce((sum, channel) => sum + channel.sends, 0);
+  const totalChannelCost = periodChannelCostData.reduce((sum, channel) => sum + channel.cost, 0);
+  const weightedSuccessRate = periodChannelCostData.reduce((sum, channel) => sum + channel.successRate * channel.sends, 0) / totalChannelSends;
   const averageUnitCost = totalChannelCost / totalChannelSends;
+  const grainLabel = getStatsGrainLabel(getStatsGrain(period));
   const channelSummaryMetrics = [
-    { label: "총 발송", value: `${totalChannelSends.toLocaleString()}건`, sub: "전체 채널 합산" },
+    { label: "총 발송", value: `${totalChannelSends.toLocaleString()}건`, sub: "선택 기간 전체 채널" },
     { label: "평균 성공률", value: `${weightedSuccessRate.toFixed(1)}%`, sub: "발송량 가중 평균" },
-    { label: "총 비용", value: formatWon(totalChannelCost), sub: "채널 발송 비용" },
+    { label: "총 비용", value: formatWon(totalChannelCost), sub: "선택 기간 채널 비용" },
     { label: "평균 단가", value: `${averageUnitCost.toFixed(1)}원`, sub: "건당 평균 비용" },
-    { label: "활성 채널", value: `${channelCostData.length}개`, sub: "운영 중인 채널" },
+    { label: "활성 채널", value: `${periodChannelCostData.length}개`, sub: "운영 중인 채널" },
   ];
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <select className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
-          {["최근 7일", "최근 30일", "이번 달", "직접 지정"].map(option => <option key={option}>{option}</option>)}
-        </select>
-        <StatsReportActions />
+        <StatsPeriodControl period={period} onChange={onPeriodChange} />
+        <StatsReportActions period={period} />
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {channelSummaryMetrics.map(metric => (
@@ -2437,7 +2779,7 @@ function StatsChannel() {
             <h3 className="text-sm font-bold mb-3">채널별 성공률/실패율 비교</h3>
             <div className="min-h-0 flex-1">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={channelCostData} layout="vertical" barSize={14}>
+                <BarChart data={periodChannelCostData} layout="vertical" barSize={14}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" horizontal={false} />
                   <XAxis type="number" domain={[96, 100]} tick={{ fontSize: 10 }} tickFormatter={v => `${v}%`} />
                   <YAxis type="category" dataKey="channel" tick={{ fontSize: 10 }} width={90} />
@@ -2448,12 +2790,12 @@ function StatsChannel() {
             </div>
           </div>
           <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
-            <h3 className="text-sm font-bold mb-3">채널별 추이</h3>
+            <h3 className="text-sm font-bold mb-3">{grainLabel} 채널별 추이</h3>
             <div className="min-h-0 flex-1">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={monthlyData}>
+                <LineChart data={channelTrendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
                   <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -2467,14 +2809,14 @@ function StatsChannel() {
           </div>
         </div>
         <div className="grid min-h-0 grid-rows-[0.9fr_1.1fr] gap-3">
-          <ChannelShareCard />
+          <ChannelShareCard data={channelShareData} />
           <div className="bg-card rounded-xl border border-border overflow-hidden">
             <div className="px-4 py-2.5 border-b border-border"><h3 className="text-sm font-bold">채널별 비용 및 평균 단가</h3></div>
             <table className="w-full text-sm">
               <thead><tr className="bg-muted border-b border-border">
                 {["채널", "발송량", "성공률", "실패율", "총 비용", "평균 단가"].map(h => <th key={h} className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>)}
               </tr></thead>
-              <tbody>{channelCostData.map(row => (
+              <tbody>{periodChannelCostData.map(row => (
                 <tr key={row.channel} className="border-b border-border hover:bg-muted/30">
                   <td className="px-3 py-2 text-xs font-bold">{row.channel}</td>
                   <td className="px-3 py-2 text-xs">{row.sends.toLocaleString()}건</td>
@@ -2491,30 +2833,37 @@ function StatsChannel() {
     </div>
   );
 }
-function StatsRouting() {
+function StatsRouting({ period, onPeriodChange }: { period: StatsPeriod; onPeriodChange: (period: StatsPeriod) => void }) {
+  const routingData = useMemo(() => buildRoutingSeriesData(period), [period]);
+  const actualCost = routingData.reduce((sum, row) => sum + row.actual, 0);
+  const baselineCost = routingData.reduce((sum, row) => sum + row.baseline, 0);
+  const savedCost = routingData.reduce((sum, row) => sum + row.saved, 0);
+  const fallbackSwitches = Math.round(getStatsPeriodDays(period) * 185);
+  const grainLabel = getStatsGrainLabel(getStatsGrain(period));
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
-      <div className="flex items-center justify-end">
-        <StatsReportActions />
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <StatsPeriodControl period={period} onChange={onPeriodChange} />
+        <StatsReportActions period={period} />
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="실제 청구 비용" value={formatWon(18700000)} sub="6월 누적" icon={<Target className="w-4 h-4" />} color="amber" />
-        <StatCard label="최대 비용" value={formatWon(24200000)} sub="동일 물량 기준" icon={<TrendingUp className="w-4 h-4" />} color="violet" />
-        <StatCard label="월별 절감액" value={formatWon(5500000)} sub="절감률 22.7%" trend={{ val: "+22.1%", up: true }} icon={<Zap className="w-4 h-4" />} color="green" />
-        <StatCard label="대체 발송 전환" value="5,549" sub="전환율 1.9%" trend={{ val: "+0.4%p", up: true }} icon={<RefreshCw className="w-4 h-4" />} color="blue" />
+        <StatCard label="실제 청구 비용" value={formatWon(actualCost)} sub="선택 기간 누적" icon={<Target className="w-4 h-4" />} color="amber" />
+        <StatCard label="최대 비용" value={formatWon(baselineCost)} sub="동일 물량 기준" icon={<TrendingUp className="w-4 h-4" />} color="violet" />
+        <StatCard label="기간 절감액" value={formatWon(savedCost)} sub={`절감률 ${((savedCost / baselineCost) * 100).toFixed(1)}%`} trend={{ val: "+22.1%", up: true, label: "이전 기간 대비" }} icon={<Zap className="w-4 h-4" />} color="green" />
+        <StatCard label="대체 발송 전환" value={fallbackSwitches.toLocaleString()} sub="전환율 1.9%" trend={{ val: "+0.4%p", up: true, label: "이전 기간 대비" }} icon={<RefreshCw className="w-4 h-4" />} color="blue" />
       </div>
       <div className="grid shrink-0 grid-cols-1 lg:grid-cols-2 gap-3">
-        <CostComparisonCard />
+        <CostComparisonCard title={`${grainLabel} 비용 비교 현황`} data={routingData} xKey="label" />
         <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
-          <h3 className="text-sm font-bold mb-3">월별 절감액 추이</h3>
+          <h3 className="text-sm font-bold mb-3">{grainLabel} 절감액 추이</h3>
           <div className="h-[220px] min-h-0">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={routingSavingsData} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+              <AreaChart data={routingData} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
                 <defs>
                   <linearGradient id="savingGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10B981" stopOpacity={0.25} /><stop offset="95%" stopColor="#10B981" stopOpacity={0} /></linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} width={84} tickFormatter={v => formatWon(Number(v))} />
                 <Tooltip formatter={(v: number) => [formatWon(v)]} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -2528,11 +2877,16 @@ function StatsRouting() {
   );
 }
 
-function StatsMember() {
+function StatsMember({ period, onPeriodChange }: { period: StatsPeriod; onPeriodChange: (period: StatsPeriod) => void }) {
+  const newMemberSeriesData = useMemo(() => buildNewMemberSeriesData(period), [period]);
+  const days = getStatsPeriodDays(period);
+  const newMembers = newMemberSeriesData.reduce((sum, row) => sum + row.count, 0);
+  const totalMembers = 306527 + newMembers;
+  const grainLabel = getStatsGrainLabel(getStatsGrain(period));
   const consentChannelData = [
-    { label: "메시지", agreed: 198441, total: 307811, color: "bg-blue-500" },
-    { label: "카카오톡", agreed: 241320, total: 307811, color: "bg-amber-400" },
-    { label: "이메일", agreed: 204816, total: 307811, color: "bg-emerald-500" },
+    { label: "메시지", agreed: Math.round(totalMembers * 0.645), total: totalMembers, color: "bg-blue-500" },
+    { label: "카카오톡", agreed: Math.round(totalMembers * 0.784), total: totalMembers, color: "bg-amber-400" },
+    { label: "이메일", agreed: Math.round(totalMembers * 0.665), total: totalMembers, color: "bg-emerald-500" },
   ].map(channel => ({
     ...channel,
     rate: Number(((channel.agreed / channel.total) * 100).toFixed(1)),
@@ -2541,23 +2895,24 @@ function StatsMember() {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
-      <div className="flex items-center justify-end">
-        <StatsReportActions />
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <StatsPeriodControl period={period} onChange={onPeriodChange} />
+        <StatsReportActions period={period} />
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="전체 고객" value="307,811" sub="분석 가능 고객" icon={<Users className="w-4 h-4" />} color="amber" />
-        <StatCard label="일반 고객" value="198,341" sub="주요 발송 대상" icon={<Users className="w-4 h-4" />} color="blue" />
-        <StatCard label="신규 고객" value="34,210" sub="이번달 +1,284명" trend={{ val: "+3.9%", up: true }} icon={<TrendingUp className="w-4 h-4" />} color="green" />
-        <StatCard label="휴면 고객" value="23,420" sub="6개월 이상 미활동" trend={{ val: "-284명", up: true }} icon={<Clock className="w-4 h-4" />} color="violet" />
+        <StatCard label="전체 고객" value={totalMembers.toLocaleString()} sub="분석 가능 고객" icon={<Users className="w-4 h-4" />} color="amber" />
+        <StatCard label="일반 고객" value={Math.round(totalMembers * 0.644).toLocaleString()} sub="주요 발송 대상" icon={<Users className="w-4 h-4" />} color="blue" />
+        <StatCard label="신규 고객" value={newMembers.toLocaleString()} sub={`${days}일 누적 가입`} trend={{ val: "+3.9%", up: true, label: "이전 기간 대비" }} icon={<TrendingUp className="w-4 h-4" />} color="green" />
+        <StatCard label="휴면 고객" value="23,420" sub="6개월 이상 미활동" trend={{ val: "-284명", up: true, label: "이전 기간 대비" }} icon={<Clock className="w-4 h-4" />} color="violet" />
       </div>
       <div className="grid shrink-0 grid-cols-1 lg:grid-cols-2 gap-3">
         <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-col">
-          <h3 className="text-sm font-bold mb-3">신규 고객 가입자 수</h3>
+          <h3 className="text-sm font-bold mb-3">{grainLabel} 신규 고객 가입자 수</h3>
           <div className="h-[220px] min-h-0">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={newMemberData} barSize={24} margin={{ top: 8, right: 8, left: 0, bottom: -8 }}>
+              <BarChart data={newMemberSeriesData} barSize={24} margin={{ top: 8, right: 8, left: 0, bottom: -8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v: number) => [`${v.toLocaleString()}명`]} />
                 <Bar dataKey="count" name="신규 가입자" fill="#10B981" radius={[3, 3, 0, 0]} />
@@ -2592,33 +2947,46 @@ function StatsMember() {
   );
 }
 
-function StatsPerformance() {
+function StatsPerformance({ period, onPeriodChange }: { period: StatsPeriod; onPeriodChange: (period: StatsPeriod) => void }) {
   const [performanceChannel, setPerformanceChannel] = useState("카카오 친구톡");
+  const performanceSeriesData = useMemo(() => buildPerformanceSeriesData(period, performanceChannel), [period, performanceChannel]);
+  const averageClickRate = performanceSeriesData.reduce((sum, row) => sum + row.clickRate, 0) / performanceSeriesData.length;
+  const averageConversionRate = performanceSeriesData.reduce((sum, row) => sum + row.conversionRate, 0) / performanceSeriesData.length;
+  const optOutRate = clampNumber(0.09 + getStatsPeriodDays(period) / 900, 0.1, 0.32);
+  const grainLabel = getStatsGrainLabel(getStatsGrain(period));
   const rankedTemplatePerformanceTop = [...templatePerformanceTop]
+    .map((template, index) => ({
+      ...template,
+      click: Number((template.click + (averageClickRate - 19.1) * 0.18 - index * 0.12).toFixed(1)),
+      conversion: template.conversion === null ? null : Number((template.conversion + (averageConversionRate - 5.8) * 0.12).toFixed(1)),
+    }))
     .sort((a, b) => b.click - a.click || (b.conversion ?? -1) - (a.conversion ?? -1))
     .slice(0, 5);
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <select value={performanceChannel} onChange={event => setPerformanceChannel(event.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
-          {["카카오 친구톡", "카카오 알림톡", "SMS", "LMS", "RCS"].map(option => <option key={option}>{option}</option>)}
-        </select>
-        <StatsReportActions />
+        <div className="flex flex-wrap items-center gap-2">
+          <StatsPeriodControl period={period} onChange={onPeriodChange} compact />
+          <select value={performanceChannel} onChange={event => setPerformanceChannel(event.target.value)} className="h-9 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-muted-foreground">
+            {["카카오 친구톡", "카카오 알림톡", "SMS", "LMS", "RCS"].map(option => <option key={option}>{option}</option>)}
+          </select>
+        </div>
+        <StatsReportActions period={period} />
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard label="선택 채널" value={performanceChannel} sub="채널별 데이터 표시" icon={<MessageSquare className="w-4 h-4" />} color="blue" />
-        <StatCard label="평균 클릭률" value="19.1%" sub="업계 평균 8.2%" trend={{ val: "+0.8%p", up: true }} icon={<Target className="w-4 h-4" />} color="green" />
-        <StatCard label="전환율" value="5.8%" sub="전월 대비 +0.6%p" trend={{ val: "+0.6%p", up: true }} icon={<TrendingUp className="w-4 h-4" />} color="violet" />
-        <StatCard label="수신 거부율" value="0.12%" sub="업계 평균 0.41%" trend={{ val: "-0.02%p", up: true }} icon={<CheckCircle2 className="w-4 h-4" />} color="amber" />
+        <StatCard label="평균 클릭률" value={`${averageClickRate.toFixed(1)}%`} sub="업계 평균 8.2%" trend={{ val: "+0.8%p", up: true, label: "이전 기간 대비" }} icon={<Target className="w-4 h-4" />} color="green" />
+        <StatCard label="전환율" value={`${averageConversionRate.toFixed(1)}%`} sub="선택 기간 평균" trend={{ val: "+0.6%p", up: true, label: "이전 기간 대비" }} icon={<TrendingUp className="w-4 h-4" />} color="violet" />
+        <StatCard label="수신 거부율" value={`${optOutRate.toFixed(2)}%`} sub="업계 평균 0.41%" trend={{ val: "-0.02%p", up: true, label: "이전 기간 대비" }} icon={<CheckCircle2 className="w-4 h-4" />} color="amber" />
       </div>
       <div className="bg-card rounded-xl border border-border p-4 flex min-h-0 flex-[1.1] flex-col">
-        <h3 className="text-sm font-bold mb-3">월별 성과 지표 추이</h3>
+        <h3 className="text-sm font-bold mb-3">{grainLabel} 성과 지표 추이</h3>
         <div className="min-h-0 flex-1">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={performanceData}>
+            <LineChart data={performanceSeriesData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} />
               <Tooltip formatter={(v: number) => [`${v}%`]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -2687,6 +3055,10 @@ function StatsPerformance() {
 function MainLayout({ currentPage, setCurrentPage, onLogout }: {
   currentPage: Page; setCurrentPage: (p: Page) => void; onLogout: () => void;
 }) {
+  const [statsPeriods, setStatsPeriods] = useState<Record<StatsPage, StatsPeriod>>(() => createDefaultStatsPeriods());
+  const updateStatsPeriod = (page: StatsPage) => (period: StatsPeriod) => {
+    setStatsPeriods(prev => ({ ...prev, [page]: period }));
+  };
   const fitToViewport = currentPage === "dashboard" || currentPage === "send" || currentPage === "templates" || currentPage === "members" || currentPage.startsWith("stats");
   const renderPage = () => {
     switch (currentPage) {
@@ -2695,11 +3067,11 @@ function MainLayout({ currentPage, setCurrentPage, onLogout }: {
       case "templates": return <TemplatesPage />;
       case "history": return <HistoryPage />;
       case "members": return <MembersPage />;
-      case "stats-overview": return <StatsOverview />;
-      case "stats-channel": return <StatsChannel />;
-      case "stats-routing": return <StatsRouting />;
-      case "stats-member": return <StatsMember />;
-      case "stats-performance": return <StatsPerformance />;
+      case "stats-overview": return <StatsOverview period={statsPeriods["stats-overview"]} onPeriodChange={updateStatsPeriod("stats-overview")} />;
+      case "stats-channel": return <StatsChannel period={statsPeriods["stats-channel"]} onPeriodChange={updateStatsPeriod("stats-channel")} />;
+      case "stats-routing": return <StatsRouting period={statsPeriods["stats-routing"]} onPeriodChange={updateStatsPeriod("stats-routing")} />;
+      case "stats-member": return <StatsMember period={statsPeriods["stats-member"]} onPeriodChange={updateStatsPeriod("stats-member")} />;
+      case "stats-performance": return <StatsPerformance period={statsPeriods["stats-performance"]} onPeriodChange={updateStatsPeriod("stats-performance")} />;
     }
   };
   return (
