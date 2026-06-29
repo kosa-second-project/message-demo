@@ -53,7 +53,30 @@ export function HistoryPage() {
         <Btn variant="outline" size="sm"><Download className="w-3.5 h-3.5" /> Excel 내보내기</Btn>
       </div>
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="space-y-2 p-3 md:hidden">
+          {pagedRecords.map(r => (
+            <button key={r.id} onClick={() => setSelectedRecord(r)} className="w-full rounded-xl border border-border bg-card p-3 text-left">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-bold text-foreground">{r.template}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">{r.sentAt} · {r.affiliate}</div>
+                </div>
+                <Badge text={r.status} variant={r.status === "완료" ? "green" : r.status === "진행중" ? "amber" : "red"} />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <Badge text={r.channel} variant="blue" />
+                <Badge text={getMessagePurposeMeta(r.messagePurpose).label} variant={getMessagePurposeMeta(r.messagePurpose).color} />
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">{r.targetType}</span>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                <div><div className="text-muted-foreground">발송</div><div className="font-bold">{r.count.toLocaleString()}</div></div>
+                <div><div className="text-muted-foreground">성공/실패</div><div className="font-bold">{r.success.toLocaleString()} / {r.fail}</div></div>
+                <div><div className="text-muted-foreground">절감</div><div className="font-bold text-emerald-600">{formatWon(r.savedCost)}</div></div>
+              </div>
+            </button>
+          ))}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
         <table className="min-w-[1080px] w-full text-sm">
           <thead><tr className="bg-muted border-b border-border">
             {["발송일시", "계열사", "템플릿", "채널", "광고여부", "대상", "발송", "성공", "실패", "성공률", "비용 절감", "상태"].map(h => (

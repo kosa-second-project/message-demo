@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Check, Download, Search, X } from 'lucide-react';
 import type { Member } from '../types';
-import { MEMBER_TAGS, createMemberRows, tagGroupLabel, uniqueTags } from '../domain';
+import { HISTORY, MEMBER_TAGS, createMemberRows, tagGroupLabel, uniqueTags } from '../domain';
 import { Badge, Btn, Modal, Pagination } from '../components/shared';
 
 export function MembersPage() {
@@ -111,7 +111,32 @@ export function MembersPage() {
       </div>
       {memberTab === "members" ? (
       <div className="bg-card flex min-h-0 flex-col overflow-hidden rounded-xl border border-border">
-        <div className="max-h-[560px] overflow-auto">
+        <div className="space-y-2 p-3 md:hidden">
+          {pagedMembers.map(m => (
+            <button key={m.id} onClick={() => openMemberDetail(m)} className="w-full rounded-xl border border-border bg-card p-3 text-left">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-bold text-foreground">{m.name}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">{m.phone}</div>
+                </div>
+                <Badge text={m.type} variant={typeMap[m.type] || "default"} />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1">
+                {(m.tags ?? []).slice(0, 4).map((tag, index) => <span key={`${m.id}-${tag}-${index}`} className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{tag}</span>)}
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-1 text-[11px] font-bold">
+                <span className={m.smsConsent ? "text-emerald-600" : "text-red-400"}>SMS {m.smsConsent ? "동의" : "거부"}</span>
+                <span className={m.kakaoConsent ? "text-emerald-600" : "text-red-400"}>카카오 {m.kakaoConsent ? "동의" : "거부"}</span>
+                <span className={m.rcsConsent ? "text-emerald-600" : "text-red-400"}>RCS {m.rcsConsent ? "동의" : "거부"}</span>
+              </div>
+              <div className="mt-3 flex justify-between text-[11px] font-semibold text-muted-foreground">
+                <span>{m.joinedAt}</span>
+                <span>{m.lastSend}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+        <div className="hidden max-h-[560px] overflow-auto md:block">
           <table className="min-w-[780px] w-full text-sm">
             <thead><tr className="bg-muted border-b border-border">
               {["고객명", "전화번호", "유형", "타겟", "SMS 동의", "카카오 동의", "RCS 동의", "가입일"].map(h => (
@@ -142,7 +167,23 @@ export function MembersPage() {
       </div>
       ) : (
       <div className="bg-card flex min-h-0 flex-col overflow-hidden rounded-xl border border-border">
-        <div className="max-h-[560px] overflow-auto">
+        <div className="space-y-2 p-3 md:hidden">
+          {pagedBlockedMembers.map(member => (
+            <button key={member.id} onClick={() => openMemberDetail(member)} className="w-full rounded-xl border border-border bg-card p-3 text-left">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-bold text-foreground">{member.name}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">{member.phone}</div>
+                </div>
+                <Badge text={!member.smsConsent ? "SMS" : "카카오"} variant="red" />
+              </div>
+              <div className="mt-3 text-xs font-semibold text-muted-foreground">
+                {`2026-06-${String(10 + (member.id % 14)).padStart(2, "0")} 14:${String((member.id * 7) % 60).padStart(2, "0")}`}
+              </div>
+            </button>
+          ))}
+        </div>
+        <div className="hidden max-h-[560px] overflow-auto md:block">
           <table className="min-w-[640px] w-full text-sm">
             <thead><tr className="bg-muted border-b border-border">
               {["고객명", "전화번호", "거부 채널", "수신거부 일시"].map(h => <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>)}

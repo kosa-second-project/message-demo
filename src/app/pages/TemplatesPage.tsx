@@ -80,7 +80,29 @@ export function TemplatesPage() {
         ))}
       </div>
       <div className="bg-card overflow-hidden rounded-xl border border-border">
-        <div className="overflow-x-auto">
+        <div className="space-y-2 p-3 md:hidden">
+          {pagedTemplates.map(t => (
+            <button key={t.id} onClick={() => setDetailModal(t)} className="w-full rounded-xl border border-border bg-card p-3 text-left">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-bold text-foreground">{t.name}</div>
+                  <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{t.content.replace(/\n/g, " ")}</div>
+                </div>
+                <Badge text={getMessagePurposeMeta(t.messagePurpose).label} variant={getMessagePurposeMeta(t.messagePurpose).color} />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <Badge text={t.channel} variant="blue" />
+                <Badge text={t.category} variant="default" />
+                {(getTemplateTags(t).slice(0, 2)).map((tag, index) => <span key={`${t.id}-${tag}-${index}`} className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">{tag}</span>)}
+              </div>
+              <div className="mt-3 flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
+                <span>{t.usageCount.toLocaleString()}회 사용</span>
+                <span>{t.updatedAt}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <table className="min-w-[860px] w-full text-sm">
             <thead><tr className="bg-muted border-b border-border">
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">템플릿명</th>

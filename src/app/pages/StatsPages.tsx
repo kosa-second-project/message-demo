@@ -186,7 +186,23 @@ export function StatsChannel({ period, onPeriodChange }: { period: StatsPeriod; 
           <ChannelShareCard data={channelShareData} />
           <div className="bg-card rounded-xl border border-border overflow-hidden">
             <div className="px-4 py-2.5 border-b border-border"><h3 className="text-sm font-bold">채널별 비용 및 평균 단가</h3></div>
-            <div className="overflow-x-auto"><table className="min-w-[620px] w-full text-sm">
+            <div className="space-y-2 p-3 md:hidden">
+              {periodChannelCostData.map(row => (
+                <div key={row.channel} className="rounded-xl border border-border bg-card p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-bold text-foreground">{row.channel}</div>
+                    <div className="text-xs font-bold text-emerald-600">{row.successRate}% 성공</div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div><div className="text-muted-foreground">발송량</div><div className="font-bold">{row.sends.toLocaleString()}건</div></div>
+                    <div><div className="text-muted-foreground">실패율</div><div className="font-bold text-red-500">{row.failRate}%</div></div>
+                    <div><div className="text-muted-foreground">총 비용</div><div className="font-bold">{formatWon(row.cost)}</div></div>
+                    <div><div className="text-muted-foreground">평균 단가</div><div className="font-bold">{row.unit}원</div></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <table className="hidden w-full text-sm md:table">
               <thead><tr className="bg-muted border-b border-border">
                 {["채널", "발송량", "성공률", "실패율", "총 비용", "평균 단가"].map(h => <th key={h} className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>)}
               </tr></thead>
@@ -200,7 +216,7 @@ export function StatsChannel({ period, onPeriodChange }: { period: StatsPeriod; 
                   <td className="px-3 py-2 text-xs">{row.unit}원</td>
                 </tr>
               ))}</tbody>
-            </table></div>
+            </table>
           </div>
         </div>
       </div>

@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Check, CheckCircle2, ChevronDown, ChevronRight, Clock, Eye, Search, Send, Sparkles, X } from 'lucide-react';
-import type { Member, MessagePurpose } from '../types';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertTriangle, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronRight, Clock, Eye, Search, Send, Sparkles, X } from 'lucide-react';
+import type { Member, MessagePurpose, Template } from '../types';
 import { MEMBER_TAGS, createMemberRows, createTemplateRows, formatWon, getTemplateTags, memberMatchesTargetTag, uniqueTags } from '../domain';
 import { CHANNELS, MESSAGE_PURPOSES, PERSONAL_FIELDS, getMessagePurposeMeta } from '../constants/messaging';
 import { AiReportDetail, Badge, Btn, Modal, SpecPin, TemplateFormFields } from '../components/shared';
+import type { TemplateFormState } from '../components/shared';
 
 export function SendMessagePageWizard() {
   const members = useMemo(() => createMemberRows(), []);
   const templates = useMemo(() => createTemplateRows(), []);
   const [step, setStep] = useState(1);
-  const [selectedTags, setSelectedTags] = useState<string[]>(["카카오 동의"]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [targetMatchMode, setTargetMatchMode] = useState<"OR" | "AND">("OR");
   const [tagSearch, setTagSearch] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
@@ -63,20 +64,25 @@ export function SendMessagePageWizard() {
   const selectedTemplate = templates.find(template => template.id === selectedTemplateId);
   const selectedMessagePurpose = MESSAGE_PURPOSES.find(purpose => purpose.id === messagePurpose) ?? MESSAGE_PURPOSES[0];
   const SelectedMessagePurposeIcon = selectedMessagePurpose.icon;
+  const hasTargetSelected = selectedTags.length > 0;
+  const targetSignature = selectedTags.join("|");
+  const targetInitializedRef = useRef(false);
   const visibleTags = (tagSearch ? MEMBER_TAGS.filter(tag => tag.includes(tagSearch)) : MEMBER_TAGS).slice(0, 36);
   const relatedTags = MEMBER_TAGS
     .filter(tag => !selectedTags.includes(tag) && (tagSearch ? [...tagSearch].some(ch => tag.includes(ch)) : selectedTags.some(selected => tag.includes(selected) || selected.includes(tag))))
     .slice(0, 12);
-  const targetMatchedMembers = useMemo(() => members.filter(member => {
-    const tagMatch = selectedTags.length === 0 || selectedTags.includes("전체 고객") || (
+  const targetMatchedMembers = useMemo(() => {
+    if (!hasTargetSelected) return [];
+    return members.filter(member => {
+    const tagMatch = selectedTags.includes("전체 고객") || (
       targetMatchMode === "AND"
         ? selectedTags.every(tag => memberMatchesTargetTag(member, tag))
         : selectedTags.some(tag => memberMatchesTargetTag(member, tag))
     );
     const hasReceivableChannel = member.smsConsent || member.kakaoConsent || member.emailConsent;
     return tagMatch && hasReceivableChannel;
-  }), [members, selectedTags, targetMatchMode]);
-  const targetMatchedMemberIds = useMemo(() => new Set(targetMatchedMembers.map(member => member.id)), [targetMatchedMembers]);
+    });
+  }, [hasTargetSelected, members, selectedTags, targetMatchMode]);
   const candidateMembers = useMemo(() => targetMatchedMembers.filter(member => {
     const memberTags = member.tags ?? [];
     return !memberSearch || member.name.includes(memberSearch) || member.phone.includes(memberSearch) || memberTags.some(tag => tag.includes(memberSearch));
@@ -149,23 +155,24 @@ export function SendMessagePageWizard() {
   const canGoToStep = (value: number) => value === 1 || stepReady.slice(0, value - 1).every(Boolean);
 
   useEffect(() => {
-    setCheckedMembers(prev => {
-      const next = prev.filter(id => targetMatchedMemberIds.has(id));
-      const removedCount = prev.length - next.length;
-      if (removedCount > 0) {
-        setTargetSyncNotice(`타겟 조건이 바뀌어 조건에서 벗어난 고객 ${removedCount.toLocaleString()}명을 선택 해제했습니다.`);
-        return next;
-      }
-      return prev;
-    });
-  }, [targetMatchedMemberIds]);
+    if (!targetInitializedRef.current) {
+      targetInitializedRef.current = true;
+      return;
+    }
+    setCheckedMembers([]);
+    setIncludedMembers([]);
+    setExcludedMembers([]);
+    setMemberSearch("");
+    setTargetSyncNotice(
+      hasTargetSelected
+        ? "타겟 조건이 변경되어 고객 선택을 초기화했습니다. 변경된 타겟 기준으로 고객을 다시 선택해 주세요."
+        : "타겟이 비어 있어 고객 선택을 초기화했습니다. 타겟을 먼저 선택해 주세요."
+    );
+  }, [hasTargetSelected, targetMatchMode, targetSignature]);
 
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag]);
   const selectAllMembers = () => {
     setSelectedTags(["전체 고객"]);
-    setCheckedMembers([]);
-    setMemberSearch("");
-    setTargetSyncNotice("전체 고객 타겟으로 전환했습니다. 개별 고객 선택은 초기화되었습니다.");
   };
   const selectAllSearchedMembers = () => {
     setCheckedMembers(candidateMembers.map(member => member.id));
@@ -320,7 +327,7 @@ export function SendMessagePageWizard() {
           <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
             <div className="flex items-center justify-between gap-3">
               <span className="text-[11px] font-bold text-primary">현재 타겟</span>
-              <span className="text-[11px] font-bold text-muted-foreground">{targetMatchedMembers.length.toLocaleString()}명 후보</span>
+              <span className="text-[11px] font-bold text-muted-foreground">{hasTargetSelected ? `${targetMatchedMembers.length.toLocaleString()}명 후보` : "타겟 미선택"}</span>
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {selectedTags.map(tag => (
@@ -386,7 +393,7 @@ export function SendMessagePageWizard() {
           <div className="border-b border-border bg-card px-3 py-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-lg bg-muted px-2.5 py-1.5 text-[11px] font-bold text-muted-foreground">
-                타겟 후보 {targetMatchedMembers.length.toLocaleString()}명
+                {hasTargetSelected ? `타겟 후보 ${targetMatchedMembers.length.toLocaleString()}명` : "타겟 미선택"}
               </span>
               <span className="rounded-lg bg-blue-50 px-2.5 py-1.5 text-[11px] font-bold text-blue-700">
                 현재 표시 {candidateMembers.length.toLocaleString()}명
@@ -407,7 +414,7 @@ export function SendMessagePageWizard() {
               </div>
             )}
           </div>
-          <div className="overflow-x-auto border-b border-border">
+          <div className="hidden overflow-x-auto border-b border-border md:block">
             <div className="grid min-w-[760px] grid-cols-[36px_0.8fr_1fr_0.45fr_2.2fr_0.45fr_0.45fr_0.45fr] gap-3 bg-muted/60 px-3 py-2 text-xs font-bold text-muted-foreground">
             <button type="button" onClick={toggleVisibleMembers} className={`flex h-5 w-5 items-center justify-center rounded border transition-colors ${allVisibleMembersChecked ? "border-primary bg-primary text-white" : "border-border bg-card text-transparent hover:border-primary"}`}>
               <Check className="h-3.5 w-3.5" />
@@ -422,6 +429,47 @@ export function SendMessagePageWizard() {
             </div>
           </div>
           <div className="min-h-0 flex-1 overflow-auto">
+            <div className="space-y-2 p-3 md:hidden">
+              {!hasTargetSelected && (
+                <div className="rounded-lg border border-dashed border-border bg-muted/40 px-3 py-8 text-center text-xs font-semibold text-muted-foreground">
+                  타겟을 선택하면 고객 후보가 표시됩니다.
+                </div>
+              )}
+              {hasTargetSelected && visibleMembers.map(member => {
+                const checked = checkedMembers.includes(member.id);
+                return (
+                  <label key={member.id} className={`block rounded-xl border p-3 transition-colors ${checked ? "border-primary bg-accent" : "border-border bg-card"}`}>
+                    <div className="flex items-start gap-3">
+                      <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${checked ? "border-primary bg-primary text-white" : "border-border text-transparent"}`}>
+                        <Check className="h-3.5 w-3.5" />
+                      </span>
+                      <input className="sr-only" type="checkbox" checked={checked} onChange={() => toggleMemberCheck(member.id)} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate text-sm font-bold text-foreground">{member.name}</span>
+                          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">{member.type}</span>
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">{member.phone}</div>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {(member.tags ?? []).slice(0, 4).map((tag, index) => <span key={`${member.id}-${tag}-${index}`} className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{tag}</span>)}
+                        </div>
+                        <div className="mt-2 grid grid-cols-3 gap-1 text-[11px] font-bold">
+                          <span className={member.smsConsent ? "text-emerald-600" : "text-red-400"}>SMS {member.smsConsent ? "동의" : "거부"}</span>
+                          <span className={member.kakaoConsent ? "text-emerald-600" : "text-red-400"}>카카오 {member.kakaoConsent ? "동의" : "거부"}</span>
+                          <span className={member.emailConsent ? "text-emerald-600" : "text-red-400"}>이메일 {member.emailConsent ? "동의" : "거부"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+              {hasTargetSelected && visibleMembers.length === 0 && (
+                <div className="rounded-lg border border-dashed border-border bg-muted/40 px-3 py-8 text-center text-xs font-semibold text-muted-foreground">
+                  조건에 맞는 고객이 없습니다.
+                </div>
+              )}
+            </div>
+            <div className="hidden md:block">
             {visibleMembers.map(member => {
               const checked = checkedMembers.includes(member.id);
               return (
@@ -442,15 +490,18 @@ export function SendMessagePageWizard() {
                 </label>
               );
             })}
+            </div>
             {visibleMembers.length === 0 && (
-              <div className="px-3 py-8 text-center text-xs text-muted-foreground">수신 가능한 채널이 있는 고객만 표시됩니다.</div>
+              <div className="hidden px-3 py-8 text-center text-xs text-muted-foreground md:block">수신 가능한 채널이 있는 고객만 표시됩니다.</div>
             )}
           </div>
           <div className="flex h-12 shrink-0 items-center border-t border-primary/15 bg-primary/5 px-4">
             <span className="text-sm font-bold text-foreground">
               {checkedMembers.length > 0
                 ? `타겟 후보 ${targetMatchedMembers.length.toLocaleString()}명 중 ${checkedMembers.length.toLocaleString()}명 직접 선택`
-                : `직접 선택 없음 · 타겟 후보 ${targetMatchedMembers.length.toLocaleString()}명 전체 적용`}
+                : hasTargetSelected
+                  ? `직접 선택 없음 · 타겟 후보 ${targetMatchedMembers.length.toLocaleString()}명 전체 적용`
+                  : "타겟을 먼저 선택해 주세요."}
             </span>
           </div>
         </div>
