@@ -11,6 +11,7 @@ export function SendMessagePageWizard() {
   const templates = useMemo(() => createTemplateRows(), []);
   const [step, setStep] = useState(1);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [targetConfirmed, setTargetConfirmed] = useState(false);
   const [targetMatchMode, setTargetMatchMode] = useState<"OR" | "AND">("OR");
   const [tagSearch, setTagSearch] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
@@ -65,6 +66,7 @@ export function SendMessagePageWizard() {
   const selectedMessagePurpose = MESSAGE_PURPOSES.find(purpose => purpose.id === messagePurpose) ?? MESSAGE_PURPOSES[0];
   const SelectedMessagePurposeIcon = selectedMessagePurpose.icon;
   const hasTargetSelected = selectedTags.length > 0;
+  const canShowTargetMembers = targetConfirmed && hasTargetSelected;
   const targetSignature = selectedTags.join("|");
   const targetInitializedRef = useRef(false);
   const visibleTags = (tagSearch ? MEMBER_TAGS.filter(tag => tag.includes(tagSearch)) : MEMBER_TAGS).slice(0, 36);
@@ -136,15 +138,15 @@ export function SendMessagePageWizard() {
     .filter(Boolean);
   const aiComplete = aiJobs.every(job => job.status === "완료") && aiResult;
   const messageStepReady = messageDraft.trim().length > 0 && !!selectedChannel && aiComplete;
-  const canSend = selectedTags.length > 0 && messageStepReady;
+  const canSend = targetConfirmed && selectedTags.length > 0 && messageStepReady;
   const stepMeta = ["수신자 선택", "메시지 작성", "검토 및 발송"];
   const stepReady = [
-    selectedTags.length > 0,
+    targetConfirmed && selectedTags.length > 0,
     messageStepReady,
     canSend,
   ];
   const nextDisabledReason = step === 1 && !stepReady[0]
-    ? "수신자를 먼저 선택해 주세요."
+    ? hasTargetSelected ? "타겟 조건을 확인해야 고객 목록과 다음 단계로 이동할 수 있습니다." : "수신자를 먼저 선택해 주세요."
     : step === 2 && !messageDraft.trim()
       ? "메시지를 작성해 주세요."
       : step === 2 && !selectedChannel
@@ -163,18 +165,35 @@ export function SendMessagePageWizard() {
     setIncludedMembers([]);
     setExcludedMembers([]);
     setMemberSearch("");
+    setTargetConfirmed(false);
     setTargetSyncNotice(
       hasTargetSelected
-        ? "타겟 조건이 변경되어 고객 선택을 초기화했습니다. 변경된 타겟 기준으로 고객을 다시 선택해 주세요."
+        ? "타겟 조건이 변경되어 고객 선택을 초기화했습니다. 확인을 누르면 변경된 타겟 기준으로 고객 목록이 표시됩니다."
         : "타겟이 비어 있어 고객 선택을 초기화했습니다. 타겟을 먼저 선택해 주세요."
     );
   }, [hasTargetSelected, targetMatchMode, targetSignature]);
 
-  const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag]);
+  const toggleTag = (tag: string) => {
+    if (targetConfirmed) return;
+    setSelectedTags(prev => prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag]);
+  };
   const selectAllMembers = () => {
+    if (targetConfirmed) return;
     setSelectedTags(["전체 고객"]);
   };
+  const confirmTarget = () => {
+    if (!hasTargetSelected) return;
+    setTargetConfirmed(true);
+    setTargetSyncNotice("");
+  };
+  const editTarget = () => {
+    setTargetConfirmed(false);
+    setCheckedMembers([]);
+    setMemberSearch("");
+    setTargetSyncNotice("타겟 조건을 수정 중입니다. 확인을 누르면 고객 목록이 다시 표시됩니다.");
+  };
   const selectAllSearchedMembers = () => {
+    if (!canShowTargetMembers) return;
     setCheckedMembers(candidateMembers.map(member => member.id));
     setTargetSyncNotice("");
   };
@@ -183,6 +202,7 @@ export function SendMessagePageWizard() {
     setTargetSyncNotice("");
   };
   const toggleVisibleMembers = () => {
+    if (!canShowTargetMembers) return;
     const visibleIds = visibleMembers.map(member => member.id);
     setCheckedMembers(prev => allVisibleMembersChecked ? prev.filter(id => !visibleIds.includes(id)) : Array.from(new Set([...prev, ...visibleIds])));
     setTargetSyncNotice("");
@@ -267,6 +287,7 @@ export function SendMessagePageWizard() {
       setSelectedTemplateId(template.id);
       setMessageDraft(message);
       setCheckedMembers(members.filter(member => member.tags?.includes("최근구매") && member.kakaoConsent).slice(0, 12).map(member => member.id));
+      setTargetConfirmed(true);
       setStep(2);
       setAiLoading(false);
     }, 1200);
@@ -316,22 +337,42 @@ export function SendMessagePageWizard() {
 
   const renderRecipients = () => (
     <div className="grid min-h-0 grid-cols-1 gap-3 xl:h-full xl:grid-cols-[360px_1fr]">
-      <div className="rounded-xl border border-border bg-card p-4 flex min-h-0 flex-col">
+      <div className={`rounded-xl border p-4 flex min-h-0 flex-col transition-colors ${targetConfirmed ? "border-border bg-muted/45" : "border-border bg-card"}`}>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold">타겟 선택</h3>
-          <button onClick={selectAllMembers} className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-bold text-muted-foreground hover:border-primary/50 hover:text-primary">
-            전체 고객
-          </button>
+          <div>
+            <h3 className="text-sm font-bold">타겟 선택</h3>
+            {targetConfirmed && <p className="mt-1 text-[11px] font-semibold text-muted-foreground">확인된 조건입니다. 수정 버튼을 누르기 전까지 변경할 수 없습니다.</p>}
+          </div>
+          <div className="flex items-center gap-1.5">
+            {targetConfirmed ? (
+              <button
+                onClick={editTarget}
+                title="타겟 조건을 변경하려면 수정 버튼을 누르세요. 수정 중에는 고객 목록이 확인 전까지 숨겨집니다."
+                className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-bold text-muted-foreground hover:border-primary/50 hover:text-primary"
+              >
+                수정
+              </button>
+            ) : (
+              <>
+                <button onClick={selectAllMembers} className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-bold text-muted-foreground hover:border-primary/50 hover:text-primary">
+                  전체 고객
+                </button>
+                <button onClick={confirmTarget} disabled={!hasTargetSelected} className="rounded-lg bg-primary px-2.5 py-1.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">
+                  확인
+                </button>
+              </>
+            )}
+          </div>
         </div>
         <div className="space-y-3 min-h-0 flex-1">
-          <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+          <div className={`rounded-lg border px-3 py-2 ${targetConfirmed ? "border-border bg-card/70" : "border-primary/20 bg-primary/5"}`}>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[11px] font-bold text-primary">현재 타겟</span>
+              <span className={`text-[11px] font-bold ${targetConfirmed ? "text-muted-foreground" : "text-primary"}`}>현재 타겟</span>
               <span className="text-[11px] font-bold text-muted-foreground">{hasTargetSelected ? `${targetMatchedMembers.length.toLocaleString()}명 후보` : "타겟 미선택"}</span>
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {selectedTags.map(tag => (
-                <button key={tag} onClick={() => toggleTag(tag)} className="rounded-full bg-primary px-2 py-1 text-[11px] font-bold text-white">
+                <button key={tag} onClick={() => toggleTag(tag)} disabled={targetConfirmed} className={`rounded-full px-2 py-1 text-[11px] font-bold ${targetConfirmed ? "cursor-not-allowed bg-muted text-muted-foreground" : "bg-primary text-white"}`}>
                   {tag} ×
                 </button>
               ))}
@@ -340,14 +381,14 @@ export function SendMessagePageWizard() {
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input value={tagSearch} onChange={event => setTagSearch(event.target.value)} placeholder="타겟 검색" className="w-full pl-8 pr-4 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            <input value={tagSearch} onChange={event => setTagSearch(event.target.value)} disabled={targetConfirmed} placeholder="타겟 검색" className="w-full pl-8 pr-4 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground" />
           </div>
           <div className="flex items-center justify-between gap-2">
             <div className="text-xs font-bold text-muted-foreground">조건</div>
           </div>
           <div className="grid grid-cols-2 rounded-lg border border-border bg-muted p-1">
             {(["OR", "AND"] as const).map(option => (
-              <button key={option} onClick={() => setTargetMatchMode(option)} className={`px-3 py-1.5 rounded-md text-xs font-bold ${targetMatchMode === option ? "bg-primary text-white" : "text-muted-foreground hover:bg-card"}`}>
+              <button key={option} disabled={targetConfirmed} onClick={() => setTargetMatchMode(option)} className={`px-3 py-1.5 rounded-md text-xs font-bold disabled:cursor-not-allowed ${targetMatchMode === option ? targetConfirmed ? "bg-card text-muted-foreground" : "bg-primary text-white" : "text-muted-foreground hover:bg-card"}`}>
                 {option === "OR" ? "하나라도 포함" : "모두 포함"}
               </button>
             ))}
@@ -355,7 +396,7 @@ export function SendMessagePageWizard() {
           <div className="min-h-0 flex-1 overflow-y-auto rounded-lg bg-muted p-2">
             <div className="flex flex-wrap gap-1.5">
               {visibleTags.map(tag => (
-                <button key={tag} onClick={() => toggleTag(tag)} className={`px-2.5 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${selectedTags.includes(tag) ? "bg-primary text-white border-primary" : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}>
+                <button key={tag} disabled={targetConfirmed} onClick={() => toggleTag(tag)} className={`px-2.5 py-1.5 rounded-full text-xs font-semibold border transition-all disabled:cursor-not-allowed ${selectedTags.includes(tag) ? targetConfirmed ? "bg-card text-muted-foreground border-border" : "bg-primary text-white border-primary" : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}>
                   {tag}
                 </button>
               ))}
@@ -366,7 +407,7 @@ export function SendMessagePageWizard() {
               <div className="text-xs font-bold text-muted-foreground mb-2">유사 타겟</div>
               <div className="flex flex-wrap gap-1.5">
                 {relatedTags.map(tag => (
-                  <button key={tag} onClick={() => toggleTag(tag)} className="px-2.5 py-1 rounded-full text-xs font-semibold border border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground cursor-pointer transition-colors">
+                  <button key={tag} disabled={targetConfirmed} onClick={() => toggleTag(tag)} className="px-2.5 py-1 rounded-full text-xs font-semibold border border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-60">
                     {tag}
                   </button>
                 ))}
@@ -383,7 +424,7 @@ export function SendMessagePageWizard() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <input value={memberSearch} onChange={event => setMemberSearch(event.target.value)} placeholder="고객명, 번호, 타겟 검색" className="w-full pl-8 pr-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none" />
             </div>
-            <button onClick={selectAllSearchedMembers} disabled={candidateMembers.length === 0} className="h-9 rounded-lg border border-border bg-card px-3 text-xs font-bold text-muted-foreground hover:border-primary/50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40">
+            <button onClick={selectAllSearchedMembers} disabled={!canShowTargetMembers || candidateMembers.length === 0} className="h-9 rounded-lg border border-border bg-card px-3 text-xs font-bold text-muted-foreground hover:border-primary/50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40">
               검색 결과 선택
             </button>
             <button onClick={clearSelectedMembers} disabled={checkedMembers.length === 0} className="h-9 rounded-lg border border-border bg-card px-3 text-xs font-bold text-muted-foreground hover:border-red-300 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40">
@@ -393,10 +434,10 @@ export function SendMessagePageWizard() {
           <div className="border-b border-border bg-card px-3 py-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-lg bg-muted px-2.5 py-1.5 text-[11px] font-bold text-muted-foreground">
-                {hasTargetSelected ? `타겟 후보 ${targetMatchedMembers.length.toLocaleString()}명` : "타겟 미선택"}
+                {canShowTargetMembers ? `타겟 후보 ${targetMatchedMembers.length.toLocaleString()}명` : hasTargetSelected ? "타겟 확인 대기" : "타겟 미선택"}
               </span>
               <span className="rounded-lg bg-blue-50 px-2.5 py-1.5 text-[11px] font-bold text-blue-700">
-                현재 표시 {candidateMembers.length.toLocaleString()}명
+                현재 표시 {canShowTargetMembers ? candidateMembers.length.toLocaleString() : "0"}명
               </span>
               <span className="rounded-lg bg-primary/10 px-2.5 py-1.5 text-[11px] font-bold text-primary">
                 직접 선택 {checkedMembers.length.toLocaleString()}명
@@ -414,7 +455,7 @@ export function SendMessagePageWizard() {
               </div>
             )}
           </div>
-          <div className="hidden overflow-x-auto border-b border-border md:block">
+          {canShowTargetMembers && <div className="hidden overflow-x-auto border-b border-border md:block">
             <div className="grid min-w-[760px] grid-cols-[36px_0.8fr_1fr_0.45fr_2.2fr_0.45fr_0.45fr_0.45fr] gap-3 bg-muted/60 px-3 py-2 text-xs font-bold text-muted-foreground">
             <button type="button" onClick={toggleVisibleMembers} className={`flex h-5 w-5 items-center justify-center rounded border transition-colors ${allVisibleMembersChecked ? "border-primary bg-primary text-white" : "border-border bg-card text-transparent hover:border-primary"}`}>
               <Check className="h-3.5 w-3.5" />
@@ -427,15 +468,15 @@ export function SendMessagePageWizard() {
             <span>카카오</span>
             <span>이메일</span>
             </div>
-          </div>
+          </div>}
           <div className="min-h-0 flex-1 overflow-auto">
             <div className="space-y-2 p-3 md:hidden">
-              {!hasTargetSelected && (
+              {!canShowTargetMembers && (
                 <div className="rounded-lg border border-dashed border-border bg-muted/40 px-3 py-8 text-center text-xs font-semibold text-muted-foreground">
-                  타겟을 선택하면 고객 후보가 표시됩니다.
+                  {hasTargetSelected ? "확인을 누르면 선택한 타겟 기준의 고객 목록이 표시됩니다." : "타겟을 선택하고 확인을 누르면 고객 목록이 표시됩니다."}
                 </div>
               )}
-              {hasTargetSelected && visibleMembers.map(member => {
+              {canShowTargetMembers && visibleMembers.map(member => {
                 const checked = checkedMembers.includes(member.id);
                 return (
                   <label key={member.id} className={`block rounded-xl border p-3 transition-colors ${checked ? "border-primary bg-accent" : "border-border bg-card"}`}>
@@ -463,14 +504,14 @@ export function SendMessagePageWizard() {
                   </label>
                 );
               })}
-              {hasTargetSelected && visibleMembers.length === 0 && (
+              {canShowTargetMembers && visibleMembers.length === 0 && (
                 <div className="rounded-lg border border-dashed border-border bg-muted/40 px-3 py-8 text-center text-xs font-semibold text-muted-foreground">
                   조건에 맞는 고객이 없습니다.
                 </div>
               )}
             </div>
             <div className="hidden md:block">
-            {visibleMembers.map(member => {
+            {canShowTargetMembers && visibleMembers.map(member => {
               const checked = checkedMembers.includes(member.id);
               return (
                 <label key={member.id} className="grid min-w-[760px] grid-cols-[36px_0.8fr_1fr_0.45fr_2.2fr_0.45fr_0.45fr_0.45fr] gap-3 px-3 py-2.5 border-b border-border last:border-0 hover:bg-blue-50/60 cursor-pointer transition-colors">
@@ -491,15 +532,22 @@ export function SendMessagePageWizard() {
               );
             })}
             </div>
-            {visibleMembers.length === 0 && (
+            {!canShowTargetMembers && (
+              <div className="hidden px-3 py-16 text-center text-xs font-semibold text-muted-foreground md:block">
+                {hasTargetSelected ? "확인을 누르면 선택한 타겟 기준의 고객 목록이 표시됩니다." : "타겟을 선택하고 확인을 누르면 고객 목록이 표시됩니다."}
+              </div>
+            )}
+            {canShowTargetMembers && visibleMembers.length === 0 && (
               <div className="hidden px-3 py-8 text-center text-xs text-muted-foreground md:block">수신 가능한 채널이 있는 고객만 표시됩니다.</div>
             )}
           </div>
           <div className="flex h-12 shrink-0 items-center border-t border-primary/15 bg-primary/5 px-4">
             <span className="text-sm font-bold text-foreground">
-              {checkedMembers.length > 0
+              {!canShowTargetMembers
+                ? hasTargetSelected ? "타겟 조건 확인 후 고객 목록을 적용할 수 있습니다." : "타겟을 먼저 선택해 주세요."
+                : checkedMembers.length > 0
                 ? `타겟 후보 ${targetMatchedMembers.length.toLocaleString()}명 중 ${checkedMembers.length.toLocaleString()}명 직접 선택`
-                : hasTargetSelected
+                : canShowTargetMembers
                   ? `직접 선택 없음 · 타겟 후보 ${targetMatchedMembers.length.toLocaleString()}명 전체 적용`
                   : "타겟을 먼저 선택해 주세요."}
             </span>
@@ -901,7 +949,7 @@ export function SendMessagePageWizard() {
           {step < stepMeta.length ? (
             <div className="relative flex items-center">
               {!stepReady[step - 1] && nextDisabledReason && (
-                <div className="absolute bottom-full right-0 mb-2 max-w-[min(78vw,22rem)] whitespace-normal rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white shadow-lg">
+                <div className="absolute bottom-full right-0 mb-2 max-w-[calc(100vw-2rem)] overflow-hidden text-ellipsis whitespace-nowrap rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white shadow-lg md:max-w-none">
                   {nextDisabledReason}
                   <span className="absolute -bottom-1.5 right-6 h-3 w-3 rotate-45 bg-blue-700" />
                 </div>
