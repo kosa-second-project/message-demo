@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BarChart3, Bell, ChevronDown, FileText, History, LayoutDashboard, LogOut, Menu, MessageSquare, Send, Settings, Users } from 'lucide-react';
+import { BarChart3, ChevronDown, FileText, History, LayoutDashboard, LogOut, Menu, MessageSquare, Send, Users } from 'lucide-react';
 import type { Page, StatsPage, StatsPeriod } from '../types';
 import { createDefaultStatsPeriods } from '../domain';
 import { DashboardPage } from '../pages/DashboardPage';
@@ -87,9 +87,6 @@ function Sidebar({ current, setCurrent, onLogout, onNavigate, className = "" }: 
         </div>
       </nav>
       <div className="px-3 py-4 border-t border-sidebar-border space-y-0.5">
-        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-          <Settings className="w-4 h-4" /> 설정
-        </button>
         <button onClick={() => { onNavigate?.(); onLogout(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors">
           <LogOut className="w-4 h-4" /> 로그아웃
         </button>
@@ -101,8 +98,8 @@ function Sidebar({ current, setCurrent, onLogout, onNavigate, className = "" }: 
 // ─── Header ───────────────────────────────────────────────────────────────────
 const PAGE_TITLES: Record<Page, string> = {
   dashboard: "대시보드", send: "메시지 발송", templates: "템플릿 관리", history: "전송 기록",
-  members: "고객 관리", "stats-overview": "통계 · 발송 현황", "stats-channel": "통계 · 채널 분석",
-  "stats-routing": "통계 · 비용 분석", "stats-member": "통계 · 고객 분석", "stats-performance": "통계 · 성과 분석",
+  members: "고객 관리", "stats-overview": "발송 현황", "stats-channel": "채널 분석",
+  "stats-routing": "비용 분석", "stats-member": "고객 분석", "stats-performance": "성과 분석",
 };
 function Header({ page, onMenuClick }: { page: Page; onMenuClick?: () => void }) {
   return (
@@ -114,11 +111,7 @@ function Header({ page, onMenuClick }: { page: Page; onMenuClick?: () => void })
         <h1 className="truncate text-sm font-bold text-foreground sm:text-base">{PAGE_TITLES[page]}</h1>
       </div>
       <div className="flex items-center gap-3">
-        <button className="relative p-2 rounded-lg hover:bg-muted text-muted-foreground">
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
-        </button>
-        <div className="flex items-center gap-2 pl-3 border-l border-border">
+        <div className="flex items-center gap-2">
           <div className="w-7 h-7 bg-primary/10 rounded-full flex items-center justify-center text-xs font-bold text-primary">김</div>
           <span className="hidden text-xs font-semibold text-foreground sm:inline">김민준</span>
         </div>
@@ -140,7 +133,7 @@ export function MainLayout({ currentPage, setCurrentPage, onLogout }: {
   const renderPage = () => {
     switch (currentPage) {
       case "dashboard": return <DashboardPage setPage={setCurrentPage} />;
-      case "send": return <SendMessagePageWizard />;
+      case "send": return null;
       case "templates": return <TemplatesPage />;
       case "history": return <HistoryPage />;
       case "members": return <MembersPage />;
@@ -164,7 +157,12 @@ export function MainLayout({ currentPage, setCurrentPage, onLogout }: {
       )}
       <div className="flex-1 flex flex-col min-w-0">
         <Header page={currentPage} onMenuClick={() => setMobileNavOpen(true)} />
-        <main className={`flex-1 min-w-0 overflow-y-auto overscroll-contain ${fitToViewport ? "lg:overflow-hidden" : ""}`}>{renderPage()}</main>
+        <main className={`flex-1 min-w-0 overflow-y-auto overscroll-contain ${fitToViewport ? "lg:overflow-hidden" : ""}`}>
+          <div className={currentPage === "send" ? "h-full" : "hidden"}>
+            <SendMessagePageWizard />
+          </div>
+          {currentPage !== "send" && renderPage()}
+        </main>
       </div>
     </div>
   );

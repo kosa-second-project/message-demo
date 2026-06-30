@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Activity, CheckCircle2, Clock, Download, MessageSquare, RefreshCw, Send, Target, TrendingUp, Users, Zap } from 'lucide-react';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart as RePieChart, RadialBar, RadialBarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { StatsPeriod } from '../types';
-import { buildChannelCostData, buildChannelShareData, buildChannelTrendData, buildFallbackStageData, buildNewMemberSeriesData, buildPerformanceSeriesData, buildRoutingSeriesData, buildSendTrendData, channelCostData, channelPie, clampNumber, fallbackDonutData, formatWon, getStatsGrain, getStatsGrainLabel, getStatsPeriodDays, getStatsPeriodLabel, hourlyClickData, templatePerformanceTop, weekdayClickData } from '../domain';
+import { buildChannelCostData, buildChannelShareData, buildChannelTrendData, buildFallbackStageData, buildNewMemberSeriesData, buildPerformanceSeriesData, buildRoutingSeriesData, buildSendTrendData, channelCostData, channelPie, clampNumber, fallbackDonutData, formatWon, getStatsPeriodDays, getStatsPeriodLabel, hourlyClickData, weekdayClickData } from '../domain';
 import { Btn, ChannelShareCard, CostComparisonCard, DailySendTrendCard, QueueStatusCard, StatCard, StatsPeriodControl } from '../components/shared';
 
 const downloadFile = (filename: string, content: string, type: string) => {
@@ -37,8 +37,8 @@ function StatsReportActions({ period }: { period?: StatsPeriod }) {
   const periodLabel = period ? getStatsPeriodLabel(period) : "기본 기간";
   return (
     <div className="flex justify-end gap-2">
-      <Btn variant="outline" size="sm" onClick={() => window.print()}><Download className="w-3.5 h-3.5" /> PDF 다운로드</Btn>
-      <Btn variant="outline" size="sm" onClick={() => downloadStatsExcel(periodLabel)}><Download className="w-3.5 h-3.5" /> Excel 다운로드</Btn>
+      <Btn variant="outline" size="sm" disabled title="PDF 다운로드"><Download className="w-3.5 h-3.5" /> PDF 다운로드</Btn>
+      <Btn variant="outline" size="sm" disabled title={`Excel 다운로드 · ${periodLabel}`}><Download className="w-3.5 h-3.5" /> Excel 다운로드</Btn>
     </div>
   );
 }
@@ -53,7 +53,6 @@ export function StatsOverview({ period, onPeriodChange }: { period: StatsPeriod;
   const totalCost = routingData.reduce((sum, row) => sum + row.actual, 0);
   const totalSaved = routingData.reduce((sum, row) => sum + row.saved, 0);
   const days = getStatsPeriodDays(period);
-  const grainLabel = getStatsGrainLabel(getStatsGrain(period));
   return (
     <div className="flex min-h-full flex-col gap-3 p-3 sm:p-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -70,7 +69,7 @@ export function StatsOverview({ period, onPeriodChange }: { period: StatsPeriod;
       <QueueStatusCard />
       <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
         <div className="bg-card rounded-xl border border-border p-3 sm:p-4 flex min-h-[260px] flex-col lg:min-h-0">
-          <h3 className="text-sm font-bold mb-3">{grainLabel} 채널별 발송 현황</h3>
+          <h3 className="text-sm font-bold mb-3">채널별 발송 현황</h3>
           <div className="h-[240px] lg:min-h-0 lg:flex-1">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={channelTrendData} barSize={10}>
@@ -79,20 +78,20 @@ export function StatsOverview({ period, onPeriodChange }: { period: StatsPeriod;
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
                 <Tooltip formatter={(v: number) => [`${v.toLocaleString()}건`]} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="kakao" name="카카오 친구톡" fill="#F7E600" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="kakao" name="카카오톡" fill="#F7E600" radius={[3, 3, 0, 0]} />
                 <Bar dataKey="sms" name="SMS" fill="#1843FA" radius={[3, 3, 0, 0]} />
                 <Bar dataKey="lms" name="LMS" fill="#10B981" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="rcs" name="RCS" fill="#8B5CF6" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="rcs" name="이메일" fill="#0EA5E9" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
         <div className="grid gap-3 lg:min-h-0 lg:grid-rows-2">
-          <DailySendTrendCard title={`${grainLabel} 발송 & 성공 추이`} gradientId="statsDailySendsGrad" data={sendTrendData} xKey="label" />
+          <DailySendTrendCard title="발송 & 성공 추이" gradientId="statsDailySendsGrad" data={sendTrendData} xKey="label" />
           <div className="bg-card rounded-xl border border-border p-3 sm:p-4 flex min-h-[260px] flex-col lg:min-h-0">
             <div className="mb-2 flex items-center justify-between gap-3">
               <h3 className="text-sm font-bold">Fallback 채널별 성공률</h3>
-              <span className="rounded-lg bg-muted px-2.5 py-1.5 text-xs font-bold text-muted-foreground">{grainLabel}</span>
+              <span className="rounded-lg bg-muted px-2.5 py-1.5 text-xs font-bold text-muted-foreground">집계 기준</span>
             </div>
             <div className="h-[240px] lg:min-h-0 lg:flex-1">
               <ResponsiveContainer width="100%" height="100%">
@@ -119,18 +118,6 @@ export function StatsChannel({ period, onPeriodChange }: { period: StatsPeriod; 
   const periodChannelCostData = useMemo(() => buildChannelCostData(period), [period]);
   const channelTrendData = useMemo(() => buildChannelTrendData(period, 8), [period]);
   const channelShareData = useMemo(() => buildChannelShareData(periodChannelCostData), [periodChannelCostData]);
-  const totalChannelSends = periodChannelCostData.reduce((sum, channel) => sum + channel.sends, 0);
-  const totalChannelCost = periodChannelCostData.reduce((sum, channel) => sum + channel.cost, 0);
-  const weightedSuccessRate = periodChannelCostData.reduce((sum, channel) => sum + channel.successRate * channel.sends, 0) / totalChannelSends;
-  const averageUnitCost = totalChannelCost / totalChannelSends;
-  const grainLabel = getStatsGrainLabel(getStatsGrain(period));
-  const channelSummaryMetrics = [
-    { label: "총 발송", value: `${totalChannelSends.toLocaleString()}건`, sub: "선택 기간 전체 채널" },
-    { label: "평균 성공률", value: `${weightedSuccessRate.toFixed(1)}%`, sub: "발송량 가중 평균" },
-    { label: "총 비용", value: formatWon(totalChannelCost), sub: "선택 기간 채널 비용" },
-    { label: "평균 단가", value: `${averageUnitCost.toFixed(1)}원`, sub: "건당 평균 비용" },
-    { label: "활성 채널", value: `${periodChannelCostData.length}개`, sub: "운영 중인 채널" },
-  ];
 
   return (
     <div className="flex min-h-full flex-col gap-3 p-3 sm:p-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
@@ -138,20 +125,11 @@ export function StatsChannel({ period, onPeriodChange }: { period: StatsPeriod; 
         <StatsPeriodControl period={period} onChange={onPeriodChange} compact />
         <StatsReportActions period={period} />
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {channelSummaryMetrics.map(metric => (
-          <div key={metric.label} className="bg-card rounded-xl border border-border p-3">
-            <div className="text-xs text-muted-foreground mb-1">{metric.label}</div>
-            <div className="text-lg font-bold text-foreground">{metric.value}</div>
-            <div className="mt-1 text-[11px] text-muted-foreground">{metric.sub}</div>
-          </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-start">
         <div className="grid gap-3 lg:min-h-0 lg:grid-rows-2">
-          <div className="bg-card rounded-xl border border-border p-3 sm:p-4 flex min-h-[260px] flex-col lg:min-h-0">
-            <h3 className="text-sm font-bold mb-3">채널별 성공률/실패율 비교</h3>
-            <div className="h-[240px] lg:min-h-0 lg:flex-1">
+          <div className="bg-card rounded-xl border border-border p-3 sm:p-4 flex min-h-[240px] flex-col">
+            <h3 className="text-sm font-bold mb-2">채널별 성공률/실패율 비교</h3>
+            <div className="h-[205px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={periodChannelCostData} layout="vertical" barSize={14}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" horizontal={false} />
@@ -163,9 +141,9 @@ export function StatsChannel({ period, onPeriodChange }: { period: StatsPeriod; 
               </ResponsiveContainer>
             </div>
           </div>
-          <div className="bg-card rounded-xl border border-border p-3 sm:p-4 flex min-h-[260px] flex-col lg:min-h-0">
-            <h3 className="text-sm font-bold mb-3">{grainLabel} 채널별 추이</h3>
-            <div className="h-[240px] lg:min-h-0 lg:flex-1">
+          <div className="bg-card rounded-xl border border-border p-3 sm:p-4 flex min-h-[240px] flex-col">
+            <h3 className="text-sm font-bold mb-2">채널별 추이</h3>
+            <div className="h-[205px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={channelTrendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
@@ -173,19 +151,19 @@ export function StatsChannel({ period, onPeriodChange }: { period: StatsPeriod; 
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
                   <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Line type="monotone" dataKey="kakao" stroke="#F7E600" strokeWidth={2} dot={false} name="카카오 친구톡" />
+                  <Line type="monotone" dataKey="kakao" stroke="#F7E600" strokeWidth={2} dot={false} name="카카오톡" />
                   <Line type="monotone" dataKey="sms" stroke="#1843FA" strokeWidth={2} dot={false} name="SMS" />
                   <Line type="monotone" dataKey="lms" stroke="#10B981" strokeWidth={2} dot={false} name="LMS" />
-                  <Line type="monotone" dataKey="rcs" stroke="#8B5CF6" strokeWidth={2} dot={false} name="RCS" />
+                  <Line type="monotone" dataKey="rcs" stroke="#0EA5E9" strokeWidth={2} dot={false} name="이메일" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
         </div>
-        <div className="grid gap-3 lg:min-h-0 lg:grid-rows-[0.9fr_1.1fr]">
-          <ChannelShareCard data={channelShareData} />
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-border"><h3 className="text-sm font-bold">채널별 비용 및 평균 단가</h3></div>
+        <div className="grid gap-3 lg:min-h-0 lg:grid-rows-2">
+          <ChannelShareCard data={channelShareData} className="min-h-[240px]" />
+          <div className="bg-card rounded-xl border border-border flex min-h-[240px] flex-col overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-border"><h3 className="text-sm font-bold">채널별 비용</h3></div>
             <div className="space-y-2 p-3 md:hidden">
               {periodChannelCostData.map(row => (
                 <div key={row.channel} className="rounded-xl border border-border bg-card p-3">
@@ -195,28 +173,26 @@ export function StatsChannel({ period, onPeriodChange }: { period: StatsPeriod; 
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                     <div><div className="text-muted-foreground">발송량</div><div className="font-bold">{row.sends.toLocaleString()}건</div></div>
-                    <div><div className="text-muted-foreground">실패율</div><div className="font-bold text-red-500">{row.failRate}%</div></div>
                     <div><div className="text-muted-foreground">총 비용</div><div className="font-bold">{formatWon(row.cost)}</div></div>
-                    <div><div className="text-muted-foreground">평균 단가</div><div className="font-bold">{row.unit}원</div></div>
                   </div>
                 </div>
               ))}
             </div>
-            <table className="hidden w-full text-sm md:table">
-              <thead><tr className="bg-muted border-b border-border">
-                {["채널", "발송량", "성공률", "실패율", "총 비용", "평균 단가"].map(h => <th key={h} className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>)}
-              </tr></thead>
-              <tbody>{periodChannelCostData.map(row => (
-                <tr key={row.channel} className="border-b border-border hover:bg-muted/30">
-                  <td className="px-3 py-2 text-xs font-bold">{row.channel}</td>
-                  <td className="px-3 py-2 text-xs">{row.sends.toLocaleString()}건</td>
-                  <td className="px-3 py-2 text-xs text-emerald-600 font-bold">{row.successRate}%</td>
-                  <td className="px-3 py-2 text-xs text-red-500 font-bold">{row.failRate}%</td>
-                  <td className="px-3 py-2 text-xs font-bold">{formatWon(row.cost)}</td>
-                  <td className="px-3 py-2 text-xs">{row.unit}원</td>
-                </tr>
-              ))}</tbody>
-            </table>
+            <div className="hidden min-h-0 flex-1 md:block">
+              <table className="w-full text-sm">
+                <thead><tr className="bg-muted border-b border-border">
+                  {["채널", "발송량", "성공률", "총 비용"].map(h => <th key={h} className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>)}
+                </tr></thead>
+                <tbody>{periodChannelCostData.map(row => (
+                  <tr key={row.channel} className="border-b border-border hover:bg-muted/30">
+                    <td className="px-3 py-2 text-xs font-bold">{row.channel}</td>
+                    <td className="px-3 py-2 text-xs">{row.sends.toLocaleString()}건</td>
+                    <td className="px-3 py-2 text-xs text-emerald-600 font-bold">{row.successRate}%</td>
+                    <td className="px-3 py-2 text-xs font-bold">{formatWon(row.cost)}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -229,7 +205,6 @@ export function StatsRouting({ period, onPeriodChange }: { period: StatsPeriod; 
   const baselineCost = routingData.reduce((sum, row) => sum + row.baseline, 0);
   const savedCost = routingData.reduce((sum, row) => sum + row.saved, 0);
   const fallbackSwitches = Math.round(getStatsPeriodDays(period) * 185);
-  const grainLabel = getStatsGrainLabel(getStatsGrain(period));
   return (
     <div className="flex min-h-full flex-col gap-3 p-3 sm:p-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -243,9 +218,9 @@ export function StatsRouting({ period, onPeriodChange }: { period: StatsPeriod; 
         <StatCard label="대체 발송 전환" value={fallbackSwitches.toLocaleString()} sub="전환율 1.9%" trend={{ val: "+0.4%p", up: true, label: "이전 기간 대비" }} icon={<RefreshCw className="w-4 h-4" />} color="blue" />
       </div>
       <div className="grid grid-cols-1 gap-3 lg:shrink-0 lg:grid-cols-2">
-        <CostComparisonCard title={`${grainLabel} 비용 비교 현황`} data={routingData} xKey="label" />
+        <CostComparisonCard title="비용 비교 현황" data={routingData} xKey="label" />
         <div className="bg-card rounded-xl border border-border p-3 sm:p-4 flex min-h-[260px] flex-col lg:min-h-0">
-          <h3 className="text-sm font-bold mb-3">{grainLabel} 절감액 추이</h3>
+          <h3 className="text-sm font-bold mb-3">절감액 추이</h3>
           <div className="h-[240px] lg:h-[220px] lg:min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={routingData} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
@@ -267,14 +242,14 @@ export function StatsRouting({ period, onPeriodChange }: { period: StatsPeriod; 
   );
 }
 
-export function StatsMember({ period, onPeriodChange }: { period: StatsPeriod; onPeriodChange: (period: StatsPeriod) => void }) {
-  const newMemberSeriesData = useMemo(() => buildNewMemberSeriesData(period), [period]);
-  const days = getStatsPeriodDays(period);
+export function StatsMember({ period }: { period: StatsPeriod; onPeriodChange: (period: StatsPeriod) => void }) {
+  const [newMemberPeriod, setNewMemberPeriod] = useState<StatsPeriod>(() => period);
+  const newMemberSeriesData = useMemo(() => buildNewMemberSeriesData(newMemberPeriod), [newMemberPeriod]);
+  const days = getStatsPeriodDays(newMemberPeriod);
   const newMembers = newMemberSeriesData.reduce((sum, row) => sum + row.count, 0);
   const totalMembers = 306527 + newMembers;
   const latestSnapshotMembers = 306527;
   const dormantMembers = 23420;
-  const grainLabel = getStatsGrainLabel(getStatsGrain(period));
   const consentChannelData = [
     { label: "메시지", agreed: Math.round(latestSnapshotMembers * 0.645), total: latestSnapshotMembers, color: "bg-blue-500" },
     { label: "카카오톡", agreed: Math.round(latestSnapshotMembers * 0.784), total: latestSnapshotMembers, color: "bg-amber-400" },
@@ -287,9 +262,8 @@ export function StatsMember({ period, onPeriodChange }: { period: StatsPeriod; o
 
   return (
     <div className="flex min-h-full flex-col gap-3 p-3 sm:p-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <StatsPeriodControl period={period} onChange={onPeriodChange} compact />
-        <StatsReportActions period={period} />
+      <div className="flex justify-end">
+        <StatsReportActions />
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="전체 고객" value={totalMembers.toLocaleString()} sub="분석 가능 고객" icon={<Users className="w-4 h-4" />} color="amber" />
@@ -299,7 +273,10 @@ export function StatsMember({ period, onPeriodChange }: { period: StatsPeriod; o
       </div>
       <div className="grid grid-cols-1 gap-3 lg:shrink-0 lg:grid-cols-2">
         <div className="bg-card rounded-xl border border-border p-3 sm:p-4 flex min-h-[260px] flex-col lg:min-h-0">
-          <h3 className="text-sm font-bold mb-3">{grainLabel} 신규 고객 가입자 수</h3>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-sm font-bold">신규 고객 가입자 수</h3>
+            <StatsPeriodControl period={newMemberPeriod} onChange={setNewMemberPeriod} compact />
+          </div>
           <div className="h-[240px] lg:h-[220px] lg:min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={newMemberSeriesData} barSize={24} margin={{ top: 8, right: 8, left: 0, bottom: -8 }}>
@@ -343,28 +320,18 @@ export function StatsMember({ period, onPeriodChange }: { period: StatsPeriod; o
 }
 
 export function StatsPerformance({ period, onPeriodChange }: { period: StatsPeriod; onPeriodChange: (period: StatsPeriod) => void }) {
-  const [performanceChannel, setPerformanceChannel] = useState("카카오 친구톡");
+  const [performanceChannel, setPerformanceChannel] = useState("카카오톡");
   const performanceSeriesData = useMemo(() => buildPerformanceSeriesData(period, performanceChannel), [period, performanceChannel]);
   const averageClickRate = performanceSeriesData.reduce((sum, row) => sum + row.clickRate, 0) / performanceSeriesData.length;
   const averageConversionRate = performanceSeriesData.reduce((sum, row) => sum + row.conversionRate, 0) / performanceSeriesData.length;
   const optOutRate = clampNumber(0.09 + getStatsPeriodDays(period) / 900, 0.1, 0.32);
-  const grainLabel = getStatsGrainLabel(getStatsGrain(period));
-  const rankedTemplatePerformanceTop = [...templatePerformanceTop]
-    .map((template, index) => ({
-      ...template,
-      click: Number((template.click + (averageClickRate - 19.1) * 0.18 - index * 0.12).toFixed(1)),
-      conversion: template.conversion === null ? null : Number((template.conversion + (averageConversionRate - 5.8) * 0.12).toFixed(1)),
-    }))
-    .sort((a, b) => b.click - a.click || (b.conversion ?? -1) - (a.conversion ?? -1))
-    .slice(0, 5);
-
   return (
     <div className="flex min-h-full flex-col gap-3 p-3 sm:p-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex flex-wrap items-center gap-2">
           <StatsPeriodControl period={period} onChange={onPeriodChange} compact />
           <select value={performanceChannel} onChange={event => setPerformanceChannel(event.target.value)} className="h-9 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-muted-foreground">
-            {["카카오 친구톡", "카카오 알림톡", "SMS", "LMS", "RCS"].map(option => <option key={option}>{option}</option>)}
+            {["카카오톡", "SMS", "LMS", "이메일"].map(option => <option key={option}>{option}</option>)}
           </select>
         </div>
         <StatsReportActions period={period} />
@@ -376,7 +343,7 @@ export function StatsPerformance({ period, onPeriodChange }: { period: StatsPeri
         <StatCard label="수신 거부율" value={`${optOutRate.toFixed(2)}%`} sub="업계 평균 0.41%" trend={{ val: "-0.02%p", up: true, label: "이전 기간 대비" }} icon={<CheckCircle2 className="w-4 h-4" />} color="amber" />
       </div>
       <div className="bg-card rounded-xl border border-border p-3 sm:p-4 flex min-h-[280px] flex-col lg:min-h-0 lg:flex-[1.1]">
-        <h3 className="text-sm font-bold mb-3">{grainLabel} 성과 지표 추이</h3>
+        <h3 className="text-sm font-bold mb-3">성과 지표 추이</h3>
         <div className="h-[240px] lg:min-h-0 lg:flex-1">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={performanceSeriesData}>
@@ -391,34 +358,7 @@ export function StatsPerformance({ period, onPeriodChange }: { period: StatsPeri
           </ResponsiveContainer>
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-3">
-        <div className="flex min-h-[260px] flex-col overflow-hidden rounded-xl border border-border bg-card p-3 sm:p-4 lg:min-h-0">
-          <div className="mb-3">
-            <h3 className="text-sm font-bold">템플릿별 성과 Top 5</h3>
-            <p className="mt-1 text-[11px] font-semibold text-muted-foreground">클릭률 순 · 동률 시 구매전환율 순</p>
-          </div>
-          <div className="mb-2 grid grid-cols-[2rem_minmax(0,1fr)_3.5rem_4.5rem] items-center gap-2 px-2.5 text-[10px] font-bold text-muted-foreground">
-            <span className="text-center">순위</span>
-            <span>템플릿</span>
-            <span className="text-right">클릭률</span>
-            <span className="text-right">전환율</span>
-          </div>
-          <div className="grid flex-1 grid-rows-5 gap-1.5">
-            {rankedTemplatePerformanceTop.map((t, i) => (
-              <div key={t.name} className="grid min-h-0 grid-cols-[2rem_minmax(0,1fr)_3.5rem_4.5rem] items-center gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{i + 1}</span>
-                <div className="min-w-0">
-                  <div className="truncate text-xs font-bold leading-tight text-foreground">{t.name}</div>
-                  <div className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">{t.source}</div>
-                </div>
-                <div className="text-right text-xs font-bold text-foreground">{t.click}%</div>
-                <div className="text-right text-xs font-bold text-muted-foreground">
-                  {t.conversion === null ? "미반영" : `${t.conversion}%`}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
         <div className="bg-card rounded-xl border border-border p-3 sm:p-4 flex min-h-[260px] flex-col lg:min-h-0">
           <h3 className="text-sm font-bold mb-3">요일별 클릭률</h3>
           <div className="h-[240px] lg:min-h-0 lg:flex-1">

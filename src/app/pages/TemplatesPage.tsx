@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Edit2, Plus, Search, Trash2 } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import type { MessagePurpose, Template } from '../types';
 import { createTemplateRows, getTemplateTags, uniqueTags } from '../domain';
 import { MESSAGE_PURPOSES, getMessagePurposeMeta } from '../constants/messaging';
@@ -13,13 +13,13 @@ export function TemplatesPage() {
   const [categoryFilter, setCategoryFilter] = useState("전체");
   const [channelFilter, setChannelFilter] = useState("전체");
   const [purposeFilter, setPurposeFilter] = useState<"전체" | MessagePurpose>("전체");
+  const [sortOrder, setSortOrder] = useState("latest");
   const [page, setPage] = useState(1);
-  const [editModal, setEditModal] = useState<Template | null>(null);
   const [detailModal, setDetailModal] = useState<Template | null>(null);
   const [templatePreviewMode, setTemplatePreviewMode] = useState<"message" | "kakao" | "email">("kakao");
   const [addModal, setAddModal] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [form, setForm] = useState<TemplateFormState>({ name: "", channel: "SMS", content: "", category: "이벤트", messagePurpose: "advertising", scope: "전사 공통" });
+  const emptyForm: TemplateFormState = { name: "", channel: "문자", content: "", category: "이벤트", messagePurpose: "advertising", scope: "전사 공통", tags: [] };
+  const [form, setForm] = useState<TemplateFormState>(emptyForm);
 
   const filtered = useMemo(() => templates.filter(t => {
     const tags = getTemplateTags(t);
@@ -27,31 +27,36 @@ export function TemplatesPage() {
     const keyword = !search || t.name.includes(search) || t.content.includes(search) || t.channel.includes(search) || t.category.includes(search) || purposeMeta.label.includes(search) || tags.some(tag => tag.includes(search));
     const targetMatch = targetFilters.length === 0 || targetFilters.every(tag => tags.includes(tag));
     const categoryMatch = categoryFilter === "전체" || t.category === categoryFilter;
-    const channelMatch = channelFilter === "전체" || t.channel === channelFilter;
+    const templateChannels = t.channel.split(",").map(channel => channel.trim()).filter(Boolean);
+    const channelMatch = channelFilter === "전체" || templateChannels.includes(channelFilter);
     const purposeMatch = purposeFilter === "전체" || t.messagePurpose === purposeFilter;
     return keyword && targetMatch && categoryMatch && channelMatch && purposeMatch;
   }), [templates, search, targetFilters, categoryFilter, channelFilter, purposeFilter]);
+  const sortedTemplates = useMemo(() => {
+    const next = [...filtered];
+    next.sort((a, b) => {
+      if (sortOrder === "oldest") return a.updatedAt.localeCompare(b.updatedAt) || a.id - b.id;
+      if (sortOrder === "name") return a.name.localeCompare(b.name, "ko");
+      if (sortOrder === "usage") return b.usageCount - a.usageCount || b.updatedAt.localeCompare(a.updatedAt);
+      return b.updatedAt.localeCompare(a.updatedAt) || b.id - a.id;
+    });
+    return next;
+  }, [filtered, sortOrder]);
   const pageSize = 10;
-  const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)));
-  const pagedTemplates = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(sortedTemplates.length / pageSize)));
+  const pagedTemplates = sortedTemplates.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const targetOptions = uniqueTags(templates.flatMap(getTemplateTags)).slice(0, 16);
   const categoryOptions = ["전체", ...Array.from(new Set(templates.map(template => template.category))).sort((a, b) => a.localeCompare(b, "ko"))];
-  const channelFilterOptions = ["전체", ...Array.from(new Set(templates.map(template => template.channel))).sort((a, b) => a.localeCompare(b, "ko"))];
+  const channelFilterOptions = ["전체", ...Array.from(new Set(templates.flatMap(template => template.channel.split(",").map(channel => channel.trim()).filter(Boolean)))).sort((a, b) => a.localeCompare(b, "ko"))];
   const toggleTargetFilter = (tag: string) => {
     setTargetFilters(prev => prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag]);
     setPage(1);
   };
 
   const saveTemplate = () => {
-    if (editModal) {
-      setTemplates(prev => prev.map(t => t.id === editModal.id ? { ...t, ...form } : t));
-    } else {
-      setTemplates(prev => [...prev, { id: Date.now(), ...form, usageCount: 0, updatedAt: new Date().toISOString().slice(0, 10) }]);
-    }
-    setEditModal(null); setAddModal(false); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", messagePurpose: "advertising", scope: "전사 공통" });
+    setTemplates(prev => [...prev, { id: Date.now(), ...form, usageCount: 0, updatedAt: new Date().toISOString().slice(0, 10) }]);
+    setAddModal(false); setForm(emptyForm);
   };
-
-  const openEdit = (t: Template) => { setEditModal(t); setForm({ name: t.name, channel: t.channel, content: t.content, category: t.category, messagePurpose: t.messagePurpose, scope: t.scope ?? "전사 공통" }); };
 
   return (
     <div className="space-y-4 p-3 sm:p-6">
@@ -71,8 +76,14 @@ export function TemplatesPage() {
             <option value="전체">전체 광고여부</option>
             {MESSAGE_PURPOSES.map(purpose => <option key={purpose.id} value={purpose.id}>{purpose.label}</option>)}
           </select>
+          <select value={sortOrder} onChange={event => { setSortOrder(event.target.value); setPage(1); }} className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
+            <option value="latest">최신순</option>
+            <option value="oldest">오래된순</option>
+            <option value="name">이름순</option>
+            <option value="usage">사용 많은순</option>
+          </select>
         </div>
-        <Btn onClick={() => { setAddModal(true); setForm({ name: "", channel: "SMS", content: "", category: "이벤트", messagePurpose: "advertising", scope: "전사 공통" }); }}><Plus className="w-3.5 h-3.5" /> 템플릿 추가</Btn>
+        <Btn onClick={() => { setAddModal(true); setForm(emptyForm); }}><Plus className="w-3.5 h-3.5" /> 템플릿 추가</Btn>
       </div>
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
         {targetOptions.map(tag => (
@@ -108,11 +119,10 @@ export function TemplatesPage() {
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">템플릿명</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">카테고리</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">광고여부</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">타겟</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">태그</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">채널</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">사용 횟수</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">수정일</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">작업</th>
             </tr></thead>
             <tbody>{pagedTemplates.map(t => (
               <tr key={t.id} onClick={() => setDetailModal(t)} className="border-b border-border hover:bg-blue-50/70 transition-colors cursor-pointer">
@@ -130,17 +140,11 @@ export function TemplatesPage() {
                 <td className="px-4 py-3.5"><Badge text={t.channel} variant="blue" /></td>
                 <td className="px-4 py-3.5 hidden lg:table-cell"><span className="text-xs font-semibold">{t.usageCount.toLocaleString()}회</span></td>
                 <td className="px-4 py-3.5"><span className="text-xs text-muted-foreground">{t.updatedAt}</span></td>
-                <td className="px-4 py-3.5">
-                  <div className="flex items-center justify-end gap-1">
-                    <button onClick={(e) => { e.stopPropagation(); openEdit(t); }} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
-                    <button onClick={(e) => { e.stopPropagation(); setDeleteId(t.id); }} className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-                  </div>
-                </td>
               </tr>
             ))}</tbody>
           </table>
         </div>
-        <Pagination page={currentPage} total={filtered.length} pageSize={pageSize} onPage={setPage} />
+        <Pagination page={currentPage} total={sortedTemplates.length} pageSize={pageSize} onPage={setPage} />
       </div>
 
       <Modal open={!!detailModal} onClose={() => setDetailModal(null)} title="템플릿 상세" wide>
@@ -168,7 +172,6 @@ export function TemplatesPage() {
                   </div>
                 </div>
               </div>
-              <Btn size="sm" variant="outline" onClick={() => { openEdit(detailModal); setDetailModal(null); }}><Edit2 className="w-3 h-3" /> 수정</Btn>
             </div>
             <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-b border-border pb-4 md:grid-cols-6">
               {[
@@ -258,18 +261,8 @@ export function TemplatesPage() {
           </div>
         )}
       </Modal>
-      <Modal open={!!editModal} onClose={() => setEditModal(null)} title="템플릿 수정" wide>
-        <TemplateFormFields form={form} setForm={setForm} onCancel={() => { setEditModal(null); setAddModal(false); }} onSave={saveTemplate} />
-      </Modal>
       <Modal open={addModal} onClose={() => setAddModal(false)} title="새 템플릿 추가" wide>
-        <TemplateFormFields form={form} setForm={setForm} onCancel={() => { setEditModal(null); setAddModal(false); }} onSave={saveTemplate} />
-      </Modal>
-      <Modal open={deleteId !== null} onClose={() => setDeleteId(null)} title="템플릿 삭제">
-        <p className="text-sm text-muted-foreground mb-4">이 템플릿을 삭제하시겠습니까? 삭제 후 복구할 수 없습니다.</p>
-        <div className="flex justify-end gap-2">
-          <Btn variant="outline" onClick={() => setDeleteId(null)}>취소</Btn>
-          <Btn variant="danger" onClick={() => { setTemplates(t => t.filter(x => x.id !== deleteId)); setDeleteId(null); }}>삭제</Btn>
-        </div>
+        <TemplateFormFields form={form} setForm={setForm} onCancel={() => setAddModal(false)} onSave={saveTemplate} />
       </Modal>
     </div>
   );

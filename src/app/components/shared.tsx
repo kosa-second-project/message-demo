@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ArrowDownRight, ArrowUpRight, CalendarDays, ChevronRight, Info, X } from 'lucide-react';
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart as RePieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, LineChart, Pie, PieChart as RePieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { StatsPeriod, Template } from '../types';
-import { AI_REPORT_SECTIONS, QUEUE_STATUS, buildChannelShareData, channelPie, dailyTrend, formatWon, getOrderedStatsPeriod, getStatsGrain, getStatsGrainLabel, getStatsPeriodLabel, isValidStatDate, routingSavingsData } from '../domain';
-import { MESSAGE_PURPOSES } from '../constants/messaging';
+import { AI_REPORT_SECTIONS, MEMBER_TAGS, QUEUE_STATUS, buildChannelShareData, channelPie, dailyTrend, formatWon, getOrderedStatsPeriod, getStatsPeriodLabel, isValidStatDate, routingSavingsData } from '../domain';
+import { CHANNEL_LABELS, MESSAGE_PURPOSES } from '../constants/messaging';
 
 export function StatCard({ label, value, sub, trend, icon, color = "blue" }: {
   label: string; value: string; sub?: string; trend?: { val: string; up: boolean; label?: string }; icon: ReactNode; color?: string;
@@ -52,8 +52,8 @@ export function SpecPin({ children }: { children: ReactNode }) {
   );
 }
 
-export function Btn({ children, variant = "primary", size = "md", onClick, disabled = false, className = "" }: {
-  children: ReactNode; variant?: string; size?: string; onClick?: () => void; disabled?: boolean; className?: string;
+export function Btn({ children, variant = "primary", size = "md", onClick, disabled = false, className = "", title }: {
+  children: ReactNode; variant?: string; size?: string; onClick?: () => void; disabled?: boolean; className?: string; title?: string;
 }) {
   const base = "inline-flex items-center gap-1.5 font-semibold rounded-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
   const sz = size === "sm" ? "px-3 py-1.5 text-xs" : size === "lg" ? "px-5 py-3 text-sm" : "px-4 py-2 text-sm";
@@ -64,7 +64,7 @@ export function Btn({ children, variant = "primary", size = "md", onClick, disab
     danger: "bg-red-500 text-white hover:bg-red-600",
     success: "bg-emerald-500 text-white hover:bg-emerald-600",
   };
-  return <button className={`${base} ${sz} ${vars[variant] || vars.primary} ${className}`} onClick={onClick} disabled={disabled}>{children}</button>;
+  return <button className={`${base} ${sz} ${vars[variant] || vars.primary} ${className}`} onClick={onClick} disabled={disabled} title={title}>{children}</button>;
 }
 
 export function StatsPeriodControl({ period, onChange, compact = false }: {
@@ -73,10 +73,22 @@ export function StatsPeriodControl({ period, onChange, compact = false }: {
   compact?: boolean;
 }) {
   const ordered = getOrderedStatsPeriod(period);
-  const grainLabel = getStatsGrainLabel(getStatsGrain(ordered));
+  const maxRangeDays = 365;
+  const parseDate = (value: string) => {
+    const [year, month, day] = value.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  };
   const handleDateChange = (key: "start" | "end", value: string) => {
     if (!isValidStatDate(value)) return;
-    onChange({ ...period, preset: "custom", [key]: value });
+    const next = { ...period, preset: "custom" as const, [key]: value };
+    const normalized = getOrderedStatsPeriod(next);
+    const rangeMs = parseDate(normalized.end).getTime() - parseDate(normalized.start).getTime();
+    const rangeDays = Math.floor(rangeMs / 86400000) + 1;
+    if (rangeDays > maxRangeDays) {
+      alert("기간은 최대 1년까지만 조회 가능합니다.");
+      return;
+    }
+    onChange(next);
   };
 
   return (
@@ -85,18 +97,95 @@ export function StatsPeriodControl({ period, onChange, compact = false }: {
         <CalendarDays className="h-3.5 w-3.5 text-primary" />
         기간
       </div>
-      <input type="date" value={period.start} onChange={event => handleDateChange("start", event.target.value)} className="h-9 rounded-lg border border-border bg-input-background px-3 text-xs font-semibold text-foreground" />
+      <input type="date" value={period.start} max={period.end} onChange={event => handleDateChange("start", event.target.value)} className="h-9 rounded-lg border border-border bg-input-background px-3 text-xs font-semibold text-foreground" />
       <span className="text-xs font-semibold text-muted-foreground">~</span>
-      <input type="date" value={period.end} onChange={event => handleDateChange("end", event.target.value)} className="h-9 rounded-lg border border-border bg-input-background px-3 text-xs font-semibold text-foreground" />
-      <span className="rounded-lg bg-muted px-2.5 py-2 text-[11px] font-bold text-muted-foreground">
-        {grainLabel} 집계
-      </span>
+      <input type="date" value={period.end} min={period.start} onChange={event => handleDateChange("end", event.target.value)} className="h-9 rounded-lg border border-border bg-input-background px-3 text-xs font-semibold text-foreground" />
+      <span className="rounded-lg bg-muted px-2.5 py-2 text-[11px] font-bold text-muted-foreground">집계 기준</span>
       <span className="text-[11px] font-semibold text-muted-foreground">{getStatsPeriodLabel(ordered)}</span>
     </div>
   );
 }
 
-export type TemplateFormState = Pick<Template, "name" | "channel" | "content" | "category" | "messagePurpose"> & { scope: string };
+export type TemplateFormState = Pick<Template, "name" | "channel" | "content" | "category" | "messagePurpose"> & { scope: string; tags: string[] };
+
+export function TemplatePreview({ title, content, mode = "message", onModeChange, compact = false }: {
+  title: string;
+  content: string;
+  mode?: "message" | "kakao" | "email";
+  onModeChange?: (mode: "message" | "kakao" | "email") => void;
+  compact?: boolean;
+}) {
+  return (
+    <div>
+      {onModeChange && (
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="text-xs font-bold text-muted-foreground">미리보기</div>
+          <div className="inline-flex rounded-lg border border-border bg-muted p-1">
+            {[
+              ["message", "메시지"],
+              ["kakao", "카카오톡"],
+              ["email", "이메일"],
+            ].map(([value, label]) => (
+              <button key={value} type="button" onClick={() => onModeChange(value as "message" | "kakao" | "email")} className={`rounded-md px-2.5 py-1 text-[11px] font-bold transition-colors ${mode === value ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{label}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className={`relative mx-auto aspect-[1179/2556] shrink-0 overflow-hidden bg-gradient-to-b from-slate-700 via-slate-950 to-black shadow-2xl ring-1 ring-slate-500/40 ${compact ? "w-[210px] rounded-[2.2rem] p-[5px]" : "w-[260px] rounded-[2.8rem] p-[6px]"}`}>
+        <div className="absolute -left-1 top-24 h-14 w-1 rounded-l bg-slate-800" />
+        <div className="absolute -right-1 top-32 h-20 w-1 rounded-r bg-slate-800" />
+        <div className={`relative flex h-full flex-col overflow-hidden bg-white ${compact ? "rounded-[1.9rem]" : "rounded-[2.35rem]"}`}>
+          <div className="absolute left-1/2 top-3 z-30 flex h-6 w-20 -translate-x-1/2 items-center justify-center rounded-full bg-black shadow-lg">
+            <span className="mr-2 h-1.5 w-7 rounded-full bg-slate-700" />
+            <span className="h-2 w-2 rounded-full bg-slate-800 ring-1 ring-slate-600" />
+          </div>
+          <div className={`flex items-center justify-between px-6 pb-2 pt-4 text-[11px] font-bold ${mode === "kakao" ? "bg-[#F7E600] text-[#3A1D1D]" : "bg-slate-50 text-slate-700"}`}>
+            <span>9:41</span>
+            <span className="flex items-center gap-1">
+              <span className="h-2.5 w-3.5 rounded-sm border border-current" />
+              <span className="h-2 w-3 rounded-sm bg-current" />
+            </span>
+          </div>
+          <div className={`border-b border-black/5 px-5 py-3 text-center text-xs font-bold ${mode === "kakao" ? "bg-[#F7E600] text-[#3A1D1D]" : "bg-white text-slate-800"}`}>
+            {mode === "message" ? "메시지" : mode === "kakao" ? "카카오톡" : "Mail"}
+          </div>
+          <div className={`h-0 min-h-0 flex-1 overflow-y-auto overscroll-contain p-3.5 pb-10 ${mode === "message" ? "bg-white" : mode === "kakao" ? "bg-[#BACEDE]" : "bg-slate-50"}`}>
+            {mode === "email" ? (
+              <div className="min-h-full bg-white text-slate-900">
+                <div className="mb-3 flex items-center gap-2 border-b border-border pb-3">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">M</div>
+                  <div className="text-sm font-bold">Gmail</div>
+                </div>
+                <div className="mb-3 text-base font-bold leading-snug">{title || "메시지 제목"}</div>
+                <div className="mb-4 flex items-start gap-2">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">현</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="truncate text-xs font-bold">현대퓨처넷</div>
+                      <div className="text-[10px] text-muted-foreground">오전 9:41</div>
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-muted-foreground">to me</div>
+                  </div>
+                </div>
+                <div className="whitespace-pre-wrap rounded-xl border border-border bg-white p-3 text-xs leading-relaxed text-foreground shadow-sm">{content || "메시지 내용을 입력하세요."}</div>
+              </div>
+            ) : (
+              <>
+                <div className="mb-2 text-[11px] text-muted-foreground">{mode === "message" ? "010-0000-0000" : "현대퓨처넷"}</div>
+                <div className={`max-w-[185px] whitespace-pre-wrap p-3 text-sm leading-relaxed shadow-sm ${mode === "message" ? "ml-auto rounded-2xl bg-primary text-white" : "rounded-2xl rounded-tl-sm bg-[#FFF8C5]"}`}>
+                  <div className={`mb-2 text-xs font-bold leading-snug ${mode === "message" ? "text-white" : "text-[#3A1D1D]"}`}>{title || "메시지 제목"}</div>
+                  {content || "메시지 내용을 입력하세요."}
+                </div>
+                {mode === "kakao" && <div className="mt-2 max-w-[185px] rounded-xl bg-white p-2 text-center text-[11px] font-bold text-[#3A1D1D] shadow-sm">자세히 보기</div>}
+              </>
+            )}
+          </div>
+          <div className="absolute bottom-2.5 left-1/2 h-1.5 w-28 -translate-x-1/2 rounded-full bg-slate-900/85" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function TemplateFormFields({ form, setForm, onCancel, onSave, saveDisabled = false }: {
   form: TemplateFormState;
@@ -105,57 +194,91 @@ export function TemplateFormFields({ form, setForm, onCancel, onSave, saveDisabl
   onSave: () => void;
   saveDisabled?: boolean;
 }) {
+  const [previewMode, setPreviewMode] = useState<"message" | "kakao" | "email">("message");
+  const selectedChannels = form.channel.split(",").map(channel => channel.trim()).filter(Boolean);
+  const toggleChannel = (channel: string) => {
+    setForm(current => {
+      const channels = current.channel.split(",").map(item => item.trim()).filter(Boolean);
+      const next = channels.includes(channel) ? channels.filter(item => item !== channel) : [...channels, channel];
+      return { ...current, channel: next.join(", ") };
+    });
+  };
+  const toggleTag = (tag: string) => {
+    setForm(current => ({
+      ...current,
+      tags: current.tags.includes(tag) ? current.tags.filter(item => item !== tag) : [...current.tags, tag],
+    }));
+  };
+  const tagOptions = MEMBER_TAGS.filter(tag => tag !== "전체 고객").slice(0, 24);
+
   return (
-    <div className="space-y-3">
-      <div>
-        <label className="mb-1 block text-xs font-semibold text-muted-foreground">템플릿명</label>
-        <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-      </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className="space-y-4">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-start">
+      <div className="space-y-4">
         <div>
-          <label className="mb-1 block text-xs font-semibold text-muted-foreground">채널</label>
-          <select value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))} className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none">
-            {["SMS", "LMS", "카카오 알림톡", "카카오 친구톡", "RCS"].map(channel => <option key={channel}>{channel}</option>)}
-          </select>
+          <label className="mb-1 block text-xs font-semibold text-muted-foreground">템플릿명</label>
+          <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-[1.2fr_0.8fr]">
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-muted-foreground">채널</label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {CHANNEL_LABELS.map(channel => (
+                <button key={channel} type="button" onClick={() => toggleChannel(channel)} className={`rounded-lg border px-2 py-1.5 text-xs font-bold transition-colors ${selectedChannels.includes(channel) ? "border-primary bg-primary text-white" : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}>
+                  {channel}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-muted-foreground">카테고리</label>
+            <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none">
+              {["이벤트", "혜택", "안내"].map(category => <option key={category}>{category}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-[0.8fr_1.2fr]">
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-muted-foreground">광고여부</label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {MESSAGE_PURPOSES.map(purpose => {
+                const Icon = purpose.icon;
+                const selected = form.messagePurpose === purpose.id;
+                return (
+                  <button key={purpose.id} type="button" onClick={() => setForm(f => ({ ...f, messagePurpose: purpose.id }))} className={`flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-bold transition-colors ${selected ? "border-primary bg-accent text-primary" : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}>
+                    <Icon className="h-3.5 w-3.5" />
+                    {purpose.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-muted-foreground">태그</label>
+            <div className="max-h-24 overflow-y-auto rounded-lg border border-border bg-muted p-2">
+              <div className="flex flex-wrap gap-1.5">
+                {tagOptions.map(tag => (
+                  <button key={tag} type="button" onClick={() => toggleTag(tag)} className={`rounded-full border px-2 py-1 text-[11px] font-bold transition-colors ${form.tags.includes(tag) ? "border-primary bg-primary text-white" : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}>
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
         <div>
-          <label className="mb-1 block text-xs font-semibold text-muted-foreground">카테고리</label>
-          <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none">
-            {["이벤트", "혜택", "안내"].map(category => <option key={category}>{category}</option>)}
-          </select>
+          <label className="mb-1 block text-xs font-semibold text-muted-foreground">메시지 내용</label>
+          <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={8} className="min-h-[220px] w-full resize-none rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          <div className="mt-1.5 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">{form.content.length}자</span>
+          </div>
         </div>
       </div>
-      <div>
-        <label className="mb-1 block text-xs font-semibold text-muted-foreground">광고여부</label>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {MESSAGE_PURPOSES.map(purpose => {
-            const Icon = purpose.icon;
-            const selected = form.messagePurpose === purpose.id;
-            return (
-              <button key={purpose.id} type="button" onClick={() => setForm(f => ({ ...f, messagePurpose: purpose.id }))} className={`flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 text-xs font-bold transition-colors ${selected ? "border-primary bg-accent text-primary" : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"}`}>
-                <Icon className="h-3.5 w-3.5" />
-                {purpose.label}
-              </button>
-            );
-          })}
-        </div>
+      <TemplatePreview title={form.name} content={form.content} mode={previewMode} onModeChange={setPreviewMode} compact />
       </div>
-      <div>
-        <label className="mb-1 block text-xs font-semibold text-muted-foreground">공개 범위</label>
-        <select value={form.scope} onChange={e => setForm(f => ({ ...f, scope: e.target.value }))} className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none">
-          {["전사 공통", "현대백화점 전용", "현대홈쇼핑 전용", "한섬 전용"].map(scope => <option key={scope}>{scope}</option>)}
-        </select>
-      </div>
-      <div>
-        <label className="mb-1 block text-xs font-semibold text-muted-foreground">메시지 내용</label>
-        <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={4} className="w-full resize-none rounded-lg border border-border bg-input-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-        <div className="mt-1.5 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">{form.content.length}자</span>
-        </div>
-      </div>
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 border-t border-border pt-4">
         <Btn variant="outline" onClick={onCancel}>취소</Btn>
-        <Btn disabled={saveDisabled || !form.name.trim() || !form.content.trim()} onClick={onSave}>저장</Btn>
+        <Btn disabled={saveDisabled || !form.name.trim() || !form.content.trim() || selectedChannels.length === 0} onClick={onSave}>저장</Btn>
       </div>
     </div>
   );
@@ -357,8 +480,8 @@ export function ChannelShareCard({ title = "채널별 발송 비중", className 
 }) {
   return (
     <div className={`bg-card rounded-xl border border-border p-3 sm:p-4 flex min-h-0 flex-col ${className}`}>
-      <h3 className="text-sm font-bold text-foreground mb-3">{title}</h3>
-      <div className="grid min-h-[220px] grid-cols-1 gap-2 sm:min-h-0 sm:flex-1 sm:grid-cols-[0.8fr_1fr]">
+      <h3 className="text-sm font-bold text-foreground mb-2">{title}</h3>
+      <div className="grid min-h-[205px] grid-cols-1 gap-2 sm:min-h-0 sm:flex-1 sm:grid-cols-[0.8fr_1fr]">
         <ResponsiveContainer width="100%" height="100%">
           <RePieChart>
             <Pie data={data} cx="50%" cy="50%" innerRadius={38} outerRadius={58} dataKey="value" paddingAngle={3} label={({ value }) => `${value}%`} labelLine={false}>
@@ -393,7 +516,7 @@ export function DailySendTrendCard({ title = "발송 & 성공 추이", gradientI
       <h3 className="text-sm font-bold mb-3">{title}</h3>
       <div className="h-[240px] lg:min-h-0 lg:flex-1">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data}>
+          <ComposedChart data={data.map(row => ({ ...row, successRate: row.sends > 0 ? Number(((row.success / row.sends) * 100).toFixed(1)) : 0 }))} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#1843FA" stopOpacity={0.16} />
@@ -402,12 +525,14 @@ export function DailySendTrendCard({ title = "발송 & 성공 추이", gradientI
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
             <XAxis dataKey={xKey} tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
-            <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
+            <YAxis yAxisId="count" tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
+            <YAxis yAxisId="rate" orientation="right" domain={[90, 100]} tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} />
+            <Tooltip formatter={(v: number, name: string) => name === "성공률" ? [`${v.toFixed(1)}%`, name] : [v.toLocaleString() + "건", name]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Area type="monotone" dataKey="sends" stroke="#1843FA" fill={`url(#${gradientId})`} strokeWidth={2} name="발송" />
-            <Area type="monotone" dataKey="success" stroke="#10B981" fill="none" strokeWidth={2} strokeDasharray="4 3" name="성공" />
-          </AreaChart>
+            <Area yAxisId="count" type="monotone" dataKey="sends" stroke="#1843FA" fill={`url(#${gradientId})`} strokeWidth={2} name="발송" />
+            <Area yAxisId="count" type="monotone" dataKey="success" stroke="#10B981" fill="none" strokeWidth={2} strokeDasharray="4 3" name="성공" />
+            <Line yAxisId="rate" type="monotone" dataKey="successRate" stroke="#F59E0B" strokeWidth={2.5} dot={{ r: 3 }} name="성공률" />
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
     </div>

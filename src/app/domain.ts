@@ -1,12 +1,12 @@
 import type { Member, SendRecord, StatsGrain, StatsPage, StatsPeriod, StatsPeriodPreset, Template } from './types';
 
 export const TEMPLATES: Template[] = [
-  { id: 1, name: "6월 여름 할인 이벤트", channel: "카카오 친구톡", content: "[현대퓨처넷] 안녕하세요 #{이름}님! 6월 특별 여름 세일이 시작되었습니다.\n최대 30% 할인 혜택을 지금 바로 만나보세요.", category: "이벤트", usageCount: 128, updatedAt: "2026-06-20", scope: "현대백화점 전용", openRate: 54.3, clickRate: 21.8, optOutRate: 0.18, messagePurpose: "advertising" },
-  { id: 2, name: "생일 축하 메시지", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 생일을 진심으로 축하드립니다! 특별한 생일 쿠폰을 확인해보세요.", category: "혜택", usageCount: 2341, updatedAt: "2026-06-18", scope: "전사 공통", openRate: 78.4, clickRate: 34.2, optOutRate: 0.05, messagePurpose: "advertising" },
-  { id: 3, name: "신규 가입 환영", channel: "카카오 알림톡", content: "[현대퓨처넷] #{이름}님, 가입을 환영합니다! 신규 가입 혜택 5,000P가 적립되었습니다.", category: "안내", usageCount: 891, updatedAt: "2026-06-15", scope: "전사 공통", openRate: 68.1, clickRate: 25.4, optOutRate: 0.08, messagePurpose: "informational" },
-  { id: 4, name: "포인트 소멸 안내", channel: "LMS", content: "[현대퓨처넷] 안내 드립니다. #{이름}님의 포인트 #{포인트}P가 2026년 6월 30일 소멸 예정입니다. 지금 바로 사용하세요!", category: "안내", usageCount: 445, updatedAt: "2026-06-10", scope: "현대홈쇼핑 전용", openRate: 62.8, clickRate: 18.1, optOutRate: 0.11, messagePurpose: "informational" },
-  { id: 5, name: "우수고객 전용 혜택", channel: "카카오 친구톡", content: "[현대퓨처넷] #{이름}님께만 드리는 우수고객 전용 특가 상품을 안내해드립니다. 특별한 혜택을 놓치지 마세요!", category: "혜택", usageCount: 312, updatedAt: "2026-06-08", scope: "한섬 전용", openRate: 71.2, clickRate: 28.9, optOutRate: 0.22, messagePurpose: "advertising" },
-  { id: 6, name: "배송 완료 안내", channel: "SMS", content: "[현대퓨처넷] #{이름}님, 주문하신 상품이 배송 완료되었습니다. 주문번호: #{주문번호}", category: "안내", usageCount: 5821, updatedAt: "2026-06-01", scope: "전사 공통", openRate: 66.4, clickRate: 12.6, optOutRate: 0.03, messagePurpose: "informational" },
+  { id: 1, name: "6월 여름 할인 이벤트", channel: "카카오톡", content: "[현대퓨처넷] 안녕하세요 #{이름}님! 6월 특별 여름 세일이 시작되었습니다.\n최대 30% 할인 혜택을 지금 바로 만나보세요.", category: "이벤트", usageCount: 128, updatedAt: "2026-06-20", scope: "현대백화점 전용", openRate: 54.3, clickRate: 21.8, optOutRate: 0.18, messagePurpose: "advertising" },
+  { id: 2, name: "생일 축하 메시지", channel: "문자", content: "[현대퓨처넷] #{이름}님, 생일을 진심으로 축하드립니다! 특별한 생일 쿠폰을 확인해보세요.", category: "혜택", usageCount: 2341, updatedAt: "2026-06-18", scope: "전사 공통", openRate: 78.4, clickRate: 34.2, optOutRate: 0.05, messagePurpose: "advertising" },
+  { id: 3, name: "신규 가입 환영", channel: "카카오톡", content: "[현대퓨처넷] #{이름}님, 가입을 환영합니다! 신규 가입 혜택 5,000P가 적립되었습니다.", category: "안내", usageCount: 891, updatedAt: "2026-06-15", scope: "전사 공통", openRate: 68.1, clickRate: 25.4, optOutRate: 0.08, messagePurpose: "informational" },
+  { id: 4, name: "포인트 소멸 안내", channel: "문자", content: "[현대퓨처넷] 안내 드립니다. #{이름}님의 포인트 #{포인트}P가 2026년 6월 30일 소멸 예정입니다. 지금 바로 사용하세요!", category: "안내", usageCount: 445, updatedAt: "2026-06-10", scope: "현대홈쇼핑 전용", openRate: 62.8, clickRate: 18.1, optOutRate: 0.11, messagePurpose: "informational" },
+  { id: 5, name: "우수고객 전용 혜택", channel: "카카오톡", content: "[현대퓨처넷] #{이름}님께만 드리는 우수고객 전용 특가 상품을 안내해드립니다. 특별한 혜택을 놓치지 마세요!", category: "혜택", usageCount: 312, updatedAt: "2026-06-08", scope: "한섬 전용", openRate: 71.2, clickRate: 28.9, optOutRate: 0.22, messagePurpose: "advertising" },
+  { id: 6, name: "배송 완료 안내", channel: "문자", content: "[현대퓨처넷] #{이름}님, 주문하신 상품이 배송 완료되었습니다. 주문번호: #{주문번호}", category: "안내", usageCount: 5821, updatedAt: "2026-06-01", scope: "전사 공통", openRate: 66.4, clickRate: 12.6, optOutRate: 0.03, messagePurpose: "informational" },
 ];
 export const TEMPLATE_TAGS = ["일반", "신규", "휴면", "생일", "포인트", "쿠폰", "최근구매", "장바구니", "앱사용자", "현대백화점", "현대홈쇼핑", "한섬", "리빙", "패션", "오프라인방문"];
 export const MEMBER_TAGS = [
@@ -17,7 +17,7 @@ export const MEMBER_TAGS = [
   "남성", "여성", "20대", "30대", "40대", "50대 이상", "서울/수도권", "지방", "오프라인 구매", "온라인 구매", "프로모션 반응",
 ];
 export const TAG_GROUPS = [
-  { id: "전체", label: "전체 타겟", tags: [] },
+  { id: "전체", label: "전체 태그", tags: [] },
   { id: "대상", label: "고객 유형", tags: ["일반", "신규", "휴면", "생일 대상자", "앱사용자"] },
   { id: "행동", label: "행동/관심", tags: ["최근구매", "장바구니", "장바구니 이탈", "쿠폰 반응", "리빙 관심", "패션 관심", "오프라인 방문", "오프라인방문", "재구매 가능", "첫구매 완료", "최근 30일 구매", "최근 90일 미구매", "리뷰 작성", "리뷰 미작성", "오프라인 구매", "온라인 구매", "프로모션 반응"] },
   { id: "목적", label: "목적", tags: ["이벤트", "쿠폰", "혜택", "안내", "포인트", "생일", "재구매", "포인트 소멸 예정", "쿠폰 보유", "쿠폰 만료 예정", "포인트 보유", "포인트 고액 보유"] },
@@ -96,11 +96,11 @@ export const createMemberRows = () => Array.from({ length: 96 }, (_, index) => {
   };
 });
 export const HISTORY: SendRecord[] = [
-  { id: 1, template: "6월 여름 할인 이벤트", channel: "카카오 친구톡", targetType: "전체 고객", count: 284391, success: 279112, fail: 5279, sentAt: "2026-06-22 14:00", status: "완료", cost: 3128400, savedCost: 1245600, affiliate: "현대백화점", messagePurpose: "advertising", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 284391, success: 279112, fail: 5279 }, { label: "2차 SMS 대체", requested: 5279, success: 5144, fail: 135 }] },
+  { id: 1, template: "6월 여름 할인 이벤트", channel: "카카오톡", targetType: "전체 고객", count: 284391, success: 279112, fail: 5279, sentAt: "2026-06-22 14:00", status: "완료", cost: 3128400, savedCost: 1245600, affiliate: "현대백화점", messagePurpose: "advertising", failoverSteps: [{ label: "1차 카카오톡", requested: 284391, success: 279112, fail: 5279 }, { label: "2차 SMS 대체", requested: 5279, success: 5144, fail: 135 }] },
   { id: 2, template: "포인트 소멸 안내", channel: "LMS", targetType: "일반·휴면", count: 92841, success: 91220, fail: 1621, sentAt: "2026-06-21 09:30", status: "완료", cost: 2785230, savedCost: 0, affiliate: "현대홈쇼핑", messagePurpose: "informational", failoverSteps: [{ label: "1차 LMS", requested: 92841, success: 91220, fail: 1621 }] },
   { id: 3, template: "생일 축하 메시지", channel: "SMS", targetType: "생일 대상자", count: 1284, success: 1270, fail: 14, sentAt: "2026-06-20 08:00", status: "완료", cost: 12840, savedCost: 0, affiliate: "전사 공통", messagePurpose: "advertising", failoverSteps: [{ label: "1차 SMS", requested: 1284, success: 1270, fail: 14 }] },
-  { id: 4, template: "우수고객 전용 혜택", channel: "카카오 친구톡", targetType: "일반", count: 18420, success: 18198, fail: 222, sentAt: "2026-06-19 11:00", status: "완료", cost: 198720, savedCost: 82680, affiliate: "한섬", messagePurpose: "advertising", failoverSteps: [{ label: "1차 카카오 친구톡", requested: 18420, success: 18198, fail: 222 }, { label: "2차 SMS 대체", requested: 222, success: 219, fail: 3 }] },
-  { id: 5, template: "신규 가입 환영", channel: "카카오 알림톡", targetType: "신규 가입자", count: 341, success: 338, fail: 3, sentAt: "2026-06-19 실시간", status: "진행중", cost: 2046, savedCost: 1364, affiliate: "전사 공통", messagePurpose: "informational", failoverSteps: [{ label: "1차 카카오 알림톡", requested: 341, success: 338, fail: 3 }] },
+  { id: 4, template: "우수고객 전용 혜택", channel: "카카오톡", targetType: "일반", count: 18420, success: 18198, fail: 222, sentAt: "2026-06-19 11:00", status: "완료", cost: 198720, savedCost: 82680, affiliate: "한섬", messagePurpose: "advertising", failoverSteps: [{ label: "1차 카카오톡", requested: 18420, success: 18198, fail: 222 }, { label: "2차 SMS 대체", requested: 222, success: 219, fail: 3 }] },
+  { id: 5, template: "신규 가입 환영", channel: "카카오톡", targetType: "신규 가입자", count: 341, success: 338, fail: 3, sentAt: "2026-06-19 실시간", status: "진행중", cost: 2046, savedCost: 1364, affiliate: "전사 공통", messagePurpose: "informational", failoverSteps: [{ label: "1차 카카오톡", requested: 341, success: 338, fail: 3 }] },
   { id: 6, template: "배송 완료 안내", channel: "SMS", targetType: "배송 완료자", count: 2841, success: 2830, fail: 11, sentAt: "2026-06-18 16:00", status: "완료", cost: 28410, savedCost: 0, affiliate: "현대백화점", messagePurpose: "informational", failoverSteps: [{ label: "1차 SMS", requested: 2841, success: 2830, fail: 11 }] },
 ];
 
@@ -120,11 +120,10 @@ export const routingSavingsData = [
   { month: "6월", actual: 18700000, baseline: 24200000, saved: 5500000 },
 ];
 export const channelCostData = [
-  { channel: "카카오 알림톡", sends: 160450, successRate: 99.4, failRate: 0.6, cost: 962700, unit: 6 },
-  { channel: "카카오 친구톡", sends: 374829, successRate: 98.9, failRate: 1.1, cost: 2623803, unit: 7 },
+  { channel: "카카오톡", sends: 535279, successRate: 99.1, failRate: 0.9, cost: 3586503, unit: 7 },
   { channel: "SMS", sends: 249886, successRate: 99.1, failRate: 0.9, cost: 2498860, unit: 10 },
   { channel: "LMS", sends: 80241, successRate: 98.2, failRate: 1.8, cost: 2407230, unit: 30 },
-  { channel: "RCS", sends: 26739, successRate: 97.8, failRate: 2.2, cost: 374346, unit: 14 },
+  { channel: "이메일", sends: 26739, successRate: 97.8, failRate: 2.2, cost: 80217, unit: 3 },
 ];
 export const affiliateStats = [
   { name: "현대백화점", sends: 384210, cost: 7200000, rate: 98.9 },
@@ -157,11 +156,10 @@ export const dailyTrend = [
   { date: "6/23", sends: 12847, success: 12690 },
 ];
 export const channelPie = [
-  { name: "카카오 친구톡", value: 42, color: "#F7E600" },
+  { name: "카카오톡", value: 60, color: "#F7E600" },
   { name: "SMS", value: 28, color: "#1843FA" },
-  { name: "카카오 알림톡", value: 18, color: "#FF8F00" },
   { name: "LMS", value: 9, color: "#10B981" },
-  { name: "RCS", value: 3, color: "#8B5CF6" },
+  { name: "이메일", value: 3, color: "#0EA5E9" },
 ];
 export const memberTypeData = [
   { type: "일반", count: 198341, rate: 98.2, open: 41.2 },
@@ -192,7 +190,7 @@ export const fallbackStageData = [
 export const fallbackDonutData = [
   { name: "1차 성공", value: 279112, rate: 98.9, color: "#1843FA", channels: "카카오 211,240 · SMS 48,120 · LMS 19,752" },
   { name: "2차 성공", value: 5144, rate: 97.4, color: "#10B981", channels: "SMS 4,820 · LMS 324" },
-  { name: "3차 성공", value: 281, rate: 94.1, color: "#F59E0B", channels: "LMS 178 · RCS 103" },
+  { name: "3차 성공", value: 281, rate: 94.1, color: "#F59E0B", channels: "LMS 178 · 이메일 103" },
   { name: "최종 실패", value: 135, rate: 0, color: "#EF4444", channels: "수신거부 57 · 번호오류 42 · 채널실패 36" },
 ];
 export const weekdayClickData = [
@@ -350,7 +348,7 @@ export const buildNewMemberSeriesData = (period: StatsPeriod) => {
   }));
 };
 export const buildPerformanceSeriesData = (period: StatsPeriod, channel: string) => {
-  const channelOffset = ["카카오 친구톡", "카카오 알림톡", "SMS", "LMS", "RCS"].indexOf(channel) * 0.8;
+  const channelOffset = ["카카오톡", "SMS", "LMS", "이메일"].indexOf(channel) * 0.8;
   const { buckets } = createStatsBuckets(period);
   return buckets.map(bucket => {
     const clickRate = Number(clampNumber(14.8 + channelOffset + bucket.index * 0.45 + (bucket.days > 7 ? 1.4 : 0), 8, 36).toFixed(1));
@@ -377,14 +375,22 @@ export const buildChannelCostData = (period: StatsPeriod) => {
 };
 export const buildChannelShareData = (rows: typeof channelCostData) => {
   const colors: Record<string, string> = {
-    "카카오 친구톡": "#F7E600",
+    "카카오톡": "#F7E600",
     SMS: "#1843FA",
-    "카카오 알림톡": "#FF8F00",
     LMS: "#10B981",
-    RCS: "#8B5CF6",
+    "이메일": "#0EA5E9",
   };
   const total = rows.reduce((sum, row) => sum + row.sends, 0) || 1;
-  return rows.map(row => ({ name: row.channel, value: Math.round((row.sends / total) * 100), color: colors[row.channel] ?? "#64748B" }))
+  const grouped = rows.reduce<Record<string, number>>((acc, row) => {
+    const name = row.channel.includes("카카오") ? "카카오톡" : row.channel;
+    acc[name] = (acc[name] ?? 0) + row.sends;
+    return acc;
+  }, {});
+  return Object.entries(grouped).map(([name, sends]) => ({
+    name,
+    value: Math.round((sends / total) * 100),
+    color: colors[name] ?? "#64748B",
+  }))
     .sort((a, b) => b.value - a.value);
 };
 export const buildFallbackStageData = (period: StatsPeriod) => {

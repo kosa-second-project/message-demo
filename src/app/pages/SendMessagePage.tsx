@@ -16,7 +16,6 @@ export function SendMessagePageWizard() {
   const [tagSearch, setTagSearch] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
   const [checkedMembers, setCheckedMembers] = useState<number[]>([]);
-  const [targetSyncNotice, setTargetSyncNotice] = useState("");
   const [includedMembers, setIncludedMembers] = useState<Member[]>([]);
   const [excludedMembers, setExcludedMembers] = useState<Member[]>([]);
   const [manualName, setManualName] = useState("");
@@ -26,12 +25,13 @@ export function SendMessagePageWizard() {
   const [templateCategoryFilter, setTemplateCategoryFilter] = useState("전체");
   const [templateChannelFilter, setTemplateChannelFilter] = useState("전체");
   const [selectedTemplateId, setSelectedTemplateId] = useState<number>(templates[0]?.id ?? 0);
+  const [messageTitle, setMessageTitle] = useState(templates[0]?.name ?? "");
   const [messageDraft, setMessageDraft] = useState(templates[0]?.content ?? "");
   const [messagePurpose, setMessagePurpose] = useState<MessagePurpose>("advertising");
   const [previewMode, setPreviewMode] = useState<"message" | "kakao" | "email">("message");
-  const [selectedChannel, setSelectedChannel] = useState("kakao-noti");
+  const [selectedChannel, setSelectedChannel] = useState("kakao");
   const [channelSettingsOpen, setChannelSettingsOpen] = useState(true);
-  const [channelPriority, setChannelPriority] = useState(["kakao-noti"]);
+  const [channelPriority, setChannelPriority] = useState(["kakao"]);
   const [sendType, setSendType] = useState<"now" | "later">("now");
   const [scheduleDate, setScheduleDate] = useState("2026-06-26");
   const [scheduleTime, setScheduleTime] = useState("10:00");
@@ -47,12 +47,14 @@ export function SendMessagePageWizard() {
     .replaceAll("#{배송예정일}", "2026-06-28")
     .replaceAll("#{추천상품}", "여름 신상품");
   const [marketingCopies, setMarketingCopies] = useState<string[]>([]);
+  const [marketingPromptOpen, setMarketingPromptOpen] = useState(false);
+  const [marketingPrompt, setMarketingPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiPlan, setAiPlan] = useState<null | { title: string; reason: string; audience: string; template: string; channel: string; message: string }>(null);
   const [aiResult, setAiResult] = useState(false);
   const [aiReportOpen, setAiReportOpen] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
-  const [saveTemplateForm, setSaveTemplateForm] = useState<TemplateFormState>({ name: "", channel: "SMS", content: "", category: "이벤트", messagePurpose: "advertising", scope: "전사 공통" });
+  const [saveTemplateForm, setSaveTemplateForm] = useState<TemplateFormState>({ name: "", channel: "문자", content: "", category: "이벤트", messagePurpose: "advertising", scope: "전사 공통", tags: [] });
   const [aiJobs, setAiJobs] = useState([
     { name: "오타·맞춤법", model: "small-ko-proof", status: "대기", result: "-" },
     { name: "광고 표기", model: "small-policy-ad", status: "대기", result: "-" },
@@ -63,6 +65,7 @@ export function SendMessagePageWizard() {
   ]);
 
   const selectedTemplate = templates.find(template => template.id === selectedTemplateId);
+  const previewTitle = messageTitle.trim() || selectedTemplate?.name || "메시지 제목";
   const selectedMessagePurpose = MESSAGE_PURPOSES.find(purpose => purpose.id === messagePurpose) ?? MESSAGE_PURPOSES[0];
   const SelectedMessagePurposeIcon = selectedMessagePurpose.icon;
   const hasTargetSelected = selectedTags.length > 0;
@@ -70,9 +73,6 @@ export function SendMessagePageWizard() {
   const targetSignature = selectedTags.join("|");
   const targetInitializedRef = useRef(false);
   const visibleTags = (tagSearch ? MEMBER_TAGS.filter(tag => tag.includes(tagSearch)) : MEMBER_TAGS).slice(0, 36);
-  const relatedTags = MEMBER_TAGS
-    .filter(tag => !selectedTags.includes(tag) && (tagSearch ? [...tagSearch].some(ch => tag.includes(ch)) : selectedTags.some(selected => tag.includes(selected) || selected.includes(tag))))
-    .slice(0, 12);
   const targetMatchedMembers = useMemo(() => {
     if (!hasTargetSelected) return [];
     return members.filter(member => {
@@ -102,13 +102,14 @@ export function SendMessagePageWizard() {
   const templateTargetOptions = uniqueTags(templates.flatMap(getTemplateTags)).slice(0, 8);
   const templateCategoryOptions = ["전체", ...Array.from(new Set(templates.map(template => template.category)))];
   const templateChannelOptions = ["전체", ...Array.from(new Set(templates.map(template => template.channel)))];
+  const visiblePersonalFields = PERSONAL_FIELDS.filter(([label]) => ["고객명", "주문번호", "쿠폰명"].includes(label));
   const allVisibleMembersChecked = visibleMembers.length > 0 && visibleMembers.every(member => checkedMembers.includes(member.id));
   const checkedMemberRows = members.filter(member => checkedMembers.includes(member.id));
   const selectedRecipientCount = checkedMembers.length || targetMatchedMembers.length;
   const estimatedTarget = selectedTags.includes("전체 고객") && checkedMembers.length === 0 ? 284391 : Math.max(selectedRecipientCount, targetMatchedMembers.length * 1370);
   const messageMode = messageDraft.length > 90 ? "LMS" : "SMS";
   const selectedChannelMeta = CHANNELS.find(channel => channel.id === selectedChannel);
-  const channelUnitCost = (channelId: string) => channelId === "sms" ? 10 : channelId === "lms" ? 30 : channelId === "kakao-noti" ? 6 : channelId === "rcs" ? 14 : 8;
+  const channelUnitCost = (channelId: string) => channelId === "text" ? messageMode === "LMS" ? 30 : 10 : channelId === "kakao" ? 7 : channelId === "email" ? 3 : 8;
   const unitCost = !selectedChannel ? 0 : channelUnitCost(selectedChannel);
   const estimatedCost = estimatedTarget * unitCost;
   const baselineCost = estimatedTarget * (messageMode === "LMS" ? 30 : 10);
@@ -117,10 +118,10 @@ export function SendMessagePageWizard() {
   const channelAudienceRatio = (channelId: string) => {
     if (channelAudienceBase.length === 0) return 1;
     const reachableCount = channelAudienceBase.filter(member => {
-      if (channelId === "sms" || channelId === "lms") return member.smsConsent;
-      if (channelId === "kakao-noti" || channelId === "kakao-friend") return member.kakaoConsent;
-      if (channelId === "rcs") return member.rcsConsent;
-      return member.smsConsent || member.kakaoConsent || member.rcsConsent || member.emailConsent;
+      if (channelId === "text") return member.smsConsent;
+      if (channelId === "kakao") return member.kakaoConsent;
+      if (channelId === "email") return member.emailConsent;
+      return member.smsConsent || member.kakaoConsent || member.emailConsent;
     }).length;
     return Math.max(0.08, reachableCount / channelAudienceBase.length);
   };
@@ -146,7 +147,7 @@ export function SendMessagePageWizard() {
     canSend,
   ];
   const nextDisabledReason = step === 1 && !stepReady[0]
-    ? hasTargetSelected ? "타겟 조건을 확인해야 고객 목록과 다음 단계로 이동할 수 있습니다." : "수신자를 먼저 선택해 주세요."
+    ? hasTargetSelected ? "태그 조건을 확인해야 고객 목록과 다음 단계로 이동할 수 있습니다." : "수신자를 먼저 선택해 주세요."
     : step === 2 && !messageDraft.trim()
       ? "메시지를 작성해 주세요."
       : step === 2 && !selectedChannel
@@ -166,52 +167,37 @@ export function SendMessagePageWizard() {
     setExcludedMembers([]);
     setMemberSearch("");
     setTargetConfirmed(false);
-    setTargetSyncNotice(
-      hasTargetSelected
-        ? "타겟 조건이 변경되어 고객 선택을 초기화했습니다. 확인을 누르면 변경된 타겟 기준으로 고객 목록이 표시됩니다."
-        : "타겟이 비어 있어 고객 선택을 초기화했습니다. 타겟을 먼저 선택해 주세요."
-    );
   }, [hasTargetSelected, targetMatchMode, targetSignature]);
 
   const toggleTag = (tag: string) => {
     if (targetConfirmed) return;
     setSelectedTags(prev => prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag]);
   };
-  const selectAllMembers = () => {
-    if (targetConfirmed) return;
-    setSelectedTags(["전체 고객"]);
-  };
   const confirmTarget = () => {
     if (!hasTargetSelected) return;
     setTargetConfirmed(true);
-    setTargetSyncNotice("");
   };
   const editTarget = () => {
     setTargetConfirmed(false);
     setCheckedMembers([]);
     setMemberSearch("");
-    setTargetSyncNotice("타겟 조건을 수정 중입니다. 확인을 누르면 고객 목록이 다시 표시됩니다.");
   };
   const selectAllSearchedMembers = () => {
     if (!canShowTargetMembers) return;
     setCheckedMembers(candidateMembers.map(member => member.id));
-    setTargetSyncNotice("");
   };
   const clearSelectedMembers = () => {
     setCheckedMembers([]);
-    setTargetSyncNotice("");
   };
   const toggleVisibleMembers = () => {
     if (!canShowTargetMembers) return;
     const visibleIds = visibleMembers.map(member => member.id);
     setCheckedMembers(prev => allVisibleMembersChecked ? prev.filter(id => !visibleIds.includes(id)) : Array.from(new Set([...prev, ...visibleIds])));
-    setTargetSyncNotice("");
   };
   const toggleTemplateTargetFilter = (tag: string) => {
     setTemplateTargetFilters(prev => prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag]);
   };
   const toggleChannelPriority = (channelId: string) => {
-    if (channelId === "rcs") return;
     setChannelPriority(prev => {
       const next = prev.includes(channelId)
         ? prev.filter(id => id !== channelId)
@@ -222,16 +208,17 @@ export function SendMessagePageWizard() {
   };
   const insertVariable = (value: string) => setMessageDraft(prev => `${prev}${prev.endsWith(" ") || prev.length === 0 ? "" : " "}${value}`);
   const recommendMarketingCopy = () => {
+    const prompt = marketingPrompt.trim();
     const copies = [
       "[현대퓨처넷] #{이름}님, 지금 #{등급} 고객님께 준비된 #{쿠폰명}이 도착했습니다. #{쿠폰만료일} 전에 혜택을 확인해 주세요.",
       "[현대퓨처넷] #{이름}님을 위한 #{추천상품} 혜택을 준비했습니다. 가까운 #{매장명} 또는 앱에서 특별 혜택을 만나보세요.",
       "[현대퓨처넷] #{이름}님, 보유 포인트 #{포인트}P와 함께 사용할 수 있는 혜택이 있습니다. 오늘 추천 상품을 확인해 보세요.",
     ];
-    setMarketingCopies(copies);
+    setMarketingCopies(prompt ? copies.map(copy => `${copy}\n요청사항: ${prompt}`) : copies);
+    setMarketingPromptOpen(false);
   };
   const toggleMemberCheck = (id: number) => {
     setCheckedMembers(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
-    setTargetSyncNotice("");
   };
   const mergeMembers = (base: Member[], add: Member[]) => [...base, ...add.filter(member => !base.some(item => item.id === member.id))];
   const addChecked = () => {
@@ -255,16 +242,18 @@ export function SendMessagePageWizard() {
   };
   const pickTemplate = (template: Template) => {
     setSelectedTemplateId(template.id);
+    setMessageTitle(template.name);
     setMessageDraft(template.content);
   };
   const openSaveTemplate = () => {
     setSaveTemplateForm({
-      name: selectedTemplate ? `${selectedTemplate.name} 복사본` : "새 메시지 템플릿",
-      channel: selectedChannelMeta?.label ?? "SMS",
+      name: messageTitle.trim() || (selectedTemplate ? `${selectedTemplate.name} 복사본` : "새 메시지 템플릿"),
+      channel: selectedChannelLabels.length > 0 ? selectedChannelLabels.join(", ") : selectedChannelMeta?.label ?? "SMS",
       content: messageDraft,
       category: selectedTemplate?.category ?? "이벤트",
       messagePurpose,
       scope: selectedTemplate?.scope ?? "전사 공통",
+      tags: selectedTags.length > 0 ? selectedTags : selectedTemplate ? getTemplateTags(selectedTemplate) : [],
     });
     setSaveTemplateOpen(true);
   };
@@ -275,16 +264,17 @@ export function SendMessagePageWizard() {
       const message = "[현대퓨처넷] #{이름}님, 최근 관심 상품 기준으로 선별한 우수고객 혜택이 준비되었습니다. 앱에서 쿠폰과 사용 기간을 확인해 주세요. 수신거부 080-000-0000";
       setAiPlan({
         title: "최근구매 고객 재구매 캠페인",
-        reason: "최근구매·카카오 동의·일반 타겟 조합의 예상 반응률이 가장 높습니다.",
+        reason: "최근구매·카카오 동의·일반 태그 조합의 예상 반응률이 가장 높습니다.",
         audience: "일반, 최근구매, 카카오 동의",
         template: template.name,
-        channel: "카카오 친구톡",
+        channel: "카카오톡",
         message,
       });
       setSelectedTags(["일반", "최근구매", "카카오 동의"]);
       setMessagePurpose("advertising");
-      setSelectedChannel("kakao-friend");
+      setSelectedChannel("kakao");
       setSelectedTemplateId(template.id);
+      setMessageTitle("최근구매 고객 재구매 캠페인");
       setMessageDraft(message);
       setCheckedMembers(members.filter(member => member.tags?.includes("최근구매") && member.kakaoConsent).slice(0, 12).map(member => member.id));
       setTargetConfirmed(true);
@@ -298,8 +288,11 @@ export function SendMessagePageWizard() {
     setAiJobs(jobs => jobs.map(job => ({ ...job, status: "실행중", result: "queued" })));
     aiJobs.forEach((job, index) => {
       window.setTimeout(() => {
-        setAiJobs(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, status: "완료", result: ["정상", messagePurpose === "advertising" ? "광고성 표기 확인" : "정보성 기준 확인", "위험 없음", "마스킹 필요 없음", messageDraft.length > 90 ? "LMS/RCS 권장" : "SMS 가능", "빈도 정상"][index] } : item));
-        if (index === aiJobs.length - 1) setAiResult(true);
+        setAiJobs(prev => prev.map((item, itemIndex) => itemIndex === index ? { ...item, status: "완료", result: ["정상", messagePurpose === "advertising" ? "광고성 표기 확인" : "정보성 기준 확인", "위험 없음", "마스킹 필요 없음", messageDraft.length > 90 ? "LMS 권장" : "SMS 가능", "빈도 정상"][index] } : item));
+        if (index === aiJobs.length - 1) {
+          setAiResult(true);
+          setAiReportOpen(true);
+        }
       }, 500 + index * 280);
     });
   };
@@ -337,51 +330,16 @@ export function SendMessagePageWizard() {
 
   const renderRecipients = () => (
     <div className="grid min-h-0 grid-cols-1 gap-3 xl:h-full xl:grid-cols-[360px_1fr]">
-      <div className={`rounded-xl border p-4 flex min-h-0 flex-col transition-colors ${targetConfirmed ? "border-border bg-muted/45" : "border-border bg-card"}`}>
+      <div className="rounded-xl border border-border bg-card p-4 flex min-h-0 flex-col">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-sm font-bold">타겟 선택</h3>
-            {targetConfirmed && <p className="mt-1 text-[11px] font-semibold text-muted-foreground">확인된 조건입니다. 수정 버튼을 누르기 전까지 변경할 수 없습니다.</p>}
-          </div>
-          <div className="flex items-center gap-1.5">
-            {targetConfirmed ? (
-              <button
-                onClick={editTarget}
-                title="타겟 조건을 변경하려면 수정 버튼을 누르세요. 수정 중에는 고객 목록이 확인 전까지 숨겨집니다."
-                className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-bold text-muted-foreground hover:border-primary/50 hover:text-primary"
-              >
-                수정
-              </button>
-            ) : (
-              <>
-                <button onClick={selectAllMembers} className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-bold text-muted-foreground hover:border-primary/50 hover:text-primary">
-                  전체 고객
-                </button>
-                <button onClick={confirmTarget} disabled={!hasTargetSelected} className="rounded-lg bg-primary px-2.5 py-1.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">
-                  확인
-                </button>
-              </>
-            )}
+            <h3 className="text-sm font-bold">태그 선택</h3>
           </div>
         </div>
         <div className="space-y-3 min-h-0 flex-1">
-          <div className={`rounded-lg border px-3 py-2 ${targetConfirmed ? "border-border bg-card/70" : "border-primary/20 bg-primary/5"}`}>
-            <div className="flex items-center justify-between gap-3">
-              <span className={`text-[11px] font-bold ${targetConfirmed ? "text-muted-foreground" : "text-primary"}`}>현재 타겟</span>
-              <span className="text-[11px] font-bold text-muted-foreground">{hasTargetSelected ? `${targetMatchedMembers.length.toLocaleString()}명 후보` : "타겟 미선택"}</span>
-            </div>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {selectedTags.map(tag => (
-                <button key={tag} onClick={() => toggleTag(tag)} disabled={targetConfirmed} className={`rounded-full px-2 py-1 text-[11px] font-bold ${targetConfirmed ? "cursor-not-allowed bg-muted text-muted-foreground" : "bg-primary text-white"}`}>
-                  {tag} ×
-                </button>
-              ))}
-              {selectedTags.length === 0 && <span className="text-xs font-semibold text-muted-foreground">타겟을 선택해 주세요.</span>}
-            </div>
-          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input value={tagSearch} onChange={event => setTagSearch(event.target.value)} disabled={targetConfirmed} placeholder="타겟 검색" className="w-full pl-8 pr-4 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground" />
+            <input value={tagSearch} onChange={event => setTagSearch(event.target.value)} disabled={targetConfirmed} placeholder="태그 검색" className="w-full pl-8 pr-4 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground" />
           </div>
           <div className="flex items-center justify-between gap-2">
             <div className="text-xs font-bold text-muted-foreground">조건</div>
@@ -396,24 +354,43 @@ export function SendMessagePageWizard() {
           <div className="min-h-0 flex-1 overflow-y-auto rounded-lg bg-muted p-2">
             <div className="flex flex-wrap gap-1.5">
               {visibleTags.map(tag => (
-                <button key={tag} disabled={targetConfirmed} onClick={() => toggleTag(tag)} className={`px-2.5 py-1.5 rounded-full text-xs font-semibold border transition-all disabled:cursor-not-allowed ${selectedTags.includes(tag) ? targetConfirmed ? "bg-card text-muted-foreground border-border" : "bg-primary text-white border-primary" : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}>
+                <button key={tag} disabled={targetConfirmed} onClick={() => toggleTag(tag)} className={`px-2.5 py-1.5 rounded-full text-xs font-semibold border transition-colors disabled:cursor-not-allowed ${selectedTags.includes(tag) ? targetConfirmed ? "border-primary/35 bg-primary/15 text-primary" : "border-primary bg-primary text-white" : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}>
                   {tag}
                 </button>
               ))}
             </div>
           </div>
-          {relatedTags.length > 0 && (
-            <div className="rounded-lg border border-border bg-muted p-2">
-              <div className="text-xs font-bold text-muted-foreground mb-2">유사 타겟</div>
-              <div className="flex flex-wrap gap-1.5">
-                {relatedTags.map(tag => (
-                  <button key={tag} disabled={targetConfirmed} onClick={() => toggleTag(tag)} className="px-2.5 py-1 rounded-full text-xs font-semibold border border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-60">
-                    {tag}
-                  </button>
-                ))}
-              </div>
+        </div>
+        <div className="mt-3 space-y-3 border-t border-border pt-3">
+          <div className={`rounded-lg border px-3 py-2 ${targetConfirmed ? "border-primary/25 bg-primary/10" : "border-primary/20 bg-primary/5"}`}>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[11px] font-bold text-primary">현재 태그</span>
+              <span className="text-[11px] font-bold text-muted-foreground">{hasTargetSelected ? `${targetMatchedMembers.length.toLocaleString()}명 후보` : "태그 미선택"}</span>
             </div>
-          )}
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {selectedTags.map(tag => (
+                <button key={tag} onClick={() => toggleTag(tag)} disabled={targetConfirmed} className={`rounded-full px-2 py-1 text-[11px] font-bold disabled:cursor-not-allowed ${targetConfirmed ? "bg-primary/15 text-primary" : "bg-primary text-white"}`}>
+                  {tag} ×
+                </button>
+              ))}
+              {selectedTags.length === 0 && <span className="text-xs font-semibold text-muted-foreground">태그를 선택해 주세요.</span>}
+            </div>
+          </div>
+          <div className="flex justify-end">
+            {targetConfirmed ? (
+              <button
+                onClick={editTarget}
+                title="태그 조건을 변경하려면 수정 버튼을 누르세요. 수정 중에는 고객 목록이 확인 전까지 숨겨집니다."
+                className="h-9 shrink-0 rounded-lg border border-border bg-card px-4 text-xs font-bold text-muted-foreground hover:border-primary/50 hover:text-primary"
+              >
+                수정
+              </button>
+            ) : (
+              <button onClick={confirmTarget} disabled={!hasTargetSelected} className="h-9 rounded-lg bg-primary px-4 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">
+                확인
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -422,7 +399,7 @@ export function SendMessagePageWizard() {
           <div className="flex flex-col gap-2 border-b border-border bg-muted p-3 sm:flex-row sm:items-center">
             <div className="relative min-w-0 flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <input value={memberSearch} onChange={event => setMemberSearch(event.target.value)} placeholder="고객명, 번호, 타겟 검색" className="w-full pl-8 pr-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none" />
+              <input value={memberSearch} onChange={event => setMemberSearch(event.target.value)} placeholder="고객명, 번호, 태그 검색" className="w-full pl-8 pr-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none" />
             </div>
             <button onClick={selectAllSearchedMembers} disabled={!canShowTargetMembers || candidateMembers.length === 0} className="h-9 rounded-lg border border-border bg-card px-3 text-xs font-bold text-muted-foreground hover:border-primary/50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40">
               검색 결과 선택
@@ -434,7 +411,7 @@ export function SendMessagePageWizard() {
           <div className="border-b border-border bg-card px-3 py-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-lg bg-muted px-2.5 py-1.5 text-[11px] font-bold text-muted-foreground">
-                {canShowTargetMembers ? `타겟 후보 ${targetMatchedMembers.length.toLocaleString()}명` : hasTargetSelected ? "타겟 확인 대기" : "타겟 미선택"}
+                {canShowTargetMembers ? `태그 후보 ${targetMatchedMembers.length.toLocaleString()}명` : hasTargetSelected ? "태그 확인 대기" : "태그 미선택"}
               </span>
               <span className="rounded-lg bg-blue-50 px-2.5 py-1.5 text-[11px] font-bold text-blue-700">
                 현재 표시 {canShowTargetMembers ? candidateMembers.length.toLocaleString() : "0"}명
@@ -449,11 +426,6 @@ export function SendMessagePageWizard() {
               ))}
               {checkedMemberRows.length > 5 && <span className="text-[11px] font-semibold text-muted-foreground">+{checkedMemberRows.length - 5}명</span>}
             </div>
-            {targetSyncNotice && (
-              <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
-                {targetSyncNotice}
-              </div>
-            )}
           </div>
           {canShowTargetMembers && <div className="hidden overflow-x-auto border-b border-border md:block">
             <div className="grid min-w-[760px] grid-cols-[36px_0.8fr_1fr_0.45fr_2.2fr_0.45fr_0.45fr_0.45fr] gap-3 bg-muted/60 px-3 py-2 text-xs font-bold text-muted-foreground">
@@ -463,7 +435,7 @@ export function SendMessagePageWizard() {
             <span>고객명</span>
             <span>번호</span>
             <span>유형</span>
-            <span>타겟</span>
+            <span>태그</span>
             <span>문자</span>
             <span>카카오</span>
             <span>이메일</span>
@@ -471,11 +443,6 @@ export function SendMessagePageWizard() {
           </div>}
           <div className="min-h-0 flex-1 overflow-auto">
             <div className="space-y-2 p-3 md:hidden">
-              {!canShowTargetMembers && (
-                <div className="rounded-lg border border-dashed border-border bg-muted/40 px-3 py-8 text-center text-xs font-semibold text-muted-foreground">
-                  {hasTargetSelected ? "확인을 누르면 선택한 타겟 기준의 고객 목록이 표시됩니다." : "타겟을 선택하고 확인을 누르면 고객 목록이 표시됩니다."}
-                </div>
-              )}
               {canShowTargetMembers && visibleMembers.map(member => {
                 const checked = checkedMembers.includes(member.id);
                 return (
@@ -532,25 +499,9 @@ export function SendMessagePageWizard() {
               );
             })}
             </div>
-            {!canShowTargetMembers && (
-              <div className="hidden px-3 py-16 text-center text-xs font-semibold text-muted-foreground md:block">
-                {hasTargetSelected ? "확인을 누르면 선택한 타겟 기준의 고객 목록이 표시됩니다." : "타겟을 선택하고 확인을 누르면 고객 목록이 표시됩니다."}
-              </div>
-            )}
             {canShowTargetMembers && visibleMembers.length === 0 && (
               <div className="hidden px-3 py-8 text-center text-xs text-muted-foreground md:block">수신 가능한 채널이 있는 고객만 표시됩니다.</div>
             )}
-          </div>
-          <div className="flex h-12 shrink-0 items-center border-t border-primary/15 bg-primary/5 px-4">
-            <span className="text-sm font-bold text-foreground">
-              {!canShowTargetMembers
-                ? hasTargetSelected ? "타겟 조건 확인 후 고객 목록을 적용할 수 있습니다." : "타겟을 먼저 선택해 주세요."
-                : checkedMembers.length > 0
-                ? `타겟 후보 ${targetMatchedMembers.length.toLocaleString()}명 중 ${checkedMembers.length.toLocaleString()}명 직접 선택`
-                : canShowTargetMembers
-                  ? `직접 선택 없음 · 타겟 후보 ${targetMatchedMembers.length.toLocaleString()}명 전체 적용`
-                  : "타겟을 먼저 선택해 주세요."}
-            </span>
           </div>
         </div>
       </div>
@@ -565,12 +516,6 @@ export function SendMessagePageWizard() {
           <p className="mt-1 text-xs text-muted-foreground">{selectedChannelSummary || "채널 미선택"}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-lg bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground">
-            {estimatedTarget.toLocaleString()}명
-          </span>
-          <span className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
-            {formatWon(estimatedCost)}
-          </span>
           <span className="flex items-center gap-1.5 px-1 text-xs font-bold text-muted-foreground">
             {channelSettingsOpen ? "접기" : "더보기"}
             <ChevronDown className={`h-3.5 w-3.5 transition-transform ${channelSettingsOpen ? "rotate-180" : ""}`} />
@@ -579,40 +524,28 @@ export function SendMessagePageWizard() {
       </button>
       <div className={`overflow-hidden transition-all duration-300 ease-out ${channelSettingsOpen ? "max-h-[900px] opacity-100" : "max-h-0 opacity-0"}`}>
         <div className="px-4 pb-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {CHANNELS.map(channel => {
               const priority = channelPriority.indexOf(channel.id) + 1;
-              const estimate = getChannelEstimate(channel.id);
-              const disabled = channel.id === "rcs";
               const selected = priority > 0;
               return (
-                <button key={channel.id} disabled={disabled} onClick={() => toggleChannelPriority(channel.id)} className={`relative rounded-lg border p-3 text-left transition-all ${disabled ? "cursor-not-allowed border-border bg-muted/40 opacity-55" : selected ? "cursor-pointer border-primary bg-accent shadow-sm" : "cursor-pointer border-border bg-card"}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <span className={`flex h-8 w-8 items-center justify-center rounded-md ${selected ? "bg-primary text-white" : "bg-muted text-primary"}`}>
-                      <channel.icon className="h-4 w-4" />
+                <button key={channel.id} onClick={() => toggleChannelPriority(channel.id)} className={`relative rounded-lg border p-2.5 text-left transition-colors ${selected ? "cursor-pointer border-primary bg-accent shadow-sm" : "cursor-pointer border-border bg-card"}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${selected ? "bg-primary text-white" : "bg-muted text-primary"}`}>
+                      <channel.icon className="h-3.5 w-3.5" />
                     </span>
-                    {disabled ? (
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold text-muted-foreground">비활성</span>
-                    ) : (
-                      <div className="flex items-center gap-1.5">
-                        <span className={`flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-bold ${priority > 0 ? "border-primary bg-primary text-white" : "border-border bg-muted text-muted-foreground"}`}>
-                          {priority || "+"}
-                        </span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1.5">
+                      <span className={`flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-bold ${priority > 0 ? "border-primary bg-primary text-white" : "border-border bg-muted text-muted-foreground"}`}>
+                        {priority || "+"}
+                      </span>
+                    </div>
                   </div>
                   <div className="mt-2">
-                    <div className="flex items-center gap-2">
-                      <div className="text-sm font-bold">{channel.label}</div>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold text-muted-foreground">{channelUnitCost(channel.id)}원/건</span>
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <div className="truncate text-xs font-bold">{channel.label}</div>
+                      <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">{channelUnitCost(channel.id)}원/건</span>
                     </div>
-                    <div className="mt-1 text-xs text-muted-foreground">{channel.sub}</div>
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 border-t border-border pt-3 text-xs">
-                    <span className="text-muted-foreground">대상 인원</span>
-                    <b className="text-right">{estimate.count.toLocaleString()}명</b>
-                    <span className="text-muted-foreground">예상 금액</span>
-                    <b className="text-right">{formatWon(estimate.cost)}</b>
+                    <div className="mt-1 line-clamp-2 text-[11px] leading-snug text-muted-foreground">{channel.sub}</div>
                   </div>
                 </button>
               );
@@ -682,7 +615,7 @@ export function SendMessagePageWizard() {
             <button title="템플릿 저장" onClick={openSaveTemplate} className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3.5 text-xs font-bold text-foreground shadow-sm transition-colors hover:bg-accent sm:flex-none">
               <FileText className="w-3.5 h-3.5" /> 템플릿 저장
             </button>
-            <button title="AI 문구 추천" onClick={recommendMarketingCopy} className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-primary/90 sm:flex-none">
+            <button title="AI 문구 추천" onClick={() => setMarketingPromptOpen(true)} className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-primary/90 sm:flex-none">
               <Sparkles className="w-3.5 h-3.5" /> AI 문구 추천
             </button>
             <button title="AI 검사" onClick={runAiCheck} disabled={!messageDraft || aiJobs.some(job => job.status === "실행중")} className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-500 px-3.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none">
@@ -732,16 +665,21 @@ export function SendMessagePageWizard() {
           <div className="mb-3">
             <div className="mb-2 text-xs font-bold text-muted-foreground">개인화 항목</div>
             <div className="flex flex-wrap gap-2">
-            {PERSONAL_FIELDS.map(([label, value]) => (
+            {visiblePersonalFields.map(([label, value]) => (
               <button key={value} onClick={() => insertVariable(value)} className="cursor-pointer rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted-foreground transition-colors hover:border-primary/40 hover:bg-accent hover:text-foreground">{label}</button>
             ))}
             </div>
           </div>
+          <div className="mb-3">
+            <div className="mb-2 text-xs font-bold text-muted-foreground">제목</div>
+            <input value={messageTitle} onChange={event => { setMessageTitle(event.target.value); setSelectedTemplateId(0); }} placeholder="메시지 제목을 입력하세요" className="w-full rounded-lg border border-border bg-input-background px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
+          <div className="mb-2 text-xs font-bold text-muted-foreground">내용</div>
           <textarea value={messageDraft} onChange={event => { setMessageDraft(event.target.value); setSelectedTemplateId(0); }} className="min-h-[220px] flex-1 w-full px-3.5 py-2.5 rounded-lg border border-border bg-input-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 xl:min-h-0" />
         </div>
 
-        <div className="flex min-h-0 flex-col rounded-xl border border-border bg-card p-4 sm:p-5">
-          <div className="mb-4 flex min-h-[36px] flex-wrap items-center justify-between gap-3">
+        <div className="flex min-h-0 flex-col rounded-xl border border-border bg-card p-3 sm:p-4">
+          <div className="mb-3 flex min-h-[34px] flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-bold">미리보기</h3>
             <div className="inline-flex rounded-lg border border-border bg-muted p-1">
               {[
@@ -753,13 +691,13 @@ export function SendMessagePageWizard() {
               ))}
             </div>
           </div>
-          <div className="mb-3 flex justify-end">
+          <div className="mb-2 flex justify-end">
             <Badge text={selectedMessagePurpose.label} variant={selectedMessagePurpose.color} />
           </div>
-          <div className="relative mx-auto aspect-[1179/2556] w-full max-w-[260px] shrink-0 overflow-hidden rounded-[2.8rem] bg-gradient-to-b from-slate-700 via-slate-950 to-black p-[6px] shadow-2xl ring-1 ring-slate-500/40">
+          <div className="relative mx-auto aspect-[1179/2556] w-full max-w-[220px] shrink-0 overflow-hidden rounded-[2.35rem] bg-gradient-to-b from-slate-700 via-slate-950 to-black p-[5px] shadow-2xl ring-1 ring-slate-500/40 2xl:max-w-[230px]">
             <div className="absolute -left-1 top-24 h-14 w-1 rounded-l bg-slate-800" />
             <div className="absolute -right-1 top-32 h-20 w-1 rounded-r bg-slate-800" />
-            <div className="relative flex h-full flex-col overflow-hidden rounded-[2.35rem] bg-white">
+            <div className="relative flex h-full flex-col overflow-hidden rounded-[2rem] bg-white">
               <div className="absolute left-1/2 top-3 z-30 flex h-6 w-20 -translate-x-1/2 items-center justify-center rounded-full bg-black shadow-lg">
                 <span className="mr-2 h-1.5 w-7 rounded-full bg-slate-700" />
                 <span className="h-2 w-2 rounded-full bg-slate-800 ring-1 ring-slate-600" />
@@ -781,7 +719,7 @@ export function SendMessagePageWizard() {
                       <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">M</div>
                       <div className="text-sm font-bold">Gmail</div>
                     </div>
-                    <div className="mb-3 text-base font-bold leading-snug">{selectedTemplate ? selectedTemplate.name : "메시지 제목"}</div>
+                    <div className="mb-3 text-base font-bold leading-snug">{previewTitle}</div>
                     <div className="mb-4 flex items-start gap-2">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">현</div>
                       <div className="min-w-0 flex-1">
@@ -802,6 +740,7 @@ export function SendMessagePageWizard() {
                   <>
                     <div className="mb-2 text-[11px] text-muted-foreground">{previewMode === "message" ? "010-0000-0000" : "현대퓨처넷"}</div>
                     <div className={`max-w-[185px] p-3 text-sm leading-relaxed shadow-sm whitespace-pre-wrap ${previewMode === "message" ? "ml-auto rounded-2xl bg-primary text-white" : "rounded-2xl rounded-tl-sm bg-[#FFF8C5]"}`}>
+                      <div className={`mb-2 text-xs font-bold leading-snug ${previewMode === "message" ? "text-white" : "text-[#3A1D1D]"}`}>{previewTitle}</div>
                       {previewMessage}
                     </div>
                     {previewMode === "kakao" && (
@@ -963,6 +902,37 @@ export function SendMessagePageWizard() {
           )}
         </div>
       </div>
+      <Modal open={marketingPromptOpen} onClose={() => setMarketingPromptOpen(false)} title="AI 문구 추천" wide>
+        <div className="space-y-4">
+          <div className="rounded-xl border border-border bg-muted p-4">
+            <div className="text-sm font-bold text-foreground">추천 방향</div>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              캠페인 목적, 강조할 혜택, 톤앤매너를 입력하면 현재 선택한 대상과 채널 기준으로 문구를 추천합니다.
+            </p>
+          </div>
+          <textarea
+            value={marketingPrompt}
+            onChange={event => setMarketingPrompt(event.target.value)}
+            placeholder="예: VIP 고객 대상, 이번 주말 한정 혜택을 강조하고 너무 과장되지 않게 작성"
+            className="min-h-[140px] w-full resize-none rounded-xl border border-border bg-input-background p-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {["혜택 중심", "부드러운 톤", "긴급감 강조"].map(prompt => (
+              <button
+                key={prompt}
+                onClick={() => setMarketingPrompt(prev => prev ? `${prev}, ${prompt}` : prompt)}
+                className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Btn variant="outline" onClick={() => setMarketingPromptOpen(false)}>취소</Btn>
+            <Btn onClick={recommendMarketingCopy}><Sparkles className="w-3.5 h-3.5" /> 추천 생성</Btn>
+          </div>
+        </div>
+      </Modal>
       <Modal open={aiReportOpen} onClose={() => setAiReportOpen(false)} title="AI 검사 리포트" wide>
         <AiReportDetail />
       </Modal>

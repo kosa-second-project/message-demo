@@ -11,6 +11,7 @@ export function MembersPage() {
   const [memberTab, setMemberTab] = useState<"members" | "blocked">("members");
   const [detailMember, setDetailMember] = useState<Member | null>(null);
   const [targetEditMode, setTargetEditMode] = useState(false);
+  const [sortOrder, setSortOrder] = useState("latest");
   const [page, setPage] = useState(1);
   const [members, setMembers] = useState<Member[]>(() => createMemberRows());
   const visibleMembersForType = members.filter(member => ["일반", "신규", "휴면"].includes(member.type));
@@ -22,11 +23,24 @@ export function MembersPage() {
     (typeFilter === "전체" || m.type === typeFilter) &&
     (m.name.includes(search) || m.phone.includes(search) || (m.tags ?? []).some(tag => tag.includes(search)))
   );
+  const sortMembers = (rows: Member[]) => {
+    const next = [...rows];
+    next.sort((a, b) => {
+      if (sortOrder === "oldest") return a.joinedAt.localeCompare(b.joinedAt) || a.id - b.id;
+      if (sortOrder === "name") return a.name.localeCompare(b.name, "ko");
+      if (sortOrder === "lastSend") return b.lastSend.localeCompare(a.lastSend) || b.id - a.id;
+      if (sortOrder === "type") return a.type.localeCompare(b.type, "ko") || a.name.localeCompare(b.name, "ko");
+      return b.joinedAt.localeCompare(a.joinedAt) || b.id - a.id;
+    });
+    return next;
+  };
+  const sortedMembers = useMemo(() => sortMembers(filtered), [filtered, sortOrder]);
+  const sortedBlockedMembers = useMemo(() => sortMembers(blockedMembers), [blockedMembers, sortOrder]);
   const memberPageSize = 10;
-  const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / memberPageSize)));
-  const pagedMembers = filtered.slice((currentPage - 1) * memberPageSize, currentPage * memberPageSize);
-  const blockedCurrentPage = Math.min(page, Math.max(1, Math.ceil(blockedMembers.length / memberPageSize)));
-  const pagedBlockedMembers = blockedMembers.slice((blockedCurrentPage - 1) * memberPageSize, blockedCurrentPage * memberPageSize);
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(sortedMembers.length / memberPageSize)));
+  const pagedMembers = sortedMembers.slice((currentPage - 1) * memberPageSize, currentPage * memberPageSize);
+  const blockedCurrentPage = Math.min(page, Math.max(1, Math.ceil(sortedBlockedMembers.length / memberPageSize)));
+  const pagedBlockedMembers = sortedBlockedMembers.slice((blockedCurrentPage - 1) * memberPageSize, blockedCurrentPage * memberPageSize);
 
   const typeMap: Record<string, string> = { 일반: "blue", 신규: "green", 휴면: "default" };
   const updateMemberTags = (memberId: number, tags: string[]) => {
@@ -104,9 +118,16 @@ export function MembersPage() {
           {memberTab === "members" && ["전체", "일반", "신규", "휴면"].map(f => (
             <button key={f} onClick={() => { setTypeFilter(f); setPage(1); }} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${typeFilter === f ? "bg-primary text-white" : "bg-card border border-border text-muted-foreground"}`}>{f}</button>
           ))}
+          <select value={sortOrder} onChange={e => { setSortOrder(e.target.value); setPage(1); }} className="h-9 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-muted-foreground">
+            <option value="latest">최신순</option>
+            <option value="oldest">오래된순</option>
+            <option value="name">이름순</option>
+            <option value="lastSend">최근 발송순</option>
+            <option value="type">유형순</option>
+          </select>
         </div>
         <div className="flex items-center gap-2">
-          <Btn variant="outline" size="sm"><Download className="w-3.5 h-3.5" /> {memberTab === "members" ? "고객 파일 내보내기" : "수신거부 파일 내보내기"}</Btn>
+          <Btn variant="outline" size="sm" disabled title="준비 중"><Download className="w-3.5 h-3.5" /> {memberTab === "members" ? "고객 파일 준비 중" : "수신거부 파일 준비 중"}</Btn>
         </div>
       </div>
       {memberTab === "members" ? (
@@ -127,7 +148,7 @@ export function MembersPage() {
               <div className="mt-3 grid grid-cols-3 gap-1 text-[11px] font-bold">
                 <span className={m.smsConsent ? "text-emerald-600" : "text-red-400"}>SMS {m.smsConsent ? "동의" : "거부"}</span>
                 <span className={m.kakaoConsent ? "text-emerald-600" : "text-red-400"}>카카오 {m.kakaoConsent ? "동의" : "거부"}</span>
-                <span className={m.rcsConsent ? "text-emerald-600" : "text-red-400"}>RCS {m.rcsConsent ? "동의" : "거부"}</span>
+                <span className={m.emailConsent ? "text-emerald-600" : "text-red-400"}>이메일 {m.emailConsent ? "동의" : "거부"}</span>
               </div>
               <div className="mt-3 flex justify-between text-[11px] font-semibold text-muted-foreground">
                 <span>{m.joinedAt}</span>
@@ -139,7 +160,7 @@ export function MembersPage() {
         <div className="hidden max-h-[560px] overflow-auto md:block">
           <table className="min-w-[780px] w-full text-sm">
             <thead><tr className="bg-muted border-b border-border">
-              {["고객명", "전화번호", "유형", "타겟", "SMS 동의", "카카오 동의", "RCS 동의", "가입일"].map(h => (
+              {["고객명", "전화번호", "유형", "태그", "SMS 동의", "카카오 동의", "이메일 동의", "가입일"].map(h => (
                 <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
               ))}
             </tr></thead>
@@ -155,14 +176,14 @@ export function MembersPage() {
                 </td>
                 <td className="px-4 py-2.5">{m.smsConsent ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-400" />}</td>
                 <td className="px-4 py-2.5">{m.kakaoConsent ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-400" />}</td>
-                <td className="px-4 py-2.5">{m.rcsConsent ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-400" />}</td>
+                <td className="px-4 py-2.5">{m.emailConsent ? <Check className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4 text-red-400" />}</td>
                 <td className="px-4 py-2.5 text-xs text-muted-foreground">{m.joinedAt}</td>
               </tr>
             ))}</tbody>
           </table>
         </div>
         <div className="shrink-0">
-          <Pagination page={currentPage} total={filtered.length} pageSize={memberPageSize} onPage={setPage} />
+          <Pagination page={currentPage} total={sortedMembers.length} pageSize={memberPageSize} onPage={setPage} />
         </div>
       </div>
       ) : (
@@ -175,7 +196,6 @@ export function MembersPage() {
                   <div className="text-sm font-bold text-foreground">{member.name}</div>
                   <div className="mt-1 text-xs text-muted-foreground">{member.phone}</div>
                 </div>
-                <Badge text={!member.smsConsent ? "SMS" : "카카오"} variant="red" />
               </div>
               <div className="mt-3 text-xs font-semibold text-muted-foreground">
                 {`2026-06-${String(10 + (member.id % 14)).padStart(2, "0")} 14:${String((member.id * 7) % 60).padStart(2, "0")}`}
@@ -184,22 +204,21 @@ export function MembersPage() {
           ))}
         </div>
         <div className="hidden max-h-[560px] overflow-auto md:block">
-          <table className="min-w-[640px] w-full text-sm">
+          <table className="min-w-[520px] w-full text-sm">
             <thead><tr className="bg-muted border-b border-border">
-              {["고객명", "전화번호", "거부 채널", "수신거부 일시"].map(h => <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>)}
+              {["고객명", "전화번호", "수신거부 일시"].map(h => <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>)}
             </tr></thead>
             <tbody>{pagedBlockedMembers.map(member => (
               <tr key={member.id} onClick={() => openMemberDetail(member)} className="border-b border-border hover:bg-blue-50/70 cursor-pointer">
                 <td className="px-4 py-2.5 text-xs font-bold text-foreground">{member.name}</td>
                 <td className="px-4 py-2.5 text-xs font-mono text-muted-foreground">{member.phone}</td>
-                <td className="px-4 py-2.5"><Badge text={!member.smsConsent ? "SMS" : "카카오"} variant="red" /></td>
                 <td className="px-4 py-2.5 text-xs text-muted-foreground">2026-06-{String(10 + (member.id % 14)).padStart(2, "0")} 14:{String((member.id * 7) % 60).padStart(2, "0")}</td>
               </tr>
             ))}</tbody>
           </table>
         </div>
         <div className="shrink-0">
-          <Pagination page={blockedCurrentPage} total={blockedMembers.length} pageSize={memberPageSize} onPage={setPage} />
+          <Pagination page={blockedCurrentPage} total={sortedBlockedMembers.length} pageSize={memberPageSize} onPage={setPage} />
         </div>
       </div>
       )}
@@ -230,7 +249,7 @@ export function MembersPage() {
               {[
                 { label: "SMS", key: "smsConsent" as const },
                 { label: "카카오", key: "kakaoConsent" as const },
-                { label: "RCS", key: "rcsConsent" as const },
+                { label: "이메일", key: "emailConsent" as const },
               ].map(({ label, key }) => (
                 <span key={key} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${detailMember[key] ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500"}`}>
                   {detailMember[key] ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
@@ -241,7 +260,7 @@ export function MembersPage() {
             <section className="overflow-hidden rounded-lg border border-border">
               <div className="flex items-center justify-between gap-3 border-b border-border bg-muted/50 px-4 py-3">
                 <div>
-                  <h4 className="text-xs font-bold text-muted-foreground">타겟</h4>
+                  <h4 className="text-xs font-bold text-muted-foreground">태그</h4>
                   <div className="mt-0.5 text-[11px] font-semibold text-muted-foreground">{(detailMember.tags ?? []).length}개 등록</div>
                 </div>
                 <button onClick={() => { setTargetEditMode(prev => !prev); setDetailTagInput(""); }} className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${targetEditMode ? "bg-primary text-white" : "border border-border bg-card text-muted-foreground hover:text-foreground"}`}>
@@ -254,12 +273,12 @@ export function MembersPage() {
                     {(detailMember.tags ?? []).map(tag => (
                       <span key={tag} className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">{tag}</span>
                     ))}
-                    {(detailMember.tags ?? []).length === 0 && <span className="text-xs font-semibold text-muted-foreground">등록된 타겟 없음</span>}
+                    {(detailMember.tags ?? []).length === 0 && <span className="text-xs font-semibold text-muted-foreground">등록된 태그 없음</span>}
                   </div>
                 ) : (
                   <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.9fr)]">
                     <div>
-                      <div className="mb-2 text-[11px] font-bold text-muted-foreground">현재 타겟</div>
+                      <div className="mb-2 text-[11px] font-bold text-muted-foreground">현재 태그</div>
                       <div className="min-h-24 max-h-36 overflow-y-auto rounded-lg border border-border p-3">
                         <div className="flex flex-wrap gap-2">
                           {(detailMember.tags ?? []).map(tag => (
@@ -267,12 +286,12 @@ export function MembersPage() {
                               {tag}<X className="h-3 w-3" />
                             </button>
                           ))}
-                          {(detailMember.tags ?? []).length === 0 && <span className="text-xs font-semibold text-muted-foreground">등록된 타겟 없음</span>}
+                          {(detailMember.tags ?? []).length === 0 && <span className="text-xs font-semibold text-muted-foreground">등록된 태그 없음</span>}
                         </div>
                       </div>
                     </div>
                     <div>
-                      <div className="mb-2 text-[11px] font-bold text-muted-foreground">타겟 추가</div>
+                      <div className="mb-2 text-[11px] font-bold text-muted-foreground">태그 추가</div>
                       <input value={detailTagInput} onChange={e => setDetailTagInput(e.target.value)} placeholder="태그 검색" className="mb-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" />
                       <div className="max-h-28 overflow-y-auto rounded-lg bg-muted/60 p-3">
                         <div className="flex flex-wrap gap-1.5">

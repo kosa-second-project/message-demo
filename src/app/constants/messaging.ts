@@ -1,12 +1,10 @@
-import { Info, Mail, Megaphone, MessageSquare, Phone, Zap } from 'lucide-react';
+import { Info, Megaphone, MessageSquare, Phone } from 'lucide-react';
 import type { MessagePurpose } from '../types';
 
 export const CHANNELS = [
-  { id: "sms", label: "SMS", sub: "90자 이내 단문", icon: Phone },
-  { id: "lms", label: "LMS", sub: "2,000자 이내 장문", icon: Mail },
-  { id: "kakao-noti", label: "카카오 알림톡", sub: "거래/안내 메시지", icon: MessageSquare },
-  { id: "kakao-friend", label: "카카오 친구톡", sub: "마케팅 메시지", icon: Megaphone },
-  { id: "rcs", label: "RCS", sub: "리치 미디어 메시지", icon: Zap },
+  { id: "text", label: "문자", sub: "글자 수에 따라 SMS/LMS 자동 적용", icon: Phone },
+  { id: "kakao", label: "카카오톡", sub: "알림톡/친구톡 통합", icon: Megaphone },
+  { id: "email", label: "이메일", sub: "메일 수신 동의 대상", icon: MessageSquare },
 ];
 export const CHANNEL_LABELS = CHANNELS.map(channel => channel.label);
 export const PERSONAL_FIELDS = [
