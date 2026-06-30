@@ -16,7 +16,20 @@
     <body>
       
       <div id="root"></div>
-      <script type="module" src="/src/main.tsx"></script>
+      <script type="module">
+        if (location.hostname.endsWith("github.io") && !import.meta.env) {
+          const stylesheet = document.createElement("link");
+          stylesheet.rel = "stylesheet";
+          stylesheet.href = "/message-demo/assets/index.css";
+          document.head.appendChild(stylesheet);
+          const script = document.createElement("script");
+          script.type = "module";
+          script.src = "/message-demo/assets/index.js";
+          document.body.appendChild(script);
+        } else {
+          import("/src/main.tsx");
+        }
+      </script>
       
     </body>
   </html>
