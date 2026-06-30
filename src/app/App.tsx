@@ -491,8 +491,8 @@ function Sidebar({ current, setCurrent, onLogout }: { current: Page; setCurrent:
 // ─── Header ───────────────────────────────────────────────────────────────────
 const PAGE_TITLES: Record<Page, string> = {
   dashboard: "대시보드", send: "메시지 발송", templates: "템플릿 관리", history: "전송 기록",
-  members: "회원 관리", "stats-overview": "통계 · 발송 현황", "stats-channel": "통계 · 채널 분석",
-  "stats-routing": "통계 · 비용/라우팅 분석", "stats-member": "통계 · 회원 분석", "stats-performance": "통계 · 성과 분석",
+  members: "회원 관리", "stats-overview": "발송 현황", "stats-channel": "채널 분석",
+  "stats-routing": "비용/라우팅 분석", "stats-member": "회원 분석", "stats-performance": "성과 분석",
 };
 function Header({ page }: { page: Page }) {
   return (
@@ -1201,7 +1201,7 @@ function TemplatesPage() {
   const [page, setPage] = useState(1);
   const [editModal, setEditModal] = useState<Template | null>(null);
   const [detailModal, setDetailModal] = useState<Template | null>(null);
-  const [templatePreviewMode, setTemplatePreviewMode] = useState<"basic" | "kakao" | "rich">("kakao");
+  const [templatePreviewMode, setTemplatePreviewMode] = useState<"basic" | "kakao" | "rich">("basic");
   const [addModal, setAddModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState({ name: "", channel: "SMS", content: "", category: "이벤트", scope: "전사 공통" });
@@ -1237,7 +1237,7 @@ function TemplatesPage() {
             {["SMS", "LMS", "카카오 알림톡", "카카오 친구톡", "RCS"].map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
-        <div><label className="text-xs font-semibold text-muted-foreground block mb-1">카테고리</label>
+        <div><label className="text-xs font-semibold text-muted-foreground block mb-1">목적</label>
           <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-border bg-input-background text-sm focus:outline-none">
             {["이벤트", "혜택", "안내"].map(c => <option key={c}>{c}</option>)}
           </select>
@@ -1280,7 +1280,7 @@ function TemplatesPage() {
           <thead><tr className="bg-muted border-b border-border">
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">템플릿명</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">채널</th>
-            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">카테고리</th>
+            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">목적</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">공개 범위</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden xl:table-cell">타겟</th>
             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">사용 횟수</th>
@@ -1345,7 +1345,7 @@ function TemplatesPage() {
                 <div className="text-xs font-bold text-muted-foreground">핸드폰형 메시지 UI</div>
                 <div className="inline-flex rounded-lg border border-border bg-card p-1">
                   {[
-                    ["basic", "기본"],
+                    ["basic", "메시지"],
                     ["kakao", "카카오"],
                     ["rich", "리치"],
                   ].map(([value, label]) => (
@@ -1355,7 +1355,7 @@ function TemplatesPage() {
               </div>
               <div className="mx-auto max-w-[260px] rounded-[1.7rem] border-8 border-slate-900 bg-slate-900 p-2">
                 <div className="overflow-hidden rounded-[1.1rem] bg-white">
-                  <div className={`px-4 py-2 text-[11px] font-bold ${templatePreviewMode === "kakao" ? "bg-[#F7E600]" : "bg-slate-50"}`}>{templatePreviewMode === "basic" ? "문자" : templatePreviewMode === "kakao" ? "카카오톡" : "리치 메시지"}</div>
+                  <div className={`px-4 py-2 text-[11px] font-bold ${templatePreviewMode === "kakao" ? "bg-[#F7E600]" : "bg-slate-50"}`}>{templatePreviewMode === "basic" ? "메시지" : templatePreviewMode === "kakao" ? "카카오톡" : "리치 메시지"}</div>
                   <div className={`min-h-44 p-4 ${templatePreviewMode === "kakao" ? "bg-[#BACEDE]" : "bg-slate-50"}`}>
                     <div className={`whitespace-pre-wrap rounded-2xl p-3 text-xs leading-relaxed ${templatePreviewMode === "basic" ? "ml-auto bg-primary text-white" : templatePreviewMode === "kakao" ? "bg-[#FFF8C5]" : "bg-white shadow-sm"}`}>{detailModal.content}</div>
                     {templatePreviewMode === "rich" && <button className="mt-2 w-full rounded-lg bg-primary py-2 text-[11px] font-bold text-white">자세히 보기</button>}
@@ -1363,10 +1363,9 @@ function TemplatesPage() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               {[
                 ["템플릿 클릭률", `${detailModal.clickRate ?? 0}%`],
-                ["수신거부율", `${detailModal.optOutRate ?? 0}%`],
               ].map(([label, value]) => <div key={label} className="p-3 bg-muted rounded-lg"><div className="text-xs text-muted-foreground mb-1">{label}</div><div className="text-sm font-bold">{value}</div></div>)}
             </div>
           </div>
@@ -1689,13 +1688,12 @@ function MembersPage() {
         </div>
         <table className="w-full text-sm">
           <thead><tr className="bg-muted border-b border-border">
-            {["회원명", "전화번호", "거부 채널", "수신거부 일시", "등록 사유", "동기화 상태"].map(h => <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">{h}</th>)}
+            {["회원명", "전화번호", "수신거부 일시", "등록 사유", "동기화 상태"].map(h => <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">{h}</th>)}
           </tr></thead>
           <tbody>{blockedMembers.map(member => (
             <tr key={member.id} onClick={() => setDetailMember(member)} className="border-b border-border hover:bg-blue-50/70 cursor-pointer">
               <td className="px-4 py-3 text-xs font-bold">{member.name}</td>
               <td className="px-4 py-3 text-xs font-mono text-muted-foreground">{member.phone}</td>
-              <td className="px-4 py-3"><Badge text={!member.smsConsent ? "SMS" : "카카오"} variant="red" /></td>
               <td className="px-4 py-3 text-xs text-muted-foreground">2026-06-{String(10 + (member.id % 14)).padStart(2, "0")} 14:{String((member.id * 7) % 60).padStart(2, "0")}</td>
               <td className="px-4 py-3 text-xs text-muted-foreground">080 수신거부 접수</td>
               <td className="px-4 py-3"><Badge text="회원 동의 N 반영" variant="green" /></td>
@@ -1885,16 +1883,33 @@ function StatsOverview() {
 }
 
 function StatsChannel() {
+  const [periodFilter, setPeriodFilter] = useState("최근 30일");
+  const [channelFilter, setChannelFilter] = useState("전체 채널");
+  const channelOptions = ["전체 채널", ...channelCostData.map(row => row.channel)];
+  const filteredChannelCostData = channelFilter === "전체 채널" ? channelCostData : channelCostData.filter(row => row.channel === channelFilter);
+  const filteredChannelPie = channelFilter === "전체 채널" ? channelPie : channelPie.filter(row => row.name === channelFilter);
+  const trendLines = [
+    { key: "kakao", name: channelFilter.includes("카카오") ? channelFilter : "카카오 친구톡", color: "#F7E600", channels: ["카카오 친구톡", "카카오 알림톡"] },
+    { key: "sms", name: "SMS", color: "#1843FA", channels: ["SMS"] },
+    { key: "lms", name: "LMS", color: "#10B981", channels: ["LMS"] },
+    { key: "rcs", name: "RCS", color: "#8B5CF6", channels: ["RCS"] },
+  ].filter(line => channelFilter === "전체 채널" || line.channels.includes(channelFilter));
+
   return (
     <div className="p-6 space-y-5">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <select className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
-          {["최근 7일", "최근 30일", "이번 달", "직접 지정"].map(option => <option key={option}>{option}</option>)}
-        </select>
+        <div className="flex items-center gap-2 flex-wrap">
+          <select value={periodFilter} onChange={event => setPeriodFilter(event.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
+            {["최근 7일", "최근 30일", "이번 달", "직접 지정"].map(option => <option key={option}>{option}</option>)}
+          </select>
+          <select value={channelFilter} onChange={event => setChannelFilter(event.target.value)} className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
+            {channelOptions.map(option => <option key={option}>{option}</option>)}
+          </select>
+        </div>
         <StatsReportActions />
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        {channelPie.map((c, i) => (
+        {filteredChannelPie.map((c, i) => (
           <div key={i} className="bg-card rounded-xl border border-border p-4 text-center">
             <div className="w-3 h-3 rounded-full mx-auto mb-2" style={{ background: c.color }} />
             <div className="text-xs text-muted-foreground mb-1">{c.name}</div>
@@ -1906,7 +1921,7 @@ function StatsChannel() {
         <div className="bg-card rounded-xl border border-border p-5">
           <h3 className="text-sm font-bold mb-4">채널별 성공률/실패율 비교</h3>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={channelCostData} layout="vertical" barSize={16}>
+            <BarChart data={filteredChannelCostData} layout="vertical" barSize={16}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" horizontal={false} />
               <XAxis type="number" domain={[96, 100]} tick={{ fontSize: 10 }} tickFormatter={v => `${v}%`} />
               <YAxis type="category" dataKey="channel" tick={{ fontSize: 10 }} width={90} />
@@ -1919,14 +1934,14 @@ function StatsChannel() {
           <h3 className="text-sm font-bold mb-4">채널별 발송 비중 (도넛)</h3>
           <ResponsiveContainer width="100%" height={200}>
             <RePieChart>
-              <Pie data={channelPie} cx="50%" cy="50%" innerRadius={55} outerRadius={80} dataKey="value" paddingAngle={3} label={({ name, value }) => `${value}%`} labelLine={false}>
-                {channelPie.map((e, i) => <Cell key={i} fill={e.color} />)}
+              <Pie data={filteredChannelPie} cx="50%" cy="50%" innerRadius={55} outerRadius={80} dataKey="value" paddingAngle={3} label={({ value }) => `${value}%`} labelLine={false}>
+                {filteredChannelPie.map((e, i) => <Cell key={i} fill={e.color} />)}
               </Pie>
               <Tooltip formatter={(v: number) => [`${v}%`]} />
             </RePieChart>
           </ResponsiveContainer>
           <div className="flex flex-wrap justify-center gap-3 mt-2">
-            {channelPie.map((c, i) => (
+            {filteredChannelPie.map((c, i) => (
               <div key={i} className="flex items-center gap-1.5 text-xs"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: c.color }} /><span className="text-muted-foreground">{c.name}</span></div>
             ))}
           </div>
@@ -1941,10 +1956,9 @@ function StatsChannel() {
             <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 10000).toFixed(0)}만`} />
             <Tooltip formatter={(v: number) => [v.toLocaleString() + "건"]} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Line type="monotone" dataKey="kakao" stroke="#F7E600" strokeWidth={2} dot={false} name="카카오 친구톡" />
-            <Line type="monotone" dataKey="sms" stroke="#1843FA" strokeWidth={2} dot={false} name="SMS" />
-            <Line type="monotone" dataKey="lms" stroke="#10B981" strokeWidth={2} dot={false} name="LMS" />
-            <Line type="monotone" dataKey="rcs" stroke="#8B5CF6" strokeWidth={2} dot={false} name="RCS" />
+            {trendLines.map(line => (
+              <Line key={line.key} type="monotone" dataKey={line.key} stroke={line.color} strokeWidth={2} dot={false} name={line.name} />
+            ))}
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -1954,7 +1968,7 @@ function StatsChannel() {
           <thead><tr className="bg-muted border-b border-border">
             {["채널", "발송량", "성공률", "실패율", "총 비용", "평균 단가"].map(h => <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>)}
           </tr></thead>
-          <tbody>{channelCostData.map(row => (
+          <tbody>{filteredChannelCostData.map(row => (
             <tr key={row.channel} className="border-b border-border hover:bg-muted/30">
               <td className="px-4 py-3 text-xs font-bold">{row.channel}</td>
               <td className="px-4 py-3 text-xs">{row.sends.toLocaleString()}건</td>
